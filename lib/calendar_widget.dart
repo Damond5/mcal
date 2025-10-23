@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'providers/event_provider.dart';
+import 'widgets/event_list.dart';
 
 class CalendarWidget extends StatefulWidget {
   const CalendarWidget({super.key});
@@ -13,6 +16,15 @@ class CalendarWidgetState extends State<CalendarWidget> {
   DateTime? _selectedDay;
 
   @override
+  void initState() {
+    super.initState();
+    // Load event dates on init
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   context.read<EventProvider>().loadAllEventDates();
+    // });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       child: Padding(
@@ -20,11 +32,8 @@ class CalendarWidgetState extends State<CalendarWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width - 32, // Account for padding
-              ),
-              child: TableCalendar(
+            Consumer<EventProvider>(
+              builder: (context, eventProvider, child) => TableCalendar(
                 firstDay: DateTime.utc(2010, 10, 16),
                 lastDay: DateTime.utc(2030, 3, 14),
                 focusedDay: _focusedDay,
@@ -36,6 +45,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
                     _selectedDay = selectedDay;
                     _focusedDay = focusedDay;
                   });
+                  context.read<EventProvider>().setSelectedDate(selectedDay);
                 },
                 onPageChanged: (focusedDay) {
                   setState(() {
@@ -88,11 +98,16 @@ class CalendarWidgetState extends State<CalendarWidget> {
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
+
               ),
-             ),
-          ],
-        ),
-      ),
-    );
-  }
+            ),
+            if (_selectedDay != null) ...[
+              const SizedBox(height: 20),
+              EventList(selectedDate: _selectedDay!),
+            ],
+           ],
+         ),
+       ),
+     );
+   }
 }

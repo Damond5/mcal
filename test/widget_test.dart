@@ -13,12 +13,16 @@ import 'package:table_calendar/table_calendar.dart';
 
 import 'package:mcal/main.dart';
 import 'package:mcal/providers/theme_provider.dart';
+import 'package:mcal/providers/event_provider.dart';
 
 // Helper to pump the app
 Future<void> pumpApp(WidgetTester tester) async {
   await tester.pumpWidget(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => EventProvider()),
+      ],
       child: const MyApp(),
     ),
   );

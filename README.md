@@ -1,10 +1,10 @@
 # MCal: Mobile Calendar
 
-A lightweight, cross-platform calendar application built with Flutter. This app provides a simple and intuitive interface for viewing and selecting dates on a calendar.
+A lightweight, cross-platform calendar application built with Flutter. This app provides a simple and intuitive interface for viewing and selecting dates on a calendar, with comprehensive event management features.
 
 ## Description
 
-The MCal: Mobile Calendar is a Flutter-based application that displays an interactive calendar widget. Users can navigate through months and select specific days. The app leverages the `table_calendar` package for robust calendar functionality and supports multiple platforms including Android, iOS, Linux, macOS, web, and Windows.
+The MCal: Mobile Calendar is a Flutter-based application that displays an interactive calendar widget. Users can navigate through months and select specific days. The app leverages the `table_calendar` package for robust calendar functionality and supports multiple platforms including Android, iOS, Linux, macOS, web, and Windows. Additionally, it includes an event management system allowing users to add, view, edit, and delete events associated with specific dates.
 
 ## Features
 
@@ -14,6 +14,9 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Customizable Theme**: Built with Flutter's Material Design, allowing for easy theming.
 - **Lightweight and Fast**: Minimal dependencies for quick loading and smooth performance.
 - **Localization Ready**: Uses the `intl` package for date formatting, supporting multiple locales.
+- **Event Management**: Create, view, edit, and delete events with details like title, time, and description.
+- **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date.
+- **Data Persistence**: Events are stored locally in markdown files for reliability and portability.
 
 ## Setup Instructions
 
@@ -79,8 +82,12 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 2. The calendar will display the current month by default.
 3. Use the navigation arrows to switch between months.
 4. Tap on any day to select it.
+5. To manage events:
+   - Tap on a day to view existing events or add new ones.
+   - Use the event dialogs to create, edit, or delete events with title, time, and description.
+   - Events are marked on the calendar and persist across app sessions.
 
- The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker.
+ The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 
  ## Testing
 
@@ -89,12 +96,13 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
  ### Test Coverage
 
  - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
- - **Unit Tests**: Tests for the `ThemeProvider` class, including theme mode setting, toggling, persistence, and dark mode logic.
+  - **Unit Tests**: Tests for the `ThemeProvider` and `EventProvider` classes, including theme mode setting, toggling, persistence, dark mode logic, and event management and storage.
 
  ### Test Files
 
  - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
- - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
+  - `test/event_provider_test.dart`: Contains unit tests for the `EventProvider` class.
+  - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
 
  ### Running Tests
 
@@ -119,26 +127,36 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **table_calendar**: Provides the calendar widget with selection and navigation features.
 - **intl**: Handles date formatting and localization.
 - **cupertino_icons**: Includes iOS-style icons (though not heavily used in this app).
+- **shared_preferences**: Persists user preferences like theme settings.
+- **provider**: Manages app state using the Provider pattern.
+- **path_provider**: Accesses platform-specific file directories for data storage.
 
 For a full list, see `pubspec.yaml`.
 
  ## Project Structure
 
- ```
- lib/
- ├── main.dart                 # App entry point and main widget
- ├── providers/
- │   └── theme_provider.dart   # Manages app theme state
- ├── themes/
- │   ├── dark_theme.dart       # Dark theme configuration
- │   └── light_theme.dart      # Light theme configuration
- └── widgets/
-     ├── calendar_widget.dart  # Calendar implementation
-     └── theme_toggle_button.dart # Theme toggle button widget
- test/
- ├── theme_provider_test.dart  # Unit tests for ThemeProvider
- └── widget_test.dart          # Widget tests for app components
- ```
+  ```
+  lib/
+  ├── main.dart                 # App entry point and main widget
+  ├── models/
+  │   └── event.dart            # Event data model
+  ├── providers/
+  │   ├── event_provider.dart   # Manages event state
+  │   └── theme_provider.dart   # Manages app theme state
+  ├── services/
+  │   └── event_storage.dart    # Handles event persistence
+  ├── themes/
+  │   ├── dark_theme.dart       # Dark theme configuration
+  │   └── light_theme.dart      # Light theme configuration
+  └── widgets/
+      ├── calendar_widget.dart  # Calendar implementation
+      ├── event_list.dart       # Displays list of events for a day
+      └── theme_toggle_button.dart # Theme toggle button widget
+  test/
+  ├── event_provider_test.dart  # Unit tests for EventProvider
+  ├── theme_provider_test.dart  # Unit tests for ThemeProvider
+  └── widget_test.dart          # Widget tests for app components
+  ```
 
 ## Contributing
 

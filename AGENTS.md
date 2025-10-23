@@ -52,10 +52,15 @@ made state class public, ensured dependencies are explicit in
 pubspec.yaml). Followed Material Design 3 guidelines.
 - **Testing**: Comprehensive test suite with widget tests for GUI
 functionality (app loading, calendar display, day selection, theme toggle
-interactions) and unit tests for business logic (ThemeProvider state
+interactions) and unit tests for business logic (ThemeProvider and EventProvider state
 management, persistence). Used Flutter's testing framework with mockito
 for SharedPreferences mocking. All tests run via `fvm flutter test` to
 ensure reliability and prevent regressions.
+- **Event System**: Implemented event management consistent with rcal,
+using markdown file storage in app documents directory. Supports add/view/edit/delete
+events with title, time, description. Events displayed as markers on calendar days,
+with list view for selected day. CRUD operations via dialogs. Extensible for
+notifications and Git sync.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.

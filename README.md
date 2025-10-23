@@ -82,9 +82,40 @@ The Simple Calendar App is a Flutter-based application that displays an interact
 5. The selected date will be displayed below the calendar in a readable format (e.g., "Selected day: 10/23/2025").
 6. If no day is selected, it shows "No day selected".
 
-The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker.
+ The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker.
 
-## Dependencies
+ ## Testing
+
+ The app includes a suite of tests to ensure functionality and reliability. Tests cover widget interactions, theme management, and core app behavior.
+
+ ### Test Coverage
+
+ - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
+ - **Unit Tests**: Tests for the `ThemeProvider` class, including theme mode setting, toggling, persistence, and dark mode logic.
+
+ ### Test Files
+
+ - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
+ - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
+
+ ### Running Tests
+
+ To run all tests:
+ ```bash
+ flutter test
+ ```
+
+ To run a specific test file:
+ ```bash
+ flutter test test/widget_test.dart
+ ```
+
+ To run tests with coverage (requires `flutter_test` and coverage tools):
+ ```bash
+ flutter test --coverage
+ ```
+
+ ## Dependencies
 
 - **Flutter**: The core framework for building the app.
 - **table_calendar**: Provides the calendar widget with selection and navigation features.
@@ -93,13 +124,23 @@ The app is designed for simplicity, making it easy to integrate into larger proj
 
 For a full list, see `pubspec.yaml`.
 
-## Project Structure
+ ## Project Structure
 
-```
-lib/
-├── main.dart          # App entry point and main widget
-└── calendar_widget.dart # Calendar implementation
-```
+ ```
+ lib/
+ ├── main.dart                 # App entry point and main widget
+ ├── providers/
+ │   └── theme_provider.dart   # Manages app theme state
+ ├── themes/
+ │   ├── dark_theme.dart       # Dark theme configuration
+ │   └── light_theme.dart      # Light theme configuration
+ └── widgets/
+     ├── calendar_widget.dart  # Calendar implementation
+     └── theme_toggle_button.dart # Theme toggle button widget
+ test/
+ ├── theme_provider_test.dart  # Unit tests for ThemeProvider
+ └── widget_test.dart          # Widget tests for app components
+ ```
 
 ## Contributing
 

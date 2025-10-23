@@ -7,6 +7,7 @@ import 'providers/event_provider.dart';
 import 'themes/light_theme.dart';
 import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
+import 'widgets/sync_button.dart';
 
 void main() {
   runApp(
@@ -65,6 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: const [
+          SyncButton(),
           ThemeToggleButton(),
         ],
       ),

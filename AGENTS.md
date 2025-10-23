@@ -56,11 +56,19 @@ interactions) and unit tests for business logic (ThemeProvider and EventProvider
 management, persistence). Used Flutter's testing framework with mockito
 for SharedPreferences mocking. All tests run via `fvm flutter test` to
 ensure reliability and prevent regressions.
-- **Event System**: Implemented event management consistent with rcal,
-using markdown file storage in app documents directory. Supports add/view/edit/delete
-events with title, time, description. Events displayed as markers on calendar days,
-with list view for selected day. CRUD operations via dialogs. Extensible for
-notifications and Git sync.
+ - **Event System**: Implemented event management consistent with rcal,
+ using markdown file storage in the app's calendar subdirectory within the documents directory. Supports add/view/edit/delete
+ events with title, time, description. Events displayed as markers on calendar days,
+ with list view for selected day. CRUD operations via dialogs. Extensible for
+ notifications and Git sync.
+ - **Sync System**: Implemented Git-based synchronization using `SyncService`
+ class with `Process.run` for executing git commands in the app's calendar subdirectory within the documents directory.
+ Remote URL stored in `shared_preferences`. Supports init, pull, push, and status
+ operations with user-friendly error handling. Integrated into `EventProvider`
+ for seamless sync functionality. Added Sync UI with `SyncButton` in app bar
+ opening a dialog with buttons for Init Sync (with URL text field), Pull, Push, Status.
+ Uses async/await with loading indicators and displays results/errors via SnackBar.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.
+- **Consistency with rcal**: All features should be consistent with https://github.com/Damond5/rcal, adapted for a Flutter GUI app.

@@ -1,14 +1,18 @@
-import 'package:flutter/material.dart';
-import '../models/event.dart';
-import '../services/event_storage.dart';
+import "package:flutter/material.dart";
+import "../models/event.dart";
+import "../services/event_storage.dart";
+import "../services/sync_service.dart";
 
 class EventProvider extends ChangeNotifier {
   final EventStorage _storage = EventStorage();
+  final SyncService _syncService = SyncService();
   final Map<DateTime, List<Event>> _events = {};
   bool _isLoading = false;
+  bool _isSyncing = false;
   DateTime? _selectedDate;
 
   bool get isLoading => _isLoading;
+  bool get isSyncing => _isSyncing;
   Map<DateTime, List<Event>> get events => _events;
   DateTime? get selectedDate => _selectedDate;
 
@@ -82,6 +86,60 @@ class EventProvider extends ChangeNotifier {
       if (!_events.containsKey(date)) {
         await loadEventsForDate(date);
       }
+    }
+  }
+
+  Future<void> syncInit(String url) async {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    notifyListeners();
+    try {
+      await _syncService.initSync(url);
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> syncPull() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    notifyListeners();
+    try {
+      await _syncService.pullSync();
+      // Reload events after pull
+      _events.clear();
+      await loadAllEventDates();
+    } catch (e) {
+      _isSyncing = false;
+      notifyListeners();
+      rethrow;
+    }
+    _isSyncing = false;
+    notifyListeners();
+  }
+
+  Future<void> syncPush() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
+    notifyListeners();
+    try {
+      await _syncService.pushSync();
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
+  }
+
+  Future<String> syncStatus() async {
+    if (_isSyncing) return "syncing";
+    _isSyncing = true;
+    notifyListeners();
+    try {
+      return await _syncService.getSyncStatus();
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
     }
   }
 }

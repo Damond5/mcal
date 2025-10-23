@@ -61,7 +61,7 @@ void main() {
     await pumpApp(tester);
 
     // Verify theme toggle button is present
-    expect(find.byType(IconButton), findsOneWidget, reason: 'Theme toggle button should be in the app bar');
+    expect(find.byTooltip('Toggle theme'), findsOneWidget, reason: 'Theme toggle button should be in the app bar');
 
     // Verify it has an appropriate icon
     final hasSystemIcon = find.byIcon(Icons.brightness_6).evaluate().isNotEmpty;
@@ -70,7 +70,7 @@ void main() {
     expect(hasSystemIcon || hasLightIcon || hasDarkIcon, isTrue, reason: 'Button should show a theme-related icon');
 
     // Tap the button (should not crash)
-    await tester.tap(find.byType(IconButton));
+    await tester.tap(find.byTooltip('Toggle theme'));
     await tester.pumpAndSettle();
 
     // App should still be functional
@@ -86,7 +86,7 @@ void main() {
     expect(find.byIcon(Icons.dark_mode), findsOneWidget, reason: 'Light mode should show dark toggle icon');
 
     // Tap to toggle to dark
-    await tester.tap(find.byType(IconButton));
+    await tester.tap(find.byTooltip('Toggle theme'));
     await tester.pumpAndSettle();
 
     // Should now show light_mode icon

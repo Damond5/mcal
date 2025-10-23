@@ -17,6 +17,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Event Management**: Create, view, edit, and delete events with details like title, time, and description.
 - **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date.
 - **Data Persistence**: Events are stored locally in markdown files for reliability and portability.
+- **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations.
 
 ## Setup Instructions
 
@@ -83,9 +84,13 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 3. Use the navigation arrows to switch between months.
 4. Tap on any day to select it.
 5. To manage events:
-   - Tap on a day to view existing events or add new ones.
-   - Use the event dialogs to create, edit, or delete events with title, time, and description.
-   - Events are marked on the calendar and persist across app sessions.
+    - Tap on a day to view existing events or add new ones.
+    - Use the event dialogs to create, edit, or delete events with title, time, and description.
+    - Events are marked on the calendar and persist across app sessions.
+6. To sync events:
+    - Tap the Sync button in the app bar to open the sync dialog.
+    - Use Init Sync to initialize with a Git remote URL.
+    - Use Pull to fetch latest events from remote, Push to upload local changes, Status to check repository state.
 
  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 
@@ -140,18 +145,20 @@ For a full list, see `pubspec.yaml`.
   ├── main.dart                 # App entry point and main widget
   ├── models/
   │   └── event.dart            # Event data model
-  ├── providers/
-  │   ├── event_provider.dart   # Manages event state
-  │   └── theme_provider.dart   # Manages app theme state
-  ├── services/
-  │   └── event_storage.dart    # Handles event persistence
-  ├── themes/
-  │   ├── dark_theme.dart       # Dark theme configuration
-  │   └── light_theme.dart      # Light theme configuration
-  └── widgets/
-      ├── calendar_widget.dart  # Calendar implementation
-      ├── event_list.dart       # Displays list of events for a day
-      └── theme_toggle_button.dart # Theme toggle button widget
+   ├── providers/
+   │   ├── event_provider.dart   # Manages event state
+   │   └── theme_provider.dart   # Manages app theme state
+   ├── services/
+   │   ├── event_storage.dart    # Handles event persistence
+   │   └── sync_service.dart     # Handles Git synchronization
+   ├── themes/
+   │   ├── dark_theme.dart       # Dark theme configuration
+   │   └── light_theme.dart      # Light theme configuration
+   └── widgets/
+       ├── calendar_widget.dart  # Calendar implementation
+       ├── event_list.dart       # Displays list of events for a day
+       ├── sync_button.dart      # Sync button widget
+       └── theme_toggle_button.dart # Theme toggle button widget
   test/
   ├── event_provider_test.dart  # Unit tests for EventProvider
   ├── theme_provider_test.dart  # Unit tests for ThemeProvider

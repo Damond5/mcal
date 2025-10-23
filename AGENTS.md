@@ -1,14 +1,14 @@
 # Agents.md - Development Guidelines
 
 ## Build/Lint/Test Commands
-- **Install dependencies**: `flutter pub get`
-- **Build debug**: `flutter run`
-- **Build release APK**: `flutter build apk`
-- **Build web**: `flutter build web`
-- **Build Linux**: `flutter build linux`
-- **Lint**: `flutter analyze`
-- **Run all tests**: `flutter test`
-- **Run single test**: `flutter test test/widget_test.dart`
+- **Install dependencies**: `fvm flutter pub get`
+- **Build debug**: `fvm flutter run`
+- **Build release APK**: `fvm flutter build apk`
+- **Build web**: `fvm flutter build web`
+- **Build Linux**: `fvm flutter build linux`
+- **Lint**: `fvm flutter analyze`
+- **Run all tests**: `fvm flutter test`
+- **Run single test**: `fvm flutter test test/widget_test.dart`
 
 ## Code Style Guidelines
 - **Imports**: Group flutter/material first, then third-party packages, then local imports

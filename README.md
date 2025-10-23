@@ -4,12 +4,12 @@ A lightweight, cross-platform calendar application built with Flutter. This app 
 
 ## Description
 
-The Simple Calendar App is a Flutter-based application that displays an interactive calendar widget. Users can navigate through months, select specific days, and view the selected date in a formatted manner. The app leverages the `table_calendar` package for robust calendar functionality and supports multiple platforms including Android, iOS, Linux, macOS, web, and Windows.
+The Simple Calendar App is a Flutter-based application that displays an interactive calendar widget. Users can navigate through months and select specific days. The app leverages the `table_calendar` package for robust calendar functionality and supports multiple platforms including Android, iOS, Linux, macOS, web, and Windows.
 
 ## Features
 
 - **Interactive Calendar**: Navigate through months and select days with ease.
-- **Date Selection**: Click on any day to select it and see the formatted date displayed below the calendar.
+- **Date Selection**: Click on any day to select it graphically on the calendar.
 - **Cross-Platform Support**: Runs on mobile (Android/iOS), desktop (Linux/macOS/Windows), and web platforms.
 - **Customizable Theme**: Built with Flutter's Material Design, allowing for easy theming.
 - **Lightweight and Fast**: Minimal dependencies for quick loading and smooth performance.
@@ -79,8 +79,6 @@ The Simple Calendar App is a Flutter-based application that displays an interact
 2. The calendar will display the current month by default.
 3. Use the navigation arrows to switch between months.
 4. Tap on any day to select it.
-5. The selected date will be displayed below the calendar in a readable format (e.g., "Selected day: 10/23/2025").
-6. If no day is selected, it shows "No day selected".
 
  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker.
 

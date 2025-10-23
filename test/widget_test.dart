@@ -13,7 +13,6 @@ import 'package:table_calendar/table_calendar.dart';
 
 import 'package:mcal/main.dart';
 import 'package:mcal/providers/theme_provider.dart';
-import 'package:mcal/widgets/theme_toggle_button.dart';
 
 // Helper to pump the app
 Future<void> pumpApp(WidgetTester tester) async {
@@ -33,18 +32,12 @@ void main() {
     // Verify that the app title is displayed
     expect(find.text('Simple Calendar'), findsOneWidget, reason: 'App bar should display the title');
 
-    // Verify that "No day selected" text is displayed initially
-    expect(find.text('No day selected'), findsOneWidget, reason: 'Initial state should show no day selected');
-
     // Verify that the calendar widget is present
     expect(find.byType(TableCalendar), findsOneWidget, reason: 'Calendar should be rendered');
   });
 
   testWidgets('Calendar allows day selection', (WidgetTester tester) async {
     await pumpApp(tester);
-
-    // Initially no day should be selected
-    expect(find.text('No day selected'), findsOneWidget);
 
     // Verify calendar is present and has day cells
     expect(find.byType(TableCalendar), findsOneWidget);

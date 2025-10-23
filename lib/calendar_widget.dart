@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarWidget extends StatefulWidget {
@@ -90,24 +89,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                _selectedDay != null
-                    ? 'Selected day: ${DateFormat.yMd().format(_selectedDay!)}'
-                    : 'No day selected',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                textAlign: TextAlign.center,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
+             ),
           ],
         ),
       ),

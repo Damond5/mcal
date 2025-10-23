@@ -22,30 +22,36 @@
 - **State management**: Use StatefulWidget for simple state, consider providers for complex apps
 
 ## Design Choices for Simple Calendar App
+
 - **Calendar Library**: Chose `table_calendar` (v3.2.0) for its
 highly customizable and feature-packed calendar widget, supporting
 month/week views, selection, and formatting.
 - **State Management**: Used Flutter's built-in `StatefulWidget`
 for managing calendar state (focused day, selected day) to keep it
-simple and avoid over-engineering.
-- **Modularity**: Created a separate `CalendarWidget` class to
+simple and avoid over-engineering. For app-level state like themes,
+implemented `ChangeNotifier` with `Provider` pattern.
+- **Theme System**: Implemented comprehensive dark mode support with
+`ThemeProvider` for state management, `shared_preferences` for persistence,
+and theme-aware styling throughout the app including calendar theming.
+- **Modularity**: Created separate `CalendarWidget` class to
 encapsulate calendar logic, making the main app cleaner and
-reusable.
+reusable. Organized code into logical directories (providers, themes, widgets).
 - **Date Formatting**: Integrated `intl` package for proper date
 formatting (e.g., `DateFormat.yMd()`) instead of string
 manipulation, ensuring localization support.
 - **UI Layout**: Used a `Column` with `TableCalendar` and a `Text`
 widget to display selected day, providing immediate feedback on
-user interactions.
+user interactions. Added responsive constraints to prevent overflow.
 - **Error Handling**: Added null checks for selected day to
 prevent crashes and display user-friendly messages.
 - **Performance**: Kept the app lightweight with no unnecessary
-rebuilds; state updates only trigger when needed.
+rebuilds; state updates only trigger when needed. Used efficient
+theme rebuilding with `Consumer` widgets.
 - **Code Quality**: Fixed all lints (e.g., added `key` parameters,
 made state class public, ensured dependencies are explicit in
-pubspec.yaml).
-- **Testing**: No automated tests added yet; manual verification
-via `flutter analyze` and build checks.
+pubspec.yaml). Followed Material Design 3 guidelines.
+- **Testing**: Basic widget tests for app loading and calendar display;
+theme functionality can be tested manually.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
-configurable.
+configurable. Theme system is extensible for additional themes.

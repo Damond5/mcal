@@ -5,16 +5,22 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import 'package:mcal/main.dart';
+import 'package:mcal/providers/theme_provider.dart';
 
 void main() {
   testWidgets('Calendar app loads and displays initial state', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    // Build our app with the theme provider and trigger a frame.
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (context) => ThemeProvider(),
+        child: const MyApp(),
+      ),
+    );
 
     // Verify that the app title is displayed
     expect(find.text('Simple Calendar'), findsOneWidget);
@@ -27,8 +33,13 @@ void main() {
   });
 
   testWidgets('Calendar allows day selection', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    // Build our app with the theme provider and trigger a frame.
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (context) => ThemeProvider(),
+        child: const MyApp(),
+      ),
+    );
 
     // Initially no day should be selected
     expect(find.text('No day selected'), findsOneWidget);

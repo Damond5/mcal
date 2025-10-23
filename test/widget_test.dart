@@ -30,7 +30,7 @@ void main() {
     await pumpApp(tester);
 
     // Verify that the app title is displayed
-    expect(find.text('Simple Calendar'), findsOneWidget, reason: 'App bar should display the title');
+    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App bar should display the title');
 
     // Verify that the calendar widget is present
     expect(find.byType(TableCalendar), findsOneWidget, reason: 'Calendar should be rendered');
@@ -70,7 +70,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // App should still be functional
-    expect(find.text('Simple Calendar'), findsOneWidget, reason: 'App should remain functional after theme toggle');
+    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App should remain functional after theme toggle');
   });
 
   testWidgets('Theme toggle changes icon appropriately', (WidgetTester tester) async {

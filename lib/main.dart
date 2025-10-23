@@ -24,11 +24,11 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'Simple Calendar',
+           title: 'MCal: Mobile Calendar',
           theme: getLightTheme(),
           darkTheme: getDarkTheme(),
           themeMode: themeProvider.themeMode,
-          home: const MyHomePage(title: 'Simple Calendar'),
+           home: const MyHomePage(title: 'MCal: Mobile Calendar'),
         );
       },
     );

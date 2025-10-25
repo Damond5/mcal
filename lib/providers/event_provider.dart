@@ -2,7 +2,11 @@
 import "dart:async";
 import "dart:io";
 import "dart:developer";
+import "dart:convert";
+import "package:shared_preferences/shared_preferences.dart";
+import "package:workmanager/workmanager.dart";
 import "../models/event.dart";
+import "../models/sync_settings.dart";
 import "../services/event_storage.dart";
 import "../services/sync_service.dart";
 import "../services/notification_service.dart";
@@ -18,15 +22,59 @@ class EventProvider extends ChangeNotifier {
   int _refreshCounter = 0;
   Timer? _notificationTimer;
   final Set<String> _notifiedIds = {};
+  SyncSettings _syncSettings = const SyncSettings();
+  DateTime? _lastSyncTime;
+  Timer? _periodicSyncTimer;
 
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
   DateTime? get selectedDate => _selectedDate;
   int get refreshCounter => _refreshCounter;
+  SyncSettings get syncSettings => _syncSettings;
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     notifyListeners();
+  }
+
+  Future<void> loadSyncSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final settingsJson = prefs.getString('syncSettings');
+    if (settingsJson != null) {
+      _syncSettings = SyncSettings.fromJson(jsonDecode(settingsJson));
+    }
+    _lastSyncTime = DateTime.tryParse(prefs.getString('lastSyncTime') ?? '');
+    notifyListeners();
+  }
+
+  Future<void> saveSyncSettings(SyncSettings settings) async {
+    _syncSettings = settings;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('syncSettings', jsonEncode(settings.toJson()));
+    notifyListeners();
+    _updatePeriodicSync();
+  }
+
+  void _updatePeriodicSync() {
+    _periodicSyncTimer?.cancel();
+    if (Platform.isLinux) {
+      if (_syncSettings.autoSyncEnabled) {
+        _periodicSyncTimer = Timer.periodic(
+          Duration(minutes: _syncSettings.syncFrequencyMinutes),
+          (_) => autoSyncPeriodic(),
+        );
+      }
+    } else {
+      if (_syncSettings.autoSyncEnabled) {
+        Workmanager().registerPeriodicTask(
+          'periodicSync',
+          'sync',
+          frequency: Duration(minutes: _syncSettings.syncFrequencyMinutes),
+        );
+      } else {
+        Workmanager().cancelByUniqueName('periodicSync');
+      }
+    }
   }
 
   List<Event> getEventsForDate(DateTime date) {
@@ -47,6 +95,7 @@ class EventProvider extends ChangeNotifier {
 
     try {
       _allEvents = await _storage.loadAllEvents();
+      await loadSyncSettings();
       // Schedule notifications for all loaded events
       for (final event in _allEvents) {
         if (!Platform.isLinux) {
@@ -55,6 +104,7 @@ class EventProvider extends ChangeNotifier {
       }
       if (Platform.isLinux) {
         _startNotificationTimer();
+        _updatePeriodicSync();
       }
       _refreshCounter++;
     } catch (e) {
@@ -204,11 +254,43 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> autoSyncOnStart() async {
-    if (await _syncService.isSyncInitialized()) {
+    if (await _syncService.isSyncInitialized() && _syncSettings.resumeSyncEnabled) {
       try {
         await syncPull();
       } catch (e) {
         log('Auto pull failed: $e');
+      }
+    }
+  }
+
+  Future<void> autoSyncPeriodic() async {
+    if (await _syncService.isSyncInitialized() && _syncSettings.autoSyncEnabled) {
+      final now = DateTime.now();
+      if (_lastSyncTime == null || now.difference(_lastSyncTime!).inMinutes >= _syncSettings.syncFrequencyMinutes) {
+        try {
+          await syncPull();
+          _lastSyncTime = now;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('lastSyncTime', now.toIso8601String());
+        } catch (e) {
+          log('Auto periodic pull failed: $e');
+        }
+      }
+    }
+  }
+
+  Future<void> autoSyncOnResume() async {
+    if (await _syncService.isSyncInitialized() && _syncSettings.resumeSyncEnabled) {
+      final now = DateTime.now();
+      if (_lastSyncTime == null || now.difference(_lastSyncTime!).inMinutes > 5) {
+        try {
+          await syncPull();
+          _lastSyncTime = now;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('lastSyncTime', now.toIso8601String());
+        } catch (e) {
+          log('Auto resume pull failed: $e');
+        }
       }
     }
   }

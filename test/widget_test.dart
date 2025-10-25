@@ -100,4 +100,22 @@ void main() {
     // If the app loads successfully, notification initialization didn't crash
     expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App should load successfully with notification initialization');
   });
+
+  testWidgets('Sync settings dialog displays correctly', (WidgetTester tester) async {
+    await pumpApp(tester);
+
+    // Open sync menu
+    await tester.tap(find.byIcon(Icons.sync));
+    await tester.pumpAndSettle();
+
+    // Tap settings
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    // Check dialog is shown
+    expect(find.text('Sync Settings'), findsOneWidget);
+    expect(find.text('Auto Sync'), findsOneWidget);
+    expect(find.text('Sync on Resume'), findsOneWidget);
+    expect(find.text('Sync Frequency (minutes)'), findsOneWidget);
+  });
 }

@@ -17,7 +17,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Event Management**: Create, view, edit, and delete events with full details including title, start/end dates, start/end times, description, and recurrence (none/daily/weekly/monthly). Supports all-day events and multi-day spans.
 - **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date, with recurring events expanded automatically.
 - **Data Persistence**: Events are stored locally in individual Markdown files per event, following the rcal specification for compatibility and portability.
-- **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations.
+- **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations. Includes automatic syncing with configurable settings and conflict resolution.
 - **Notifications**: Receive local notifications for upcoming events. Timed events notify 30 minutes before start time, all-day events notify at midday the day before. On Linux, notifications are shown while the app is running using a background timer.
 
 ## Setup Instructions
@@ -89,11 +89,12 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
     - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
     - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
-6. To sync events:
-    - Events are automatically synced: pulls on app start, pushes after changes.
-    - For manual sync, tap the Sync button in the app bar to open the sync dialog.
-    - Use Init Sync to initialize with a Git remote URL.
-    - Use Pull to fetch latest events from remote, Push to upload local changes, Status to check repository state.
+ 6. To sync events:
+     - Events are automatically synced: pulls on app start, pushes after changes.
+     - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
+     - For manual sync, tap the Sync button in the app bar to open the sync menu.
+     - Use Init Sync to initialize with a Git remote URL.
+     - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
 
  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 

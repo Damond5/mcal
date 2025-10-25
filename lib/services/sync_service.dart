@@ -3,6 +3,11 @@ import "dart:developer";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:path_provider/path_provider.dart";
 
+class SyncConflictException implements Exception {
+  final String message;
+  SyncConflictException(this.message);
+}
+
 class SyncService {
   static const String _remoteUrlKey = "git_remote_url";
 
@@ -113,6 +118,9 @@ class SyncService {
        await _runGitCommand("git", ["pull", "--rebase", "origin"], errorMessage: "Failed to pull from remote");
      } catch (e) {
        log('Pull sync failed: $e');
+       if (e.toString().toLowerCase().contains('conflict')) {
+         throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
+       }
        throw Exception("Pull sync failed: $e");
      }
   }
@@ -163,5 +171,27 @@ class SyncService {
   Future<bool> isSyncInitialized() async {
     final url = await _getRemoteUrl();
     return url != null;
+  }
+
+  Future<void> resolveConflictPreferRemote() async {
+    await _checkGitAvailability();
+    try {
+      await _runGitCommand("git", ["checkout", "--theirs", "."], errorMessage: "Failed to checkout remote version");
+      await _runGitCommand("git", ["add", "."], errorMessage: "Failed to add files");
+      await _runGitCommand("git", ["rebase", "--continue"], errorMessage: "Failed to continue rebase");
+    } catch (e) {
+      log('Resolve conflict failed: $e');
+      throw Exception("Failed to resolve conflict: $e");
+    }
+  }
+
+  Future<void> abortConflict() async {
+    await _checkGitAvailability();
+    try {
+      await _runGitCommand("git", ["rebase", "--abort"], errorMessage: "Failed to abort rebase");
+    } catch (e) {
+      log('Abort conflict failed: $e');
+      throw Exception("Failed to abort conflict: $e");
+    }
   }
 }

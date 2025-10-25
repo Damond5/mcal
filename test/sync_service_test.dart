@@ -38,4 +38,12 @@ void main() {
     // Mocking is complex, so just check it returns a string
     expect(await syncService.getSyncStatus(), isA<String>());
   });
+
+  test('resolveConflictPreferRemote throws if git fails', () async {
+    expect(() async => await syncService.resolveConflictPreferRemote(), throwsA(isA<Exception>()));
+  });
+
+  test('abortConflict throws if git fails', () async {
+    expect(() async => await syncService.abortConflict(), throwsA(isA<Exception>()));
+  });
 }

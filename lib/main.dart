@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:workmanager/workmanager.dart';
 import 'calendar_widget.dart';
 
 import 'providers/theme_provider.dart';
 import 'providers/event_provider.dart';
 import 'services/notification_service.dart';
+import 'services/background_sync_service.dart';
 import 'themes/light_theme.dart';
 import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
 import 'widgets/sync_button.dart';
 import 'widgets/event_form_dialog.dart';
 
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) {
+    return BackgroundSyncService.executePeriodicSync();
+  });
+}
+
 void main() {
+  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   runApp(
     MultiProvider(
       providers: [
@@ -53,13 +63,27 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initNotifications();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      context.read<EventProvider>().autoSyncOnResume();
+    }
   }
 
   Future<void> _initNotifications() async {

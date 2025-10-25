@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Parsing and generation of rcal-compatible Markdown format.
+- GUI updates after sync by adding refresh counter to force calendar rebuilds.
+- Improved input validation: title sanitization, time order checks, date ranges.
+- Performance: capped recurrence expansion to 1 year ahead.
+- Security: enhanced URL validation for sync, prevented path traversal in titles.
 
 ### Removed
 - Old date-based event storage format.

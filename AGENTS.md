@@ -69,6 +69,7 @@ ensure reliability and prevent regressions.
  for seamless sync functionality. Added Sync UI with `SyncButton` in app bar
  opening a dialog with buttons for Init Sync (with URL text field), Pull, Push, Status.
  Uses async/await with loading indicators and displays results/errors via SnackBar.
+ GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.

@@ -11,10 +11,12 @@ class EventProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSyncing = false;
   DateTime? _selectedDate;
+  int _refreshCounter = 0;
 
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
   DateTime? get selectedDate => _selectedDate;
+  int get refreshCounter => _refreshCounter;
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
@@ -39,6 +41,7 @@ class EventProvider extends ChangeNotifier {
 
     try {
       _allEvents = await _storage.loadAllEvents();
+      _refreshCounter++;
     } catch (e) {
       log('Error loading all events: $e');
       rethrow;
@@ -52,6 +55,7 @@ class EventProvider extends ChangeNotifier {
     try {
       await _storage.addEvent(event);
       _allEvents.add(event);
+      _refreshCounter++;
       notifyListeners();
     } catch (e) {
       log('Error adding event: $e');
@@ -66,6 +70,7 @@ class EventProvider extends ChangeNotifier {
       if (index != -1) {
         _allEvents[index] = event;
       }
+      _refreshCounter++;
       notifyListeners();
     } catch (e) {
       log('Error updating event: $e');
@@ -77,6 +82,7 @@ class EventProvider extends ChangeNotifier {
     try {
       await _storage.deleteEvent(eventId);
       _allEvents.removeWhere((e) => e.id == eventId);
+      _refreshCounter++;
       notifyListeners();
     } catch (e) {
       log('Error deleting event: $e');
@@ -129,6 +135,7 @@ class EventProvider extends ChangeNotifier {
       // Reload events after pull
       _allEvents.clear();
       await loadAllEvents();
+      // _refreshCounter incremented in loadAllEvents
      } catch (e) {
        log('Sync pull failed: $e');
        _isSyncing = false;

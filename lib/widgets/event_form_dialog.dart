@@ -98,17 +98,34 @@ class EventFormDialogState extends State<EventFormDialog> {
   }
 
   bool _validate() {
-    if (titleController.text.trim().isEmpty) {
+    final title = titleController.text.trim();
+    if (title.isEmpty) {
       setState(() => errorMessage = 'Title is required');
+      return false;
+    }
+    if (title.contains('..') || title.startsWith('/')) {
+      setState(() => errorMessage = 'Title contains invalid characters');
       return false;
     }
     if (selectedEndDate != null && selectedEndDate!.isBefore(selectedStartDate)) {
       setState(() => errorMessage = 'End date must be after start date');
       return false;
     }
-    if (!isAllDay && selectedStartTime == null) {
-      setState(() => errorMessage = 'Start time is required for timed events');
-      return false;
+    if (!isAllDay) {
+      if (selectedStartTime == null) {
+        setState(() => errorMessage = 'Start time is required for timed events');
+        return false;
+      }
+      if (selectedEndTime != null) {
+        final startTimeOfDay = TimeOfDay.fromDateTime(DateTime.parse('2020-01-01 $selectedStartTime'));
+        final endTimeOfDay = TimeOfDay.fromDateTime(DateTime.parse('2020-01-01 $selectedEndTime'));
+        final startMinutes = startTimeOfDay.hour * 60 + startTimeOfDay.minute;
+        final endMinutes = endTimeOfDay.hour * 60 + endTimeOfDay.minute;
+        if (endMinutes <= startMinutes) {
+          setState(() => errorMessage = 'End time must be after start time');
+          return false;
+        }
+      }
     }
     setState(() => errorMessage = null);
     return true;

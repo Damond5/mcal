@@ -2,6 +2,9 @@
 import 'dart:developer';
 
 class Event {
+  static const List<String> validRecurrences = ['none', 'daily', 'weekly', 'monthly'];
+  static const int minYear = 1900;
+  static const int maxYear = 2100;
   final String id;
   final String title;
   final DateTime startDate;
@@ -49,8 +52,10 @@ class Event {
   String get fileName {
     final sanitized = title
         .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove invalid chars
-        .replaceAll(RegExp(r'\s+'), '_') // Spaces to underscores
         .toLowerCase();
+    if (sanitized.contains('..') || sanitized.startsWith('/')) {
+      throw Exception('Invalid title: contains invalid path characters');
+    }
     return '$sanitized.md';
   }
 
@@ -99,7 +104,7 @@ class Event {
       if (endDate != null && endDate.isBefore(startDate)) throw FormatException('End date before start date');
     if (startTime != null && !_isValidTime(startTime)) throw FormatException('Invalid start time format');
     if (endTime != null && !_isValidTime(endTime)) throw FormatException('Invalid end time format');
-      if (!['none', 'daily', 'weekly', 'monthly'].contains(recurrence)) recurrence = 'none';
+      if (!validRecurrences.contains(recurrence)) recurrence = 'none';
 
       return Event(
         id: id.isNotEmpty ? id : null,
@@ -125,7 +130,7 @@ class Event {
       final month = int.parse(parts[1]);
       final day = int.parse(parts[2]);
       // Validate range
-      if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+      if (year < minYear || year > maxYear || month < 1 || month > 12 || day < 1 || day > 31) return null;
       return DateTime(year, month, day);
     } catch (e) {
       return null;
@@ -196,17 +201,18 @@ class Event {
   int get hashCode => id.hashCode;
 
   // Static utility methods for recurrence handling
-  static List<Event> expandRecurring(Event event, DateTime targetDate) {
+  static List<Event> expandRecurring(Event event, DateTime targetDate, {DateTime? maxDate}) {
     final instances = <Event>[];
     instances.add(event); // Base instance
 
     if (event.recurrence == 'none') return instances;
 
-    // Expand up to target date for performance
+    // Expand up to target date for performance, capped at maxDate
     final endDate = targetDate;
+    final capDate = maxDate ?? targetDate.add(const Duration(days: 365));
     DateTime current = event.startDate;
 
-    while (current.isBefore(endDate)) {
+    while (current.isBefore(endDate) && current.isBefore(capDate)) {
       if (event.recurrence == 'daily') {
         current = current.add(const Duration(days: 1));
       } else if (event.recurrence == 'weekly') {

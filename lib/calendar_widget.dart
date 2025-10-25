@@ -18,10 +18,6 @@ class CalendarWidgetState extends State<CalendarWidget> {
   @override
   void initState() {
     super.initState();
-    // Load event dates on init
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   context.read<EventProvider>().loadAllEventDates();
-    // });
   }
 
   @override
@@ -34,6 +30,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
           children: [
             Consumer<EventProvider>(
               builder: (context, eventProvider, child) => TableCalendar(
+                key: ValueKey(eventProvider.refreshCounter),
                 firstDay: DateTime.utc(2010, 10, 16),
                 lastDay: DateTime.utc(2030, 3, 14),
                 focusedDay: _focusedDay,

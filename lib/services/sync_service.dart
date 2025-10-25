@@ -38,13 +38,16 @@ class SyncService {
   }
 
   bool _isValidUrl(String url) {
-    if (url.startsWith("http") || url.startsWith("git@")) {
-      // For HTTP, validate as URI
-      if (url.startsWith("http")) {
-        return Uri.tryParse(url) != null;
+    try {
+      final uri = Uri.parse(url);
+      if (uri.scheme == 'http' || uri.scheme == 'https') {
+        return uri.host.isNotEmpty;
+      } else if (url.startsWith("git@")) {
+        // For SSH, basic check
+        return url.contains("@") && url.contains(":");
       }
-      // For SSH, basic check
-      return url.contains("@") && url.contains(":");
+    } catch (e) {
+      // Invalid URI
     }
     return false;
   }

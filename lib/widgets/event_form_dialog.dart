@@ -59,8 +59,8 @@ class EventFormDialogState extends State<EventFormDialog> {
     final date = await showDatePicker(
       context: context,
       initialDate: initial,
-      firstDate: DateTime(2010),
-      lastDate: DateTime(2030),
+      firstDate: DateTime(Event.minYear),
+      lastDate: DateTime(Event.maxYear),
     );
     if (date != null) {
       setState(() {

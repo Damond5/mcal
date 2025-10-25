@@ -1,5 +1,5 @@
- import 'package:uuid/uuid.dart';
 import 'dart:developer';
+import 'package:uuid/uuid.dart';
 
 class Event {
   static const List<String> validRecurrences = ['none', 'daily', 'weekly', 'monthly'];
@@ -23,7 +23,15 @@ class Event {
     this.endTime,
     this.description = '',
     this.recurrence = 'none',
-  }) : id = id ?? const Uuid().v4();
+  }) : id = id ?? const Uuid().v4() {
+    if (title.isEmpty) throw ArgumentError('Title cannot be empty');
+    if (title.length > 100) throw ArgumentError('Title must be 100 characters or less');
+    if (!validRecurrences.contains(recurrence)) throw ArgumentError('Invalid recurrence: $recurrence');
+    if (endDate != null && endDate!.isBefore(startDate)) throw ArgumentError('End date cannot be before start date');
+    if (startTime != null && !_isValidTime(startTime!)) throw ArgumentError('Invalid start time format');
+    if (endTime != null && !_isValidTime(endTime!)) throw ArgumentError('Invalid end time format');
+    if (startTime != null && endTime != null && endDate == null && _compareTimes(startTime!, endTime!) >= 0) throw ArgumentError('End time must be after start time on the same day');
+  }
 
   // Check if event is all-day
   bool get isAllDay => startTime == null;
@@ -54,7 +62,7 @@ class Event {
         .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove invalid chars
         .toLowerCase();
     if (sanitized.contains('..') || sanitized.startsWith('/')) {
-      throw Exception('Invalid title: contains invalid path characters');
+      throw ArgumentError('Invalid title: contains invalid path characters');
     }
     return '$sanitized.md';
   }
@@ -140,6 +148,14 @@ class Event {
   static bool _isValidTime(String time) {
     final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
     return regex.hasMatch(time);
+  }
+
+  static int _compareTimes(String t1, String t2) {
+    final parts1 = t1.split(':').map(int.parse).toList();
+    final parts2 = t2.split(':').map(int.parse).toList();
+    final total1 = parts1[0] * 60 + parts1[1];
+    final total2 = parts2[0] * 60 + parts2[1];
+    return total1.compareTo(total2);
   }
 
   // Convert to rcal markdown format

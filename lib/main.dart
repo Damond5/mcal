@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
 import 'calendar_widget.dart';
 
 import 'providers/theme_provider.dart';
 import 'providers/event_provider.dart';
+import 'services/notification_service.dart';
 import 'themes/light_theme.dart';
 import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
@@ -56,8 +58,22 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<EventProvider>().loadAllEvents();
+      _initNotifications();
     });
+  }
+
+  Future<void> _initNotifications() async {
+    tz_data.initializeTimeZones();
+    await NotificationService().initialize();
+    final granted = await NotificationService().requestPermissions();
+    if (!granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notification permissions denied. Events will not notify.')),
+      );
+    }
+    if (mounted) {
+      context.read<EventProvider>().loadAllEvents();
+    }
   }
 
   @override

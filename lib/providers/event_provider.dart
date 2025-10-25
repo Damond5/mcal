@@ -1,17 +1,23 @@
- import "package:flutter/material.dart";
+   import "package:flutter/material.dart";
+import "dart:async";
+import "dart:io";
 import "dart:developer";
 import "../models/event.dart";
 import "../services/event_storage.dart";
 import "../services/sync_service.dart";
+import "../services/notification_service.dart";
 
 class EventProvider extends ChangeNotifier {
   final EventStorage _storage = EventStorage();
   final SyncService _syncService = SyncService();
+  final NotificationService _notificationService = NotificationService();
   List<Event> _allEvents = [];
   bool _isLoading = false;
   bool _isSyncing = false;
   DateTime? _selectedDate;
   int _refreshCounter = 0;
+  Timer? _notificationTimer;
+  final Set<String> _notifiedIds = {};
 
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
@@ -41,6 +47,15 @@ class EventProvider extends ChangeNotifier {
 
     try {
       _allEvents = await _storage.loadAllEvents();
+      // Schedule notifications for all loaded events
+      for (final event in _allEvents) {
+        if (!Platform.isLinux) {
+          await _notificationService.scheduleNotificationForEvent(event);
+        }
+      }
+      if (Platform.isLinux) {
+        _startNotificationTimer();
+      }
       _refreshCounter++;
     } catch (e) {
       log('Error loading all events: $e');
@@ -55,6 +70,9 @@ class EventProvider extends ChangeNotifier {
     try {
       await _storage.addEvent(event);
       _allEvents.add(event);
+      if (!Platform.isLinux) {
+        await _notificationService.scheduleNotificationForEvent(event);
+      }
       _refreshCounter++;
       notifyListeners();
     } catch (e) {
@@ -70,6 +88,9 @@ class EventProvider extends ChangeNotifier {
       if (index != -1) {
         _allEvents[index] = event;
       }
+      if (!Platform.isLinux) {
+        await _notificationService.scheduleNotificationForEvent(event);
+      }
       _refreshCounter++;
       notifyListeners();
     } catch (e) {
@@ -82,6 +103,9 @@ class EventProvider extends ChangeNotifier {
     try {
       await _storage.deleteEvent(eventId);
       _allEvents.removeWhere((e) => e.id == eventId);
+      if (!Platform.isLinux) {
+        await _notificationService.cancelNotificationsForEvent(eventId);
+      }
       _refreshCounter++;
       notifyListeners();
     } catch (e) {
@@ -136,7 +160,7 @@ class EventProvider extends ChangeNotifier {
       _allEvents.clear();
       await loadAllEvents();
       // _refreshCounter incremented in loadAllEvents
-     } catch (e) {
+    } catch (e) {
        log('Sync pull failed: $e');
        _isSyncing = false;
        notifyListeners();
@@ -173,6 +197,38 @@ class EventProvider extends ChangeNotifier {
     } finally {
       _isSyncing = false;
       notifyListeners();
+    }
+  }
+
+  void _startNotificationTimer() {
+    _notificationTimer?.cancel();
+    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkUpcomingEvents());
+  }
+
+  void _checkUpcomingEvents() {
+    final now = DateTime.now();
+    final upcoming = <Event>[];
+    for (final event in _allEvents) {
+      final instances = Event.expandRecurring(event, now.add(const Duration(days: 30)));
+      for (final instance in instances) {
+        DateTime notificationTime;
+        if (instance.isAllDay) {
+          final dayBefore = instance.startDate.subtract(const Duration(days: 1));
+          notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, 12, 0);
+        } else {
+          notificationTime = instance.startDateTime.subtract(const Duration(minutes: 30));
+        }
+        if (now.isAfter(notificationTime) && now.isBefore(instance.startDateTime)) {
+          upcoming.add(instance);
+        }
+      }
+    }
+    for (final event in upcoming) {
+      final id = '${event.id}_${event.startDate.millisecondsSinceEpoch}';
+      if (!_notifiedIds.contains(id)) {
+        _notificationService.showNotification(event);
+        _notifiedIds.add(id);
+      }
     }
   }
 }

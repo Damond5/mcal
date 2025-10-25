@@ -18,6 +18,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date, with recurring events expanded automatically.
 - **Data Persistence**: Events are stored locally in individual Markdown files per event, following the rcal specification for compatibility and portability.
 - **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations.
+- **Notifications**: Receive local notifications for upcoming events. Timed events notify 30 minutes before start time, all-day events notify at midday the day before. On Linux, notifications are shown while the app is running using a background timer.
 
 ## Setup Instructions
 
@@ -87,6 +88,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
     - Tap on a day to view existing events or add new ones.
     - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
+    - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
 6. To sync events:
     - Tap the Sync button in the app bar to open the sync dialog.
     - Use Init Sync to initialize with a Git remote URL.
@@ -135,6 +137,11 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **shared_preferences**: Persists user preferences like theme settings.
 - **provider**: Manages app state using the Provider pattern.
 - **path_provider**: Accesses platform-specific file directories for data storage.
+- **flutter_local_notifications**: Enables local notifications for event reminders.
+- **timezone**: Handles timezone-aware scheduling for notifications.
+- **uuid**: Generates unique identifiers for events.
+- **markdown**: Parses and generates Markdown for event storage.
+- **process_run**: Executes system commands for Git synchronization.
 
 For a full list, see `pubspec.yaml`.
 
@@ -150,17 +157,21 @@ For a full list, see `pubspec.yaml`.
    │   └── theme_provider.dart   # Manages app theme state
    ├── services/
    │   ├── event_storage.dart    # Handles event persistence
+   │   ├── notification_service.dart # Handles local notifications
    │   └── sync_service.dart     # Handles Git synchronization
    ├── themes/
    │   ├── dark_theme.dart       # Dark theme configuration
    │   └── light_theme.dart      # Light theme configuration
    └── widgets/
        ├── calendar_widget.dart  # Calendar implementation
+       ├── event_form_dialog.dart # Event creation/editing dialog
        ├── event_list.dart       # Displays list of events for a day
        ├── sync_button.dart      # Sync button widget
        └── theme_toggle_button.dart # Theme toggle button widget
   test/
   ├── event_provider_test.dart  # Unit tests for EventProvider
+  ├── notification_service_test.dart # Unit tests for NotificationService
+  ├── sync_service_test.dart    # Unit tests for SyncService
   ├── theme_provider_test.dart  # Unit tests for ThemeProvider
   └── widget_test.dart          # Widget tests for app components
   ```

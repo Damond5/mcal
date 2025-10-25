@@ -70,6 +70,7 @@ ensure reliability and prevent regressions.
  opening a dialog with buttons for Init Sync (with URL text field), Pull, Push, Status.
  Uses async/await with loading indicators and displays results/errors via SnackBar.
  GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.
+ - **Notification System**: Implemented local notifications using `flutter_local_notifications` (v17.2.2) for cross-platform support (Android, iOS, Linux). Consistent with rcal's daemon mode: notifications 30 minutes before timed events, midday the day before for all-day events. Singleton `NotificationService` handles scheduling/unscheduling, prevents duplicates by tracking IDs, and requests permissions on app start. Integrated into `EventProvider` for automatic scheduling on event CRUD operations and loading existing events. Added LinuxNotificationDetails for proper Linux support with notification daemons like Dunst, and initialized timezone database for zoned scheduling. On Linux, uses a periodic timer to check for upcoming events and show immediate notifications, as scheduled notifications may not persist when the app is closed.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.

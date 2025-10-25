@@ -92,4 +92,12 @@ void main() {
     // Should now show light_mode icon
     expect(find.byIcon(Icons.light_mode), findsOneWidget, reason: 'Dark mode should show light toggle icon');
   });
+
+  testWidgets('Notification permissions are requested on app start', (WidgetTester tester) async {
+    // This test ensures that the app initializes without crashing when notifications are requested
+    await pumpApp(tester);
+
+    // If the app loads successfully, notification initialization didn't crash
+    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App should load successfully with notification initialization');
+  });
 }

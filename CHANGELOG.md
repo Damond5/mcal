@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated event storage to use one file per event with sanitized titles and collision handling.
 - Automatic syncing: pulls changes on app start if sync is initialized, pushes changes after event add/update/delete operations.
 - Auto sync enhancements: configurable sync settings (enable/disable, frequency 5-60 min, sync on resume), periodic background sync (workmanager on mobile, timer on Linux), conflict resolution UI for merge conflicts.
+- Added week numbers display on the left side of the calendar.
 
 ### Changed
 - Event model now includes endDate, startTime, endTime, recurrence fields.

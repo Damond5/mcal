@@ -43,35 +43,32 @@ class ConflictResolutionDialog extends StatelessWidget {
       if (context.mounted) {
         try {
           await SyncService().resolveConflictPreferRemote();
+          if (!context.mounted) return;
           await context.read<EventProvider>().syncPull(); // retry pull
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Conflict resolved, pulled successfully')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Conflict resolved, pulled successfully')),
+          );
         } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to resolve conflict: $e')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to resolve conflict: $e')),
+          );
         }
-        }
+      }
     } else if (result == 'local') {
       if (context.mounted) {
         try {
           await SyncService().abortConflict();
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Conflict aborted, kept local changes')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Conflict aborted, kept local changes')),
+          );
         } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to abort conflict: $e')),
-            );
-          }
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to abort conflict: $e')),
+          );
         }
       }
     }

@@ -27,6 +27,7 @@
 highly customizable and feature-packed calendar widget, supporting
 month/week views, selection, and formatting.
 - **Calendar Weeks**: Calendar weeks start on Monday for consistency with international standards and rcal.
+- **Week Numbers**: Display week numbers on the left side of the calendar for improved navigation and consistency with calendar applications.
 - **State Management**: Used Flutter's built-in `StatefulWidget`
 for managing calendar state (focused day, selected day) to keep it
 simple and avoid over-engineering. For app-level state like themes,

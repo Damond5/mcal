@@ -69,7 +69,7 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
               syncFrequencyMinutes: _syncFrequencyMinutes.round(),
             );
             await context.read<EventProvider>().saveSyncSettings(newSettings);
-            if (mounted) {
+            if (context.mounted) {
               Navigator.of(context).pop();
             }
           },

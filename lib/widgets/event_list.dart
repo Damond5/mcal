@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/event.dart';
 import '../providers/event_provider.dart';
+import 'event_form_dialog.dart';
 
 class EventList extends StatelessWidget {
   final DateTime selectedDate;
@@ -31,7 +32,7 @@ class EventList extends StatelessWidget {
               margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: ListTile(
                 title: Text(event.title),
-                subtitle: Text('${event.time.hour}:${event.time.minute.toString().padLeft(2, '0')} - ${event.description}'),
+                subtitle: Text(_formatEventTime(event) + (event.description.isNotEmpty ? ' - ${event.description}' : '')),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete),
                   onPressed: () => _showDeleteDialog(context, eventProvider, event),
@@ -43,6 +44,24 @@ class EventList extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _formatEventTime(Event event) {
+    if (event.isAllDay) {
+      if (event.endDate == null) {
+        return 'All day';
+      } else {
+        return 'All day (${event.startDate.month}/${event.startDate.day} - ${event.endDate!.month}/${event.endDate!.day})';
+      }
+    } else {
+      final start = '${event.startTime!.split(':')[0]}:${event.startTime!.split(':')[1]}';
+      if (event.endTime != null) {
+        final end = '${event.endTime!.split(':')[0]}:${event.endTime!.split(':')[1]}';
+        return '$start - $end';
+      } else {
+        return start;
+      }
+    }
   }
 
   void _showDeleteDialog(BuildContext context, EventProvider eventProvider, Event event) {
@@ -58,7 +77,7 @@ class EventList extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              eventProvider.deleteEvent(event.id, event.date);
+              eventProvider.deleteEvent(event.id);
               Navigator.of(context).pop();
             },
             child: const Text('Delete'),
@@ -77,9 +96,15 @@ class EventList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Time: ${event.time.hour}:${event.time.minute.toString().padLeft(2, '0')}'),
+            Text('Date: ${event.startDate.month}/${event.startDate.day}/${event.startDate.year}${event.endDate != null ? ' - ${event.endDate!.month}/${event.endDate!.day}/${event.endDate!.year}' : ''}'),
             const SizedBox(height: 8),
-            Text('Description: ${event.description}'),
+            Text('Time: ${_formatEventTime(event)}'),
+            const SizedBox(height: 8),
+            if (event.description.isNotEmpty) ...[
+              Text('Description: ${event.description}'),
+              const SizedBox(height: 8),
+            ],
+            if (event.recurrence != 'none') Text('Recurrence: ${event.recurrence}'),
           ],
         ),
         actions: [
@@ -87,85 +112,23 @@ class EventList extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showEditEventDialog(context, event, eventProvider);
-            },
-            child: const Text('Edit'),
-          ),
+           TextButton(
+             onPressed: () {
+               Navigator.of(context).pop();
+               showDialog(
+                 context: context,
+                 builder: (context) => EventFormDialog(
+                   event: event,
+                   onSave: (updated) => eventProvider.updateEvent(updated),
+                 ),
+               );
+             },
+             child: const Text('Edit'),
+           ),
         ],
       ),
     );
   }
 
-  void _showEditEventDialog(BuildContext context, Event event, EventProvider eventProvider) {
-    final titleController = TextEditingController(text: event.title);
-    final descriptionController = TextEditingController(text: event.description);
-    TimeOfDay selectedTime = TimeOfDay.fromDateTime(event.time);
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Event'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text('Time: '),
-                TextButton(
-                  onPressed: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: selectedTime,
-                    );
-                    if (time != null) {
-                      selectedTime = time;
-                    }
-                  },
-                  child: Text('${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}'),
-                ),
-              ],
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final updatedTime = DateTime(
-                event.date.year,
-                event.date.month,
-                event.date.day,
-                selectedTime.hour,
-                selectedTime.minute,
-              );
-              final updatedEvent = event.copyWith(
-                title: titleController.text,
-                time: updatedTime,
-                description: descriptionController.text,
-              );
-              eventProvider.updateEvent(updatedEvent);
-              Navigator.of(context).pop();
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
 }

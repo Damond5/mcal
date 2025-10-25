@@ -1,4 +1,5 @@
-import "package:flutter/material.dart";
+ import "package:flutter/material.dart";
+import "dart:developer";
 import "../models/event.dart";
 import "../services/event_storage.dart";
 import "../services/sync_service.dart";
@@ -6,14 +7,13 @@ import "../services/sync_service.dart";
 class EventProvider extends ChangeNotifier {
   final EventStorage _storage = EventStorage();
   final SyncService _syncService = SyncService();
-  final Map<DateTime, List<Event>> _events = {};
+  List<Event> _allEvents = [];
   bool _isLoading = false;
   bool _isSyncing = false;
   DateTime? _selectedDate;
 
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
-  Map<DateTime, List<Event>> get events => _events;
   DateTime? get selectedDate => _selectedDate;
 
   void setSelectedDate(DateTime date) {
@@ -22,20 +22,26 @@ class EventProvider extends ChangeNotifier {
   }
 
   List<Event> getEventsForDate(DateTime date) {
-    final key = DateTime(date.year, date.month, date.day);
-    return _events[key] ?? [];
+    final expanded = <Event>[];
+    for (final event in _allEvents) {
+      expanded.addAll(Event.expandRecurring(event, date));
+    }
+    return expanded.where((e) => Event.occursOnDate(e, date)).toList();
   }
 
-  Future<void> loadEventsForDate(DateTime date) async {
-    final key = DateTime(date.year, date.month, date.day);
-    if (_events.containsKey(key)) return;
+
+
+  Future<void> loadAllEvents() async {
+    if (_allEvents.isNotEmpty) return;
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      final loadedEvents = await _storage.loadEvents(date);
-      _events[key] = loadedEvents;
+      _allEvents = await _storage.loadAllEvents();
+    } catch (e) {
+      log('Error loading all events: $e');
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -43,50 +49,60 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> addEvent(Event event) async {
-    final key = DateTime(event.date.year, event.date.month, event.date.day);
-    await _storage.addEvent(event);
-
-    if (_events.containsKey(key)) {
-      _events[key]!.add(event);
-    } else {
-      _events[key] = [event];
+    try {
+      await _storage.addEvent(event);
+      _allEvents.add(event);
+      notifyListeners();
+    } catch (e) {
+      log('Error adding event: $e');
+      rethrow;
     }
-
-    notifyListeners();
   }
 
   Future<void> updateEvent(Event event) async {
-    final key = DateTime(event.date.year, event.date.month, event.date.day);
-    await _storage.updateEvent(event);
-
-    if (_events.containsKey(key)) {
-      final index = _events[key]!.indexWhere((e) => e.id == event.id);
+    try {
+      await _storage.updateEvent(event);
+      final index = _allEvents.indexWhere((e) => e.id == event.id);
       if (index != -1) {
-        _events[key]![index] = event;
+        _allEvents[index] = event;
+      }
+      notifyListeners();
+    } catch (e) {
+      log('Error updating event: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await _storage.deleteEvent(eventId);
+      _allEvents.removeWhere((e) => e.id == eventId);
+      notifyListeners();
+    } catch (e) {
+      log('Error deleting event: $e');
+      rethrow;
+    }
+  }
+
+  Future<Set<DateTime>> getEventDates() async {
+    await loadAllEvents();
+    final dates = <DateTime>{};
+
+    for (final event in _allEvents) {
+      final expanded = Event.expandRecurring(event, DateTime.now());
+      for (final e in expanded) {
+        dates.add(DateTime(e.startDate.year, e.startDate.month, e.startDate.day));
+        if (e.endDate != null) {
+          DateTime current = e.startDate;
+          while (current.isBefore(e.endDate!) || current.isAtSameMomentAs(e.endDate!)) {
+            dates.add(DateTime(current.year, current.month, current.day));
+            current = current.add(const Duration(days: 1));
+          }
+        }
       }
     }
 
-    notifyListeners();
-  }
-
-  Future<void> deleteEvent(String eventId, DateTime date) async {
-    final key = DateTime(date.year, date.month, date.day);
-    await _storage.deleteEvent(eventId, date);
-
-    if (_events.containsKey(key)) {
-      _events[key]!.removeWhere((e) => e.id == eventId);
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> loadAllEventDates() async {
-    final dates = await _storage.getEventDates();
-    for (final date in dates) {
-      if (!_events.containsKey(date)) {
-        await loadEventsForDate(date);
-      }
-    }
+    return dates;
   }
 
   Future<void> syncInit(String url) async {
@@ -95,6 +111,9 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _syncService.initSync(url);
+    } catch (e) {
+      log('Sync init failed: $e');
+      rethrow;
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -108,13 +127,14 @@ class EventProvider extends ChangeNotifier {
     try {
       await _syncService.pullSync();
       // Reload events after pull
-      _events.clear();
-      await loadAllEventDates();
-    } catch (e) {
-      _isSyncing = false;
-      notifyListeners();
-      rethrow;
-    }
+      _allEvents.clear();
+      await loadAllEvents();
+     } catch (e) {
+       log('Sync pull failed: $e');
+       _isSyncing = false;
+       notifyListeners();
+       rethrow;
+     }
     _isSyncing = false;
     notifyListeners();
   }
@@ -125,6 +145,9 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _syncService.pushSync();
+    } catch (e) {
+      log('Sync push failed: $e');
+      rethrow;
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -137,6 +160,9 @@ class EventProvider extends ChangeNotifier {
     notifyListeners();
     try {
       return await _syncService.getSyncStatus();
+    } catch (e) {
+      log('Sync status failed: $e');
+      rethrow;
     } finally {
       _isSyncing = false;
       notifyListeners();

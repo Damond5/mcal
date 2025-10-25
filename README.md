@@ -14,9 +14,9 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Customizable Theme**: Built with Flutter's Material Design, allowing for easy theming.
 - **Lightweight and Fast**: Minimal dependencies for quick loading and smooth performance.
 - **Localization Ready**: Uses the `intl` package for date formatting, supporting multiple locales.
-- **Event Management**: Create, view, edit, and delete events with details like title, time, and description.
-- **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date.
-- **Data Persistence**: Events are stored locally in markdown files for reliability and portability.
+- **Event Management**: Create, view, edit, and delete events with full details including title, start/end dates, start/end times, description, and recurrence (none/daily/weekly/monthly). Supports all-day events and multi-day spans.
+- **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date, with recurring events expanded automatically.
+- **Data Persistence**: Events are stored locally in individual Markdown files per event, following the rcal specification for compatibility and portability.
 - **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations.
 
 ## Setup Instructions
@@ -85,7 +85,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 4. Tap on any day to select it.
 5. To manage events:
     - Tap on a day to view existing events or add new ones.
-    - Use the event dialogs to create, edit, or delete events with title, time, and description.
+    - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
 6. To sync events:
     - Tap the Sync button in the app bar to open the sync dialog.

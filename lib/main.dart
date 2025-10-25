@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'calendar_widget.dart';
-import 'models/event.dart';
+
 import 'providers/theme_provider.dart';
 import 'providers/event_provider.dart';
 import 'themes/light_theme.dart';
 import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
 import 'widgets/sync_button.dart';
+import 'widgets/event_form_dialog.dart';
 
 void main() {
   runApp(
@@ -55,7 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<EventProvider>().loadAllEventDates();
+      context.read<EventProvider>().loadAllEvents();
     });
   }
 
@@ -72,104 +73,17 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: const CalendarWidget(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddEventDialog(context),
+        onPressed: () => showDialog(
+          context: context,
+          builder: (context) => EventFormDialog(
+            onSave: (event) => context.read<EventProvider>().addEvent(event),
+          ),
+        ),
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  void _showAddEventDialog(BuildContext context) {
-    final eventProvider = context.read<EventProvider>();
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    TimeOfDay selectedTime = TimeOfDay.now();
-    DateTime selectedDate = eventProvider.selectedDate ?? DateTime.now();
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Event'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(labelText: 'Title'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text('Date: '),
-                TextButton(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2010),
-                      lastDate: DateTime(2030),
-                    );
-                    if (date != null) {
-                      selectedDate = date;
-                    }
-                  },
-                  child: Text('${selectedDate.month}/${selectedDate.day}/${selectedDate.year}'),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                const Text('Time: '),
-                TextButton(
-                  onPressed: () async {
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: selectedTime,
-                    );
-                    if (time != null) {
-                      selectedTime = time;
-                    }
-                  },
-                  child: Text('${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}'),
-                ),
-              ],
-            ),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (titleController.text.isNotEmpty) {
-                final eventTime = DateTime(
-                  selectedDate.year,
-                  selectedDate.month,
-                  selectedDate.day,
-                  selectedTime.hour,
-                  selectedTime.minute,
-                );
-                final event = Event(
-                  title: titleController.text,
-                  time: eventTime,
-                  description: descriptionController.text,
-                  date: selectedDate,
-                );
-                context.read<EventProvider>().addEvent(event);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
 
 }

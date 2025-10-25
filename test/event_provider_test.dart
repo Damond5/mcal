@@ -16,7 +16,6 @@ void main() {
     test('Event.fromMarkdown parses rcal format correctly', () {
       const markdown = '''# Event: Test Event
 
-- **ID**: 123e4567-e89b-12d3-a456-426614174000
 - **Date**: 2023-10-01 to 2023-10-02
 - **Time**: 10:00 to 11:00
 - **Description**: Test description
@@ -25,7 +24,6 @@ void main() {
       final event = Event.fromMarkdown(markdown);
 
       expect(event.title, 'Test Event');
-      expect(event.id, '123e4567-e89b-12d3-a456-426614174000');
       expect(event.startDate, DateTime(2023, 10, 1));
       expect(event.endDate, DateTime(2023, 10, 2));
       expect(event.startTime, '10:00');
@@ -36,7 +34,6 @@ void main() {
 
     test('Event.toMarkdown generates rcal format', () {
       final event = Event(
-        id: 'test-id',
         title: 'Test Event',
         startDate: DateTime(2023, 10, 1),
         endDate: DateTime(2023, 10, 2),
@@ -48,7 +45,6 @@ void main() {
 
       final markdown = event.toMarkdown();
       expect(markdown.contains('# Event: Test Event'), true);
-      expect(markdown.contains('- **ID**: test-id'), true);
       expect(markdown.contains('- **Date**: 2023-10-01 to 2023-10-02'), true);
       expect(markdown.contains('- **Time**: 10:00 to 11:00'), true);
       expect(markdown.contains('- **Description**: Test desc'), true);
@@ -59,7 +55,6 @@ void main() {
       final allDayEvent = Event(
         title: 'All Day',
         startDate: DateTime(2023, 10, 1),
-        startTime: null,
       );
       expect(allDayEvent.isAllDay, true);
 
@@ -79,7 +74,9 @@ void main() {
       );
       final expanded = Event.expandRecurring(event, DateTime(2023, 10, 5));
       expect(expanded.length, 5); // 1-5
+      expect(expanded[0].title, 'Daily Event');
       expect(expanded[0].startDate, DateTime(2023, 10, 1));
+      expect(expanded[1].title, 'Daily Event (2023-10-2)');
       expect(expanded[4].startDate, DateTime(2023, 10, 5));
     });
 
@@ -171,7 +168,7 @@ void main() {
         startDate: DateTime(2023, 10, 1),
       );
       await eventProvider.addEvent(event);
-      await eventProvider.deleteEvent(event.id);
+      await eventProvider.deleteEvent(event);
       final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
       expect(events, isEmpty);
     });

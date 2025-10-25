@@ -56,12 +56,12 @@ interactions) and unit tests for business logic (ThemeProvider and EventProvider
 management, persistence). Used Flutter's testing framework with mockito
 for SharedPreferences mocking. All tests run via `fvm flutter test` to
 ensure reliability and prevent regressions.
- - **Event System**: Implemented event management fully aligned with rcal's event specification,
- using individual Markdown files per event (one file per event with sanitized title as filename) in the app's calendar subdirectory within the documents directory. Each file contains event details in Markdown format: ID (UUID), Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly). Supports add/view/edit/delete
- events with title, start/end dates, start/end times, description, and recurrence. All-day events supported. Events displayed as markers on calendar days,
- with list view for selected day showing expanded recurring instances. CRUD operations via dialogs with full field editing. Extensible for
- notifications and Git sync.
- - **Recurrence Handling**: Recurring events are expanded into individual instances for display and interaction, with each instance having a unique ID derived from the base event ID and date to allow independent editing if needed.
+  - **Event System**: Implemented event management fully aligned with rcal's event specification,
+  using individual Markdown files per event (one file per event with sanitized title as filename) in the app's calendar subdirectory within the documents directory. Each file contains event details in Markdown format: Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly). Supports add/view/edit/delete
+  events with title, start/end dates, start/end times, description, and recurrence. All-day events supported. Events displayed as markers on calendar days,
+  with list view for selected day showing expanded recurring instances. CRUD operations via dialogs with full field editing. Extensible for
+  notifications and Git sync.
+  - **Recurrence Handling**: Recurring events are expanded into individual instances for display and interaction.
  - **Sync System**: Implemented Git-based synchronization using `SyncService`
  class with `Process.run` for executing git commands in the app's calendar subdirectory within the documents directory.
  Remote URL stored in `shared_preferences`. Supports init, pull, push, and status

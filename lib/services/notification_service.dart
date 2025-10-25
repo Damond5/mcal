@@ -51,7 +51,7 @@ class NotificationService {
     if (Platform.isLinux) return; // Use timer for Linux
 
     // Cancel existing notifications for this event
-    await cancelNotificationsForEvent(event.id);
+    await cancelNotificationsForEvent(event);
 
     // Expand recurring events up to 30 days ahead for performance
     final maxDate = DateTime.now().add(const Duration(days: 30));
@@ -116,19 +116,20 @@ class NotificationService {
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       );
       _scheduledNotificationIds.add(notificationId);
-      log('Scheduled notification for event ${event.id} at $notificationTime');
+      log('Scheduled notification for event ${event.title} at $notificationTime');
     } catch (e) {
-      log('Failed to schedule notification for event ${event.id}: $e');
+      log('Failed to schedule notification for event ${event.title}: $e');
     }
   }
 
-  Future<void> cancelNotificationsForEvent(String eventId) async {
-    final idsToRemove = _scheduledNotificationIds.where((id) => id.startsWith(eventId)).toList();
+  Future<void> cancelNotificationsForEvent(Event event) async {
+    final baseId = _getNotificationId(event).split('_')[0]; // Get base part before date
+    final idsToRemove = _scheduledNotificationIds.where((id) => id.startsWith(baseId)).toList();
     for (final id in idsToRemove) {
       await _notifications.cancel(id.hashCode);
       _scheduledNotificationIds.remove(id);
     }
-    log('Cancelled notifications for event $eventId');
+    log('Cancelled notifications for event ${event.title}');
   }
 
   Future<void> cancelAllNotifications() async {
@@ -165,18 +166,18 @@ class NotificationService {
 
     try {
       await _notifications.show(
-        event.id.hashCode,
+        event.title.hashCode,
         title,
         body,
         details,
       );
-      log('Showed notification for event ${event.id}');
+      log('Showed notification for event ${event.title}');
     } catch (e) {
-      log('Failed to show notification for event ${event.id}: $e');
+      log('Failed to show notification for event ${event.title}: $e');
     }
   }
 
   String _getNotificationId(Event event) {
-    return '${event.id}_${event.startDate.millisecondsSinceEpoch}';
+    return '${event.title}_${event.startDate.millisecondsSinceEpoch}';
   }
 }

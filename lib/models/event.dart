@@ -1,11 +1,9 @@
-import 'dart:developer';
-import 'package:uuid/uuid.dart';
+ import 'dart:developer';
 
 class Event {
   static const List<String> validRecurrences = ['none', 'daily', 'weekly', 'monthly'];
   static const int minYear = 1900;
   static const int maxYear = 2100;
-  final String id;
   final String title;
   final DateTime startDate;
   final DateTime? endDate;
@@ -15,7 +13,6 @@ class Event {
   final String recurrence; // 'none', 'daily', 'weekly', 'monthly'
 
   Event({
-    String? id,
     required this.title,
     required this.startDate,
     this.endDate,
@@ -23,7 +20,7 @@ class Event {
     this.endTime,
     this.description = '',
     this.recurrence = 'none',
-  }) : id = id ?? const Uuid().v4() {
+  }) {
     if (title.isEmpty) throw ArgumentError('Title cannot be empty');
     if (title.length > 100) throw ArgumentError('Title must be 100 characters or less');
     if (!validRecurrences.contains(recurrence)) throw ArgumentError('Invalid recurrence: $recurrence');
@@ -71,7 +68,6 @@ class Event {
   factory Event.fromMarkdown(String markdown) {
     try {
       final lines = markdown.split('\n');
-      String id = '';
       String title = '';
       DateTime? startDate;
       DateTime? endDate;
@@ -84,8 +80,6 @@ class Event {
         final trimmed = line.trim();
         if (trimmed.startsWith('# Event: ')) {
           title = trimmed.substring(9).trim();
-        } else if (trimmed.startsWith('- **ID**: ')) {
-          id = trimmed.substring(9).trim();
         } else if (trimmed.startsWith('- **Date**: ')) {
           final dateStr = trimmed.substring(11).trim();
           final parts = dateStr.split(' to ');
@@ -115,7 +109,6 @@ class Event {
       if (!validRecurrences.contains(recurrence)) recurrence = 'none';
 
       return Event(
-        id: id.isNotEmpty ? id : null,
         title: title,
         startDate: startDate,
         endDate: endDate,
@@ -172,7 +165,6 @@ class Event {
 
     return '''# Event: $title
 
-- **ID**: $id
 - **Date**: $dateStr
 - **Time**: $timeStr
 - **Description**: $description
@@ -181,7 +173,6 @@ class Event {
   }
 
   Event copyWith({
-    String? id,
     String? title,
     DateTime? startDate,
     DateTime? endDate,
@@ -191,7 +182,6 @@ class Event {
     String? recurrence,
   }) {
     return Event(
-      id: id ?? this.id,
       title: title ?? this.title,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
@@ -204,17 +194,24 @@ class Event {
 
   @override
   String toString() {
-    return 'Event(id: $id, title: $title, startDate: $startDate, endDate: $endDate, startTime: $startTime, endTime: $endTime, description: $description, recurrence: $recurrence)';
+    return 'Event(title: $title, startDate: $startDate, endDate: $endDate, startTime: $startTime, endTime: $endTime, description: $description, recurrence: $recurrence)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is Event && other.id == id;
+    return other is Event &&
+        other.title == title &&
+        other.startDate == startDate &&
+        other.endDate == endDate &&
+        other.startTime == startTime &&
+        other.endTime == endTime &&
+        other.description == description &&
+        other.recurrence == recurrence;
   }
 
   @override
-  int get hashCode => id.hashCode;
+  int get hashCode => title.hashCode ^ startDate.hashCode ^ (endDate?.hashCode ?? 0) ^ (startTime?.hashCode ?? 0) ^ (endTime?.hashCode ?? 0) ^ description.hashCode ^ recurrence.hashCode;
 
   // Static utility methods for recurrence handling
   static List<Event> expandRecurring(Event event, DateTime targetDate, {DateTime? maxDate}) {
@@ -247,7 +244,7 @@ class Event {
 
       if (current.isAfter(event.startDate)) {
         instances.add(event.copyWith(
-          id: '${event.id}_${current.millisecondsSinceEpoch}', // Unique id for instance
+          title: '${event.title} (${current.year}-${current.month}-${current.day})', // Unique title for instance
           startDate: current,
           endDate: event.endDate != null ? current.add(current.difference(event.startDate)) : null,
         ));

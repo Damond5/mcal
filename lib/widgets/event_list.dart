@@ -77,7 +77,7 @@ class EventList extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              eventProvider.deleteEvent(event.id);
+              eventProvider.deleteEvent(event);
               Navigator.of(context).pop();
             },
             child: const Text('Delete'),
@@ -115,13 +115,13 @@ class EventList extends StatelessWidget {
            TextButton(
              onPressed: () {
                Navigator.of(context).pop();
-               showDialog(
-                 context: context,
-                 builder: (context) => EventFormDialog(
-                   event: event,
-                   onSave: (updated) => eventProvider.updateEvent(updated),
-                 ),
-               );
+                showDialog(
+                  context: context,
+                  builder: (context) => EventFormDialog(
+                    event: event,
+                    onSave: (updated) => eventProvider.updateEvent(event, updated),
+                  ),
+                );
              },
              child: const Text('Edit'),
            ),

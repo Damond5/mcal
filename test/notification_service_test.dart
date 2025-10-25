@@ -54,8 +54,11 @@ void main() {
     });
 
     test('cancelNotificationsForEvent calls cancel', () async {
-      const eventId = 'test-id';
-      await notificationService.cancelNotificationsForEvent(eventId);
+      final event = Event(
+        title: 'Test',
+        startDate: DateTime(2023, 10, 1),
+      );
+      await notificationService.cancelNotificationsForEvent(event);
       // Test no exception
     });
 

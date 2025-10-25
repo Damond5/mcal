@@ -135,7 +135,6 @@ class EventFormDialogState extends State<EventFormDialog> {
     if (!_validate()) return;
 
     final event = Event(
-      id: widget.event?.id,
       title: titleController.text.trim(),
       startDate: selectedStartDate,
       endDate: selectedEndDate,

@@ -56,16 +56,6 @@ class EventStorage {
     int counter = 1;
 
     while (await File('$dir/$fileName').exists()) {
-      // Check if the existing file is for the same event (by id)
-      try {
-        final content = await File('$dir/$fileName').readAsString();
-        final existingEvent = Event.fromMarkdown(content);
-        if (existingEvent.id == event.id) {
-          return fileName; // Same event, can overwrite
-        }
-      } catch (e) {
-        // Invalid file, treat as collision
-      }
       fileName = '${baseName}_$counter.md';
       counter++;
     }
@@ -84,23 +74,19 @@ class EventStorage {
     await saveEvent(event);
   }
 
-  Future<void> updateEvent(Event event) async {
-    // Find and delete old file
-    final allEvents = await loadAllEvents();
-    final oldEvent = allEvents.firstWhere((e) => e.id == event.id, orElse: () => throw Exception('Event not found'));
-    final oldFileName = await _getUniqueFileName(oldEvent);
+  Future<void> updateEvent(Event oldEvent, Event newEvent) async {
     final dir = await _getCalendarDirectory();
+    // Compute old filename from old event's title
+    final oldFileName = await _getUniqueFileName(oldEvent);
     final oldFile = File('$dir/$oldFileName');
     if (await oldFile.exists()) {
       await oldFile.delete();
     }
     // Save new
-    await saveEvent(event);
+    await saveEvent(newEvent);
   }
 
-  Future<void> deleteEvent(String eventId) async {
-    final allEvents = await loadAllEvents();
-    final event = allEvents.firstWhere((e) => e.id == eventId, orElse: () => throw Exception('Event not found'));
+  Future<void> deleteEvent(Event event) async {
     final fileName = await _getUniqueFileName(event);
     final dir = await _getCalendarDirectory();
     final file = File('$dir/$fileName');

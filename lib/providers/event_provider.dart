@@ -82,15 +82,15 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> updateEvent(Event event) async {
+  Future<void> updateEvent(Event oldEvent, Event newEvent) async {
     try {
-      await _storage.updateEvent(event);
-      final index = _allEvents.indexWhere((e) => e.id == event.id);
+      await _storage.updateEvent(oldEvent, newEvent);
+      final index = _allEvents.indexWhere((e) => e == oldEvent);
       if (index != -1) {
-        _allEvents[index] = event;
+        _allEvents[index] = newEvent;
       }
       if (!Platform.isLinux) {
-        await _notificationService.scheduleNotificationForEvent(event);
+        await _notificationService.scheduleNotificationForEvent(newEvent);
       }
       _refreshCounter++;
       notifyListeners();
@@ -101,12 +101,12 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deleteEvent(String eventId) async {
+  Future<void> deleteEvent(Event event) async {
     try {
-      await _storage.deleteEvent(eventId);
-      _allEvents.removeWhere((e) => e.id == eventId);
+      await _storage.deleteEvent(event);
+      _allEvents.removeWhere((e) => e == event);
       if (!Platform.isLinux) {
-        await _notificationService.cancelNotificationsForEvent(eventId);
+        await _notificationService.cancelNotificationsForEvent(event);
       }
       _refreshCounter++;
       notifyListeners();
@@ -247,7 +247,7 @@ class EventProvider extends ChangeNotifier {
       }
     }
     for (final event in upcoming) {
-      final id = '${event.id}_${event.startDate.millisecondsSinceEpoch}';
+      final id = '${event.title}_${event.startDate.millisecondsSinceEpoch}';
       if (!_notifiedIds.contains(id)) {
         _notificationService.showNotification(event);
         _notifiedIds.add(id);

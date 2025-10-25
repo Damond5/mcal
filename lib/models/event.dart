@@ -221,6 +221,8 @@ class Event {
         break;
       }
 
+      if (event.endDate != null && current.isAfter(event.endDate!)) break;
+
       if (current.isAfter(event.startDate)) {
         instances.add(event.copyWith(
           id: '${event.id}_${current.millisecondsSinceEpoch}', // Unique id for instance

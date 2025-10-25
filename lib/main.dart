@@ -73,12 +73,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: const CalendarWidget(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (context) => EventFormDialog(
-            onSave: (event) => context.read<EventProvider>().addEvent(event),
-          ),
-        ),
+        onPressed: () {
+          final selectedDate = context.read<EventProvider>().selectedDate;
+          showDialog(
+            context: context,
+            builder: (context) => EventFormDialog(
+              defaultDate: selectedDate,
+              onSave: (event) => context.read<EventProvider>().addEvent(event),
+            ),
+          );
+        },
         child: const Icon(Icons.add),
       ),
     );

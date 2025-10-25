@@ -52,7 +52,7 @@ class EventStorage {
   Future<String> _getUniqueFileName(Event event) async {
     final dir = await _getCalendarDirectory();
     final baseName = event.fileName.replaceAll('.md', '');
-    String fileName = '${baseName}.md';
+    String fileName = '$baseName.md';
     int counter = 1;
 
     while (await File('$dir/$fileName').exists()) {
@@ -66,7 +66,7 @@ class EventStorage {
       } catch (e) {
         // Invalid file, treat as collision
       }
-      fileName = '${baseName}_${counter}.md';
+      fileName = '${baseName}_$counter.md';
       counter++;
     }
 

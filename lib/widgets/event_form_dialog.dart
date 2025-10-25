@@ -4,8 +4,9 @@ import '../models/event.dart';
 class EventFormDialog extends StatefulWidget {
   final Event? event; // null for add, existing for edit
   final Function(Event) onSave;
+  final DateTime? defaultDate; // default date for new events
 
-  const EventFormDialog({super.key, this.event, required this.onSave});
+  const EventFormDialog({super.key, this.event, required this.onSave, this.defaultDate});
 
   @override
   EventFormDialogState createState() => EventFormDialogState();
@@ -28,7 +29,7 @@ class EventFormDialogState extends State<EventFormDialog> {
     final event = widget.event;
     titleController = TextEditingController(text: event?.title ?? '');
     descriptionController = TextEditingController(text: event?.description ?? '');
-    selectedStartDate = event?.startDate ?? DateTime.now();
+    selectedStartDate = event?.startDate ?? widget.defaultDate ?? DateTime.now();
     selectedEndDate = event?.endDate;
     selectedStartTime = event?.startTime;
     selectedEndTime = event?.endTime;

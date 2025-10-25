@@ -159,4 +159,9 @@ class SyncService {
     final output = result.stdout.toString().trim();
     return output.isEmpty ? "clean" : "modified";
   }
+
+  Future<bool> isSyncInitialized() async {
+    final url = await _getRemoteUrl();
+    return url != null;
+  }
 }

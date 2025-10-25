@@ -90,7 +90,8 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
     - Events are marked on the calendar and persist across app sessions.
     - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
 6. To sync events:
-    - Tap the Sync button in the app bar to open the sync dialog.
+    - Events are automatically synced: pulls on app start, pushes after changes.
+    - For manual sync, tap the Sync button in the app bar to open the sync dialog.
     - Use Init Sync to initialize with a Git remote URL.
     - Use Pull to fetch latest events from remote, Push to upload local changes, Status to check repository state.
 

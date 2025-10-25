@@ -66,7 +66,7 @@ ensure reliability and prevent regressions.
  class with `Process.run` for executing git commands in the app's calendar subdirectory within the documents directory.
  Remote URL stored in `shared_preferences`. Supports init, pull, push, and status
  operations with user-friendly error handling. Integrated into `EventProvider`
- for seamless sync functionality. Added Sync UI with `SyncButton` in app bar
+ for seamless sync functionality. Added automatic syncing: pulls changes on app start if initialized, pushes changes after event add/update/delete operations. Manual sync available via `SyncButton` in app bar
  opening a dialog with buttons for Init Sync (with URL text field), Pull, Push, Status.
  Uses async/await with loading indicators and displays results/errors via SnackBar.
  GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.

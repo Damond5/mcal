@@ -72,7 +72,10 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
     if (mounted) {
-      context.read<EventProvider>().loadAllEvents();
+      await context.read<EventProvider>().loadAllEvents();
+      if (mounted) {
+        await context.read<EventProvider>().autoSyncOnStart();
+      }
     }
   }
 

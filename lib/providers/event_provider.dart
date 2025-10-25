@@ -75,6 +75,7 @@ class EventProvider extends ChangeNotifier {
       }
       _refreshCounter++;
       notifyListeners();
+      await autoPush();
     } catch (e) {
       log('Error adding event: $e');
       rethrow;
@@ -93,6 +94,7 @@ class EventProvider extends ChangeNotifier {
       }
       _refreshCounter++;
       notifyListeners();
+      await autoPush();
     } catch (e) {
       log('Error updating event: $e');
       rethrow;
@@ -108,6 +110,7 @@ class EventProvider extends ChangeNotifier {
       }
       _refreshCounter++;
       notifyListeners();
+      await autoPush();
     } catch (e) {
       log('Error deleting event: $e');
       rethrow;
@@ -197,6 +200,26 @@ class EventProvider extends ChangeNotifier {
     } finally {
       _isSyncing = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> autoSyncOnStart() async {
+    if (await _syncService.isSyncInitialized()) {
+      try {
+        await syncPull();
+      } catch (e) {
+        log('Auto pull failed: $e');
+      }
+    }
+  }
+
+  Future<void> autoPush() async {
+    if (await _syncService.isSyncInitialized()) {
+      try {
+        await syncPush();
+      } catch (e) {
+        log('Auto push failed: $e');
+      }
     }
   }
 

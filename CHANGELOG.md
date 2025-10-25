@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded recurring events automatically for display.
 - Enhanced event creation/editing dialogs with all new fields.
 - Updated event storage to use one file per event with sanitized titles and collision handling.
+- Automatic syncing: pulls changes on app start if sync is initialized, pushes changes after event add/update/delete operations.
 
 ### Changed
 - Event model now includes endDate, startTime, endTime, recurrence fields.

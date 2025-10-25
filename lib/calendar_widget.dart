@@ -28,28 +28,29 @@ class CalendarWidgetState extends State<CalendarWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Consumer<EventProvider>(
-              builder: (context, eventProvider, child) => TableCalendar(
-                key: ValueKey(eventProvider.refreshCounter),
-                firstDay: DateTime.utc(2010, 10, 16),
-                lastDay: DateTime.utc(2030, 3, 14),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
-                 eventLoader: (day) => eventProvider.getEventsForDate(day).isNotEmpty ? [day] : [],
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                  context.read<EventProvider>().setSelectedDate(selectedDay);
-                },
-                onPageChanged: (focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
-                },
+             Consumer<EventProvider>(
+               builder: (context, eventProvider, child) => TableCalendar(
+                 key: ValueKey(eventProvider.refreshCounter),
+                 firstDay: DateTime.utc(2010, 10, 16),
+                 lastDay: DateTime.utc(2030, 3, 14),
+                 focusedDay: _focusedDay,
+                 startingDayOfWeek: StartingDayOfWeek.monday,
+                 selectedDayPredicate: (day) {
+                   return isSameDay(_selectedDay, day);
+                 },
+                  eventLoader: (day) => eventProvider.getEventsForDate(day).isNotEmpty ? [day] : [],
+                 onDaySelected: (selectedDay, focusedDay) {
+                   setState(() {
+                     _selectedDay = selectedDay;
+                     _focusedDay = focusedDay;
+                   });
+                   context.read<EventProvider>().setSelectedDate(selectedDay);
+                 },
+                 onPageChanged: (focusedDay) {
+                   setState(() {
+                     _focusedDay = focusedDay;
+                   });
+                 },
                  calendarStyle: CalendarStyle(
                    cellMargin: const EdgeInsets.all(4.0),
                    cellPadding: const EdgeInsets.all(2.0),

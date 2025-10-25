@@ -40,34 +40,38 @@ class ConflictResolutionDialog extends StatelessWidget {
     if (!context.mounted) return;
 
     if (result == 'remote') {
-      try {
-        await SyncService().resolveConflictPreferRemote();
-        await context.read<EventProvider>().syncPull(); // retry pull
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conflict resolved, pulled successfully')),
-          );
+      if (context.mounted) {
+        try {
+          await SyncService().resolveConflictPreferRemote();
+          await context.read<EventProvider>().syncPull(); // retry pull
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Conflict resolved, pulled successfully')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to resolve conflict: $e')),
+            );
+          }
         }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to resolve conflict: $e')),
-          );
         }
-      }
     } else if (result == 'local') {
-      try {
-        await SyncService().abortConflict();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conflict aborted, kept local changes')),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to abort conflict: $e')),
-          );
+      if (context.mounted) {
+        try {
+          await SyncService().abortConflict();
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Conflict aborted, kept local changes')),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to abort conflict: $e')),
+            );
+          }
         }
       }
     }

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Event provider refactored to load all events once and filter on demand.
 - Event list and details display updated to show new fields.
 - Removed ID field from event format to align with rcal specification.
+- Calendar now starts weeks on Monday instead of Sunday.
 
 ### Fixed
 - Parsing and generation of rcal-compatible Markdown format.

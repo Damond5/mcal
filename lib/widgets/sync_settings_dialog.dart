@@ -69,8 +69,9 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
               syncFrequencyMinutes: _syncFrequencyMinutes.round(),
             );
             await context.read<EventProvider>().saveSyncSettings(newSettings);
-            if (!mounted) return;
-            Navigator.of(context).pop();
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
           },
           child: const Text('Save'),
         ),

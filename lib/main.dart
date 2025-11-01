@@ -21,8 +21,9 @@ void callbackDispatcher() {
   });
 }
 
-void main() {
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Workmanager().initialize(callbackDispatcher);
   runApp(
     MultiProvider(
       providers: [

@@ -1,5 +1,8 @@
 # Agents.md - Development Guidelines
 
+## Prerequisites
+- **Java**: OpenJDK 17 (or 11) required for Android builds. Avoid development versions like 25.
+
 ## Build/Lint/Test Commands
 - **Install dependencies**: `fvm flutter pub get`
 - **Build debug**: `fvm flutter run`
@@ -75,6 +78,8 @@ ensure reliability and prevent regressions.
   GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.
   - **Auto Sync Enhancements**: Added configurable auto sync settings (`SyncSettings` model) stored in `shared_preferences`, including enable/disable auto sync, sync frequency (5-60 minutes), and sync on app resume. Implemented periodic background sync using `workmanager` on Android/iOS (minimum 15 minutes) and `Timer` on Linux. Added conflict resolution UI for merge conflicts during pull, with options to prefer remote, keep local, or cancel. Auto sync on resume pulls if >5 minutes since last sync. Settings accessible via "Settings" in sync menu.
  - **Notification System**: Implemented local notifications using `flutter_local_notifications` (v17.2.2) for cross-platform support (Android, iOS, Linux). Consistent with rcal's daemon mode: notifications 30 minutes before timed events, midday the day before for all-day events. Singleton `NotificationService` handles scheduling/unscheduling, prevents duplicates by tracking IDs, and requests permissions on app start. Integrated into `EventProvider` for automatic scheduling on event CRUD operations and loading existing events. Added LinuxNotificationDetails for proper Linux support with notification daemons like Dunst, and initialized timezone database for zoned scheduling. On Linux, uses a periodic timer to check for upcoming events and show immediate notifications, as scheduled notifications may not persist when the app is closed.
+- **Workmanager Update**: Updated `workmanager` to version 0.9.0 for better compatibility with newer Flutter versions.
+- **Android Build Enhancements**: Enabled core library desugaring in Android build to support `flutter_local_notifications` v17.2.2 requirements.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.

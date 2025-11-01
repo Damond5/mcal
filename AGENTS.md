@@ -4,6 +4,7 @@
 - **Java**: OpenJDK 17 (or 11) required for Android builds. Avoid development versions like 25.
 
 ## Build/Lint/Test Commands
+- **Check environment**: `fvm flutter doctor`
 - **Install dependencies**: `fvm flutter pub get`
 - **Build debug**: `fvm flutter run`
 - **Build release APK**: `fvm flutter build apk`

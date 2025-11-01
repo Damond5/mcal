@@ -13,7 +13,7 @@ void main() {
   setUp(() {
     eventProvider = EventProvider();
     SharedPreferences.setMockInitialValues({});
-    const MethodChannel('plugins.flutter.io/path_provider').setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (MethodCall methodCall) async {
       if (methodCall.method == 'getApplicationDocumentsDirectory') {
         return '/tmp/test_docs';
       }

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed binding initialization error in main.dart.
 - Added proper mocking for path_provider, shared_preferences, and flutter_local_notifications plugins in unit tests to prevent MissingPluginException errors. This ensures tests run successfully in the test environment.
 - Fixed failing unit test in sync_service_test.dart by updating initSync test to expect completion instead of exception. Fixed integration test exception by adding MethodChannel mocking for flutter_local_notifications to prevent permission requests in test environment.
+- Fixed lint warnings: deprecated setMockMethodCallHandler usage and duplicate import in test files.
 
 ## [1.0.0] - 2025-10-25
 

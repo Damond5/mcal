@@ -1,5 +1,4 @@
-import "package:flutter/services.dart";
-import "package:flutter/services.dart";
+ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:mcal/services/sync_service.dart";
@@ -12,7 +11,7 @@ void main() {
   setUp(() {
     syncService = SyncService();
     SharedPreferences.setMockInitialValues({});
-    const MethodChannel('plugins.flutter.io/path_provider').setMockMethodCallHandler((MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (MethodCall methodCall) async {
       if (methodCall.method == 'getApplicationDocumentsDirectory') {
         return '/tmp/test_docs';
       }

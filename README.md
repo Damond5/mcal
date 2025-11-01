@@ -89,12 +89,15 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
     - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
     - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
- 6. To sync events:
-     - Events are automatically synced: pulls on app start, pushes after changes.
-     - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
-     - For manual sync, tap the Sync button in the app bar to open the sync menu.
-     - Use Init Sync to initialize with a Git remote URL.
-     - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
+  6. To sync events:
+      - Events are automatically synced: pulls on app start, pushes after changes.
+      - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
+      - For manual sync, tap the Sync button in the app bar to open the sync menu.
+       - Use Init Sync to initialize with a Git remote URL, username, and password/token for private repos (HTTPS only; SSH uses keys).
+       - Use Update Credentials to change username/password without re-initializing.
+       - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
+       - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
+       - Android Support: For Git sync on Android, install Termux (from F-Droid/Google Play) and run 'pkg install git' to enable sync functionality.
 
  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 

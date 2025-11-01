@@ -17,6 +17,14 @@ void main() {
       }
       return null;
     });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'), (MethodCall methodCall) async {
+      if (methodCall.method == 'read') {
+        return null;
+      } else if (methodCall.method == 'write') {
+        return null;
+      }
+      return null;
+    });
   });
 
   test('initSync stores remote URL', () async {

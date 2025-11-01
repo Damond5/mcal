@@ -1,8 +1,8 @@
 import "package:flutter/services.dart";
-import "package:flutter_test/flutter_test.dart";
-import "package:shared_preferences/shared_preferences.dart";
-import "package:mcal/models/event.dart";
-import "package:mcal/providers/event_provider.dart";
+ import "package:flutter_test/flutter_test.dart";
+ import "package:shared_preferences/shared_preferences.dart";
+ import "package:mcal/models/event.dart";
+ import "package:mcal/providers/event_provider.dart";
 
 
 void main() {
@@ -10,12 +10,20 @@ void main() {
 
   late EventProvider eventProvider;
 
-  setUp(() {
+   setUp(() {
     eventProvider = EventProvider();
     SharedPreferences.setMockInitialValues({});
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (MethodCall methodCall) async {
       if (methodCall.method == 'getApplicationDocumentsDirectory') {
         return '/tmp/test_docs';
+      }
+      return null;
+    });
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'), (MethodCall methodCall) async {
+      if (methodCall.method == 'read') {
+        return null;
+      } else if (methodCall.method == 'write') {
+        return null;
       }
       return null;
     });

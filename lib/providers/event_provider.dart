@@ -184,12 +184,16 @@ class EventProvider extends ChangeNotifier {
     return _eventDates;
   }
 
-  Future<void> syncInit(String url) async {
+  Future<void> updateCredentials(String? username, String? password) async {
+    await _syncService.updateCredentials(username, password);
+  }
+
+  Future<void> syncInit(String url, {String? username, String? password}) async {
     if (_isSyncing) return;
     _isSyncing = true;
     notifyListeners();
     try {
-      await _syncService.initSync(url);
+      await _syncService.initSync(url, username: username, password: password);
     } catch (e) {
       log('Sync init failed: $e');
       rethrow;

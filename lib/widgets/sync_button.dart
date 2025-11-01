@@ -14,13 +14,14 @@ class SyncButton extends StatelessWidget {
       icon: const Icon(Icons.sync),
       tooltip: "Sync",
       onSelected: (value) => _handleMenuSelection(context, value),
-      itemBuilder: (context) => [
-        const PopupMenuItem(value: 'init', child: Text('Init Sync')),
-        const PopupMenuItem(value: 'pull', child: Text('Pull')),
-        const PopupMenuItem(value: 'push', child: Text('Push')),
-        const PopupMenuItem(value: 'status', child: Text('Status')),
-        const PopupMenuItem(value: 'settings', child: Text('Settings')),
-      ],
+       itemBuilder: (context) => [
+         const PopupMenuItem(value: 'init', child: Text('Init Sync')),
+         const PopupMenuItem(value: 'update_creds', child: Text('Update Credentials')),
+         const PopupMenuItem(value: 'pull', child: Text('Pull')),
+         const PopupMenuItem(value: 'push', child: Text('Push')),
+         const PopupMenuItem(value: 'status', child: Text('Status')),
+         const PopupMenuItem(value: 'settings', child: Text('Settings')),
+       ],
     );
   }
 
@@ -28,6 +29,9 @@ class SyncButton extends StatelessWidget {
     switch (value) {
       case 'init':
         _showInitDialog(context);
+        break;
+      case 'update_creds':
+        _showUpdateCredentialsDialog(context);
         break;
       case 'pull':
         _showPullDialog(context);
@@ -44,10 +48,46 @@ class SyncButton extends StatelessWidget {
     }
   }
 
+  void _showUpdateCredentialsDialog(BuildContext context) async {
+    final eventProvider = context.read<EventProvider>();
+    final creds = await _showCredentialsInputDialog(context);
+    if (creds != null && context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text("Updating credentials..."),
+            ],
+          ),
+        ),
+      );
+      try {
+        await eventProvider.updateCredentials(creds['username'], creds['password']);
+        if (context.mounted) {
+          Navigator.of(context).pop(); // close loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Credentials updated successfully")),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.of(context).pop(); // close loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+          );
+        }
+      }
+    }
+  }
+
   void _showInitDialog(BuildContext context) async {
     final eventProvider = context.read<EventProvider>();
-    final url = await _showUrlInputDialog(context);
-    if (url != null && url.isNotEmpty && context.mounted) {
+    final creds = await _showUrlInputDialog(context);
+    if (creds != null && creds['url']!.isNotEmpty && context.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -62,7 +102,7 @@ class SyncButton extends StatelessWidget {
         ),
       );
       try {
-        await eventProvider.syncInit(url);
+        await eventProvider.syncInit(creds['url']!, username: creds['username'], password: creds['password']);
         if (context.mounted) {
           Navigator.of(context).pop(); // close loading
           ScaffoldMessenger.of(context).showSnackBar(
@@ -191,25 +231,37 @@ class SyncButton extends StatelessWidget {
     );
   }
 
-  Future<String?> _showUrlInputDialog(BuildContext context) async {
-    final controller = TextEditingController();
-    String? errorText;
-    return showDialog<String>(
+  Future<Map<String, String>?> _showCredentialsInputDialog(BuildContext context) async {
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    String? usernameError;
+    String? passwordError;
+    return showDialog<Map<String, String>>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text("Enter Repository URL"),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: "https://github.com/user/repo.git",
-              errorText: errorText,
+          title: const Text("Update Credentials"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: InputDecoration(
+                    labelText: "Username",
+                    errorText: usernameError,
+                  ),
+                ),
+                TextField(
+                  controller: passwordController,
+                  decoration: InputDecoration(
+                    labelText: "Password/Token",
+                    errorText: passwordError,
+                  ),
+                  obscureText: true,
+                ),
+              ],
             ),
-            onChanged: (value) {
-              setState(() {
-                errorText = _validateUrl(value);
-              });
-            },
           ),
           actions: [
             TextButton(
@@ -218,15 +270,146 @@ class SyncButton extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                final url = controller.text.trim();
-                if (_validateUrl(url) == null && url.isNotEmpty) {
-                  Navigator.of(context).pop(url);
+                final username = usernameController.text.trim();
+                final password = passwordController.text.trim();
+                final credsValid = (username.isEmpty && password.isEmpty) || (username.isNotEmpty && password.isNotEmpty);
+                if (username.isNotEmpty || password.isNotEmpty) {
+                  // Validate credential length and characters
+                  if (username.length > 100 || password.length > 100) {
+                    setState(() {
+                      usernameError = username.length > 100 ? "Username too long" : null;
+                      passwordError = password.length > 100 ? "Password/Token too long" : null;
+                    });
+                    return;
+                  }
+                  final invalidChars = RegExp(r'[^\x20-\x7E]'); // Non-printable ASCII
+                  if (invalidChars.hasMatch(username) || invalidChars.hasMatch(password)) {
+                    setState(() {
+                      usernameError = invalidChars.hasMatch(username) ? "Username contains invalid characters" : null;
+                      passwordError = invalidChars.hasMatch(password) ? "Password/Token contains invalid characters" : null;
+                    });
+                    return;
+                  }
+                }
+                if (credsValid) {
+                  Navigator.of(context).pop({
+                    'username': username,
+                    'password': password,
+                  });
                 } else {
                   setState(() {
-                    errorText = _validateUrl(url);
+                    usernameError = username.isEmpty ? "Username required if password provided" : null;
+                    passwordError = password.isEmpty ? "Password required if username provided" : null;
                   });
                 }
               },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<Map<String, String>?> _showUrlInputDialog(BuildContext context) async {
+    final urlController = TextEditingController();
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+    String? urlError;
+    String? usernameError;
+    String? passwordError;
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Initialize Sync"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                 TextField(
+                   controller: urlController,
+                   decoration: InputDecoration(
+                     labelText: "Repository URL",
+                     hintText: "https://gitlab.com/user/repo.git (use for auth) or git@gitlab.com:user/repo.git",
+                     errorText: urlError,
+                   ),
+                   onChanged: (value) {
+                     setState(() {
+                       urlError = _validateUrl(value);
+                     });
+                   },
+                 ),
+                 TextField(
+                   controller: usernameController,
+                   decoration: InputDecoration(
+                     labelText: "Username (for HTTPS only)",
+                     errorText: usernameError,
+                   ),
+                 ),
+                 TextField(
+                   controller: passwordController,
+                   decoration: InputDecoration(
+                     labelText: "Password/Token (for HTTPS only)",
+                     errorText: passwordError,
+                   ),
+                   obscureText: true,
+                 ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Cancel"),
+            ),
+             TextButton(
+               onPressed: () {
+                 final url = urlController.text.trim();
+                 final username = usernameController.text.trim();
+                 final password = passwordController.text.trim();
+                 final urlValid = _validateUrl(url) == null && url.isNotEmpty;
+                 final credsValid = (username.isEmpty && password.isEmpty) || (username.isNotEmpty && password.isNotEmpty);
+                 if (username.isNotEmpty || password.isNotEmpty) {
+                   if (!url.startsWith('https://')) {
+                     setState(() {
+                       urlError = "Credentials are only supported for HTTPS URLs. For SSH, leave username/password empty.";
+                     });
+                     return;
+                   }
+                   // Validate credential length and characters
+                   if (username.length > 100 || password.length > 100) {
+                     setState(() {
+                       usernameError = username.length > 100 ? "Username too long" : null;
+                       passwordError = password.length > 100 ? "Password/Token too long" : null;
+                     });
+                     return;
+                   }
+                   final invalidChars = RegExp(r'[^\x20-\x7E]'); // Non-printable ASCII
+                   if (invalidChars.hasMatch(username) || invalidChars.hasMatch(password)) {
+                     setState(() {
+                       usernameError = invalidChars.hasMatch(username) ? "Username contains invalid characters" : null;
+                       passwordError = invalidChars.hasMatch(password) ? "Password/Token contains invalid characters" : null;
+                     });
+                     return;
+                   }
+                 }
+                 if (urlValid && credsValid) {
+                   Navigator.of(context).pop({
+                     'url': url,
+                     'username': username,
+                     'password': password,
+                   });
+                 } else {
+                   setState(() {
+                     urlError = _validateUrl(url);
+                     if (!credsValid) {
+                       usernameError = username.isEmpty ? "Username required if password provided" : null;
+                       passwordError = password.isEmpty ? "Password required if username provided" : null;
+                     }
+                   });
+                 }
+               },
               child: const Text("OK"),
             ),
           ],
@@ -244,9 +427,9 @@ class SyncButton extends StatelessWidget {
   }
 
   String _extractErrorMessage(dynamic e) {
-    if (e is Exception) {
-      return e.toString().replaceFirst("Exception: ", "");
-    }
-    return e.toString();
+    String message = e is Exception ? e.toString().replaceFirst("Exception: ", "") : e.toString();
+    // Sanitize any URLs with credentials
+    message = message.replaceAll(RegExp(r'https?://[^@]+@[^/]+'), '<redacted>');
+    return message;
   }
 }

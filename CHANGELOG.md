@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added integration tests for app workflows (calendar display, theme toggle) using integration_test package. Implemented hybrid testing: units for logic, integrations for UI/real deps.
+- Git sync on Android now requires manual installation of Termux and Git due to binary compatibility issues.
 
 ## [1.0.0] - 2025-10-25
 

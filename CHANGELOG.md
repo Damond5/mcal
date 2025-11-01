@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed Android build issues by updating workmanager to 0.9.0 and enabling core library desugaring.
 - Fixed binding initialization error in main.dart.
+- Added proper mocking for path_provider, shared_preferences, and flutter_local_notifications plugins in unit tests to prevent MissingPluginException errors. This ensures tests run successfully in the test environment.
 
 ## [1.0.0] - 2025-10-25
 

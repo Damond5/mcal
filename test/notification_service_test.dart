@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mcal/models/event.dart';
 import 'package:mcal/services/notification_service.dart';
@@ -14,7 +15,24 @@ void main() {
 
   setUp(() {
     notificationService = NotificationService();
-    // Since it's a singleton, we can't easily mock, but for testing purposes, we'll test the logic
+    const MethodChannel('dexterous.com/flutter/local_notifications').setMockMethodCallHandler((MethodCall methodCall) async {
+      if (methodCall.method == 'initialize') {
+        return true;
+      }
+      if (methodCall.method == 'requestNotificationsPermission') {
+        return true;
+      }
+      if (methodCall.method == 'zonedSchedule') {
+        return null;
+      }
+      if (methodCall.method == 'cancel') {
+        return null;
+      }
+      if (methodCall.method == 'cancelAll') {
+        return null;
+      }
+      return null;
+    });
   });
 
   group('NotificationService Tests', () {

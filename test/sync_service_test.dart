@@ -1,3 +1,4 @@
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:mockito/mockito.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -15,6 +16,13 @@ void main() {
   setUp(() {
     mockPrefs = MockSharedPreferences();
     syncService = SyncService();
+    SharedPreferences.setMockInitialValues({});
+    const MethodChannel('plugins.flutter.io/path_provider').setMockMethodCallHandler((MethodCall methodCall) async {
+      if (methodCall.method == 'getApplicationDocumentsDirectory') {
+        return '/tmp/test_docs';
+      }
+      return null;
+    });
     // Note: In a real test, we'd inject mocks, but for simplicity, we'll test with actual calls where possible
   });
 

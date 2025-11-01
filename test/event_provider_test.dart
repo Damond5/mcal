@@ -1,4 +1,6 @@
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:shared_preferences/shared_preferences.dart";
 import "package:mcal/models/event.dart";
 import "package:mcal/providers/event_provider.dart";
 
@@ -10,6 +12,13 @@ void main() {
 
   setUp(() {
     eventProvider = EventProvider();
+    SharedPreferences.setMockInitialValues({});
+    const MethodChannel('plugins.flutter.io/path_provider').setMockMethodCallHandler((MethodCall methodCall) async {
+      if (methodCall.method == 'getApplicationDocumentsDirectory') {
+        return '/tmp/test_docs';
+      }
+      return null;
+    });
   });
 
   group('Event Model Tests', () {

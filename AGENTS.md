@@ -62,6 +62,7 @@ interactions) and unit tests for business logic (ThemeProvider and EventProvider
 management, persistence). Used Flutter's testing framework with mockito
 for SharedPreferences mocking. All tests run via `fvm flutter test` to
 ensure reliability and prevent regressions.
+    - Hybrid testing approach: Unit tests for isolated logic (models, services), integration tests for end-to-end workflows (UI interactions, real plugins). Run units with `fvm flutter test`, integrations with `fvm flutter test integration_test/` (desktop) or `--device-id <id>` (device).
    - **Event System**: Implemented event management fully aligned with rcal's event specification,
    using individual Markdown files per event (one file per event with sanitized title as filename) in the app's calendar subdirectory within the documents directory. Each file contains event details in Markdown format: Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly). Supports add/view/edit/delete
    events with title, start/end dates, start/end times, description, and recurrence. All-day events supported. Events displayed as markers on calendar days,

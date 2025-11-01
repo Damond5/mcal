@@ -75,13 +75,13 @@ class NotificationService {
     if (event.isAllDay) {
       // All-day event: notify at midday the day before
       final dayBefore = event.startDate.subtract(const Duration(days: 1));
-      notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, 12, 0);
+      notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, Event.allDayNotificationHour, 0);
       title = 'Upcoming All-Day Event';
       body = '${event.title} starts tomorrow';
     } else {
       // Timed event: notify 30 minutes before
       final eventStart = event.startDateTime;
-      notificationTime = eventStart.subtract(const Duration(minutes: 30));
+      notificationTime = eventStart.subtract(const Duration(minutes: Event.notificationOffsetMinutes));
       title = 'Upcoming Event';
       body = '${event.title} starts at ${event.startTime}';
     }

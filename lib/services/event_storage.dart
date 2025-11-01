@@ -100,22 +100,6 @@ class EventStorage {
 
   Future<Set<DateTime>> getEventDates() async {
     final allEvents = await loadAllEvents();
-    final dates = <DateTime>{};
-
-    for (final event in allEvents) {
-      final expanded = Event.expandRecurring(event, DateTime.now()); // Expand around now
-      for (final e in expanded) {
-        dates.add(DateTime(e.startDate.year, e.startDate.month, e.startDate.day));
-        if (e.endDate != null) {
-          DateTime current = e.startDate;
-          while (current.isBefore(e.endDate!) || current.isAtSameMomentAs(e.endDate!)) {
-            dates.add(DateTime(current.year, current.month, current.day));
-            current = current.add(const Duration(days: 1));
-          }
-        }
-      }
-    }
-
-    return dates;
+    return Event.getAllEventDates(allEvents);
   }
 }

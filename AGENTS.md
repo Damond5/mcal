@@ -85,4 +85,6 @@ ensure reliability and prevent regressions.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.
+- **Event Date Caching**: Added caching for event dates in EventProvider to improve performance by precomputing Set<DateTime> of all event dates instead of expanding recurring events on every calendar day query.
+- **Notification Constants Extraction**: Extracted notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) to the Event model for better maintainability and consistency.
 - **Consistency with rcal**: All features should be consistent with https://github.com/Damond5/rcal, adapted for a Flutter GUI app.

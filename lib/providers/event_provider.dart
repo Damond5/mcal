@@ -16,6 +16,7 @@ class EventProvider extends ChangeNotifier {
   final SyncService _syncService = SyncService();
   final NotificationService _notificationService = NotificationService();
   List<Event> _allEvents = [];
+  Set<DateTime> _eventDates = {};
   bool _isLoading = false;
   bool _isSyncing = false;
   DateTime? _selectedDate;
@@ -31,10 +32,15 @@ class EventProvider extends ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   int get refreshCounter => _refreshCounter;
   SyncSettings get syncSettings => _syncSettings;
+  Set<DateTime> get eventDates => _eventDates;
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
     notifyListeners();
+  }
+
+  void _computeEventDates() {
+    _eventDates = Event.getAllEventDates(_allEvents);
   }
 
   Future<void> loadSyncSettings() async {
@@ -95,6 +101,7 @@ class EventProvider extends ChangeNotifier {
 
     try {
       _allEvents = await _storage.loadAllEvents();
+      _computeEventDates();
       await loadSyncSettings();
       // Schedule notifications for all loaded events
       for (final event in _allEvents) {
@@ -121,6 +128,7 @@ class EventProvider extends ChangeNotifier {
       final filename = await _storage.addEvent(event);
       final eventWithFilename = event.copyWith(filename: filename);
       _allEvents.add(eventWithFilename);
+      _computeEventDates();
       if (!Platform.isLinux) {
         await _notificationService.scheduleNotificationForEvent(eventWithFilename);
       }
@@ -141,6 +149,7 @@ class EventProvider extends ChangeNotifier {
       if (index != -1) {
         _allEvents[index] = newEventWithFilename;
       }
+      _computeEventDates();
       if (!Platform.isLinux) {
         await _notificationService.scheduleNotificationForEvent(newEventWithFilename);
       }
@@ -157,6 +166,7 @@ class EventProvider extends ChangeNotifier {
     try {
       await _storage.deleteEvent(event);
       _allEvents.removeWhere((e) => e == event);
+      _computeEventDates();
       if (!Platform.isLinux) {
         await _notificationService.cancelNotificationsForEvent(event);
       }
@@ -171,23 +181,7 @@ class EventProvider extends ChangeNotifier {
 
   Future<Set<DateTime>> getEventDates() async {
     await loadAllEvents();
-    final dates = <DateTime>{};
-
-    for (final event in _allEvents) {
-      final expanded = Event.expandRecurring(event, DateTime.now());
-      for (final e in expanded) {
-        dates.add(DateTime(e.startDate.year, e.startDate.month, e.startDate.day));
-        if (e.endDate != null) {
-          DateTime current = e.startDate;
-          while (current.isBefore(e.endDate!) || current.isAtSameMomentAs(e.endDate!)) {
-            dates.add(DateTime(current.year, current.month, current.day));
-            current = current.add(const Duration(days: 1));
-          }
-        }
-      }
-    }
-
-    return dates;
+    return _eventDates;
   }
 
   Future<void> syncInit(String url) async {
@@ -321,9 +315,9 @@ class EventProvider extends ChangeNotifier {
         DateTime notificationTime;
         if (instance.isAllDay) {
           final dayBefore = instance.startDate.subtract(const Duration(days: 1));
-          notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, 12, 0);
+          notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, Event.allDayNotificationHour, 0);
         } else {
-          notificationTime = instance.startDateTime.subtract(const Duration(minutes: 30));
+          notificationTime = instance.startDateTime.subtract(const Duration(minutes: Event.notificationOffsetMinutes));
         }
         if (now.isAfter(notificationTime) && now.isBefore(instance.startDateTime)) {
           upcoming.add(instance);

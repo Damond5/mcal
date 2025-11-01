@@ -39,7 +39,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
                   selectedDayPredicate: (day) {
                     return isSameDay(_selectedDay, day);
                   },
-                   eventLoader: (day) => eventProvider.getEventsForDate(day).isNotEmpty ? [day] : [],
+                   eventLoader: (day) => eventProvider.eventDates.contains(DateTime(day.year, day.month, day.day)) ? [day] : [],
                  onDaySelected: (selectedDay, focusedDay) {
                    setState(() {
                      _selectedDay = selectedDay;

@@ -4,6 +4,8 @@ class Event {
   static const List<String> validRecurrences = ['none', 'daily', 'weekly', 'monthly'];
   static const int minYear = 1900;
   static const int maxYear = 2100;
+  static const int notificationOffsetMinutes = 30;
+  static const int allDayNotificationHour = 12;
   final String title;
   final DateTime startDate;
   final DateTime? endDate;
@@ -266,5 +268,23 @@ class Event {
     final endDt = DateTime(end.year, end.month, end.day);
     final target = DateTime(date.year, date.month, date.day);
     return target.isAtSameMomentAs(start) || (target.isAfter(start) && target.isBefore(endDt.add(const Duration(days: 1))));
+  }
+
+  static Set<DateTime> getAllEventDates(List<Event> events) {
+    final dates = <DateTime>{};
+    for (final event in events) {
+      final expanded = Event.expandRecurring(event, DateTime.now().add(const Duration(days: 365)));
+      for (final e in expanded) {
+        dates.add(DateTime(e.startDate.year, e.startDate.month, e.startDate.day));
+        if (e.endDate != null) {
+          DateTime current = e.startDate;
+          while (current.isBefore(e.endDate!) || current.isAtSameMomentAs(e.endDate!)) {
+            dates.add(DateTime(current.year, current.month, current.day));
+            current = current.add(const Duration(days: 1));
+          }
+        }
+      }
+    }
+    return dates;
   }
 }

@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance: capped recurrence expansion to 1 year ahead.
 - Security: enhanced URL validation for sync, prevented path traversal in titles.
 - Notifications on Linux: implemented timer-based checking for upcoming events to show notifications, as scheduled notifications may not work reliably on Linux.
+- Event deletion bug: events were not deleted from filesystem when multiple events had similar titles due to incorrect filename lookup; fixed by storing actual filename in Event model.
 
 ### Removed
 - Old date-based event storage format.

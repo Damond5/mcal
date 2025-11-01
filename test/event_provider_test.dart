@@ -21,7 +21,7 @@ void main() {
 - **Description**: Test description
 - **Recurrence**: daily
 ''';
-      final event = Event.fromMarkdown(markdown);
+      final event = Event.fromMarkdown(markdown, 'test.md');
 
       expect(event.title, 'Test Event');
       expect(event.startDate, DateTime(2023, 10, 1));
@@ -30,6 +30,7 @@ void main() {
       expect(event.endTime, '11:00');
       expect(event.description, 'Test description');
       expect(event.recurrence, 'daily');
+      expect(event.filename, 'test.md');
     });
 
     test('Event.toMarkdown generates rcal format', () {
@@ -124,14 +125,14 @@ void main() {
       const invalidMarkdown = '''# Event: Test
 - **Date**: invalid-date
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown), throwsFormatException);
+      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
     });
 
     test('Event.fromMarkdown throws on end before start', () {
       const invalidMarkdown = '''# Event: Test
 - **Date**: 2023-10-02 to 2023-10-01
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown), throwsFormatException);
+      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
     });
 
     test('Event.fromMarkdown throws on invalid time', () {
@@ -139,11 +140,34 @@ void main() {
 - **Date**: 2023-10-01
 - **Time**: 25:00
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown), throwsFormatException);
+      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
     });
   });
 
   group('EventProvider Tests', () {
+    test('deleteEvent with duplicate titles uses correct filename', () async {
+      // Add two events with same title
+      final event1 = Event(
+        title: 'Duplicate',
+        startDate: DateTime(2023, 10, 1),
+      );
+      final event2 = Event(
+        title: 'Duplicate',
+        startDate: DateTime(2023, 10, 2),
+      );
+      await eventProvider.addEvent(event1);
+      await eventProvider.addEvent(event2);
+      final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1)).where((e) => e.title == 'Duplicate').toList();
+      expect(events.length, 1);
+      final addedEvent1 = events[0];
+      expect(addedEvent1.filename, isNotNull);
+      // Delete the first one
+      await eventProvider.deleteEvent(addedEvent1);
+      final remaining = eventProvider.getEventsForDate(DateTime(2023, 10, 2)).where((e) => e.title == 'Duplicate').toList();
+      expect(remaining.length, 1);
+      // Clean up
+      await eventProvider.deleteEvent(remaining[0]);
+    });
     test('loadAllEvents loads events', () async {
       await eventProvider.loadAllEvents();
       // Since no events, should be empty
@@ -160,6 +184,7 @@ void main() {
       final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
       expect(events.length, 1);
       expect(events[0].title, 'Test');
+      expect(events[0].filename, isNotNull);
     });
 
     test('deleteEvent removes event', () async {
@@ -168,7 +193,8 @@ void main() {
         startDate: DateTime(2023, 10, 1),
       );
       await eventProvider.addEvent(event);
-      await eventProvider.deleteEvent(event);
+      final addedEvent = eventProvider.getEventsForDate(DateTime(2023, 10, 1))[0];
+      await eventProvider.deleteEvent(addedEvent);
       final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
       expect(events, isEmpty);
     });

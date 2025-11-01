@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:developer';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import '../models/event.dart';
 
@@ -25,7 +26,8 @@ class EventStorage {
       for (final file in files) {
         try {
           final content = await file.readAsString();
-          final event = Event.fromMarkdown(content);
+          final filename = path.basename(file.path);
+          final event = Event.fromMarkdown(content, filename);
           events.add(event);
         } catch (e) {
           log('Error parsing event file ${file.path}: $e');
@@ -63,31 +65,32 @@ class EventStorage {
     return fileName;
   }
 
-  Future<void> saveEvent(Event event) async {
+  Future<String> saveEvent(Event event) async {
     final dir = await _getCalendarDirectory();
     final fileName = await _getUniqueFileName(event);
     final file = File('$dir/$fileName');
     await file.writeAsString(event.toMarkdown());
+    return fileName;
   }
 
-  Future<void> addEvent(Event event) async {
-    await saveEvent(event);
+  Future<String> addEvent(Event event) async {
+    return await saveEvent(event);
   }
 
-  Future<void> updateEvent(Event oldEvent, Event newEvent) async {
+  Future<String> updateEvent(Event oldEvent, Event newEvent) async {
     final dir = await _getCalendarDirectory();
-    // Compute old filename from old event's title
-    final oldFileName = await _getUniqueFileName(oldEvent);
+    // Use old event's filename if available
+    final oldFileName = oldEvent.filename ?? await _getUniqueFileName(oldEvent);
     final oldFile = File('$dir/$oldFileName');
     if (await oldFile.exists()) {
       await oldFile.delete();
     }
     // Save new
-    await saveEvent(newEvent);
+    return await saveEvent(newEvent);
   }
 
   Future<void> deleteEvent(Event event) async {
-    final fileName = await _getUniqueFileName(event);
+    final fileName = event.filename ?? await _getUniqueFileName(event);
     final dir = await _getCalendarDirectory();
     final file = File('$dir/$fileName');
     if (await file.exists()) {

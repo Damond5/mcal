@@ -118,10 +118,11 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> addEvent(Event event) async {
     try {
-      await _storage.addEvent(event);
-      _allEvents.add(event);
+      final filename = await _storage.addEvent(event);
+      final eventWithFilename = event.copyWith(filename: filename);
+      _allEvents.add(eventWithFilename);
       if (!Platform.isLinux) {
-        await _notificationService.scheduleNotificationForEvent(event);
+        await _notificationService.scheduleNotificationForEvent(eventWithFilename);
       }
       _refreshCounter++;
       notifyListeners();
@@ -134,13 +135,14 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> updateEvent(Event oldEvent, Event newEvent) async {
     try {
-      await _storage.updateEvent(oldEvent, newEvent);
+      final newFilename = await _storage.updateEvent(oldEvent, newEvent);
       final index = _allEvents.indexWhere((e) => e == oldEvent);
+      final newEventWithFilename = newEvent.copyWith(filename: newFilename);
       if (index != -1) {
-        _allEvents[index] = newEvent;
+        _allEvents[index] = newEventWithFilename;
       }
       if (!Platform.isLinux) {
-        await _notificationService.scheduleNotificationForEvent(newEvent);
+        await _notificationService.scheduleNotificationForEvent(newEventWithFilename);
       }
       _refreshCounter++;
       notifyListeners();

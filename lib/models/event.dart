@@ -11,6 +11,7 @@ class Event {
   final String? endTime; // HH:MM format or null
   final String description;
   final String recurrence; // 'none', 'daily', 'weekly', 'monthly'
+  final String? filename;
 
   Event({
     required this.title,
@@ -20,6 +21,7 @@ class Event {
     this.endTime,
     this.description = '',
     this.recurrence = 'none',
+    this.filename,
   }) {
     if (title.isEmpty) throw ArgumentError('Title cannot be empty');
     if (title.length > 100) throw ArgumentError('Title must be 100 characters or less');
@@ -65,7 +67,7 @@ class Event {
   }
 
   // Create from rcal markdown format
-  factory Event.fromMarkdown(String markdown) {
+  factory Event.fromMarkdown(String markdown, String filename) {
     try {
       final lines = markdown.split('\n');
       String title = '';
@@ -116,6 +118,7 @@ class Event {
         endTime: endTime,
         description: description,
         recurrence: recurrence,
+        filename: filename,
       );
     } catch (e) {
       log('Error parsing event markdown: $e');
@@ -180,6 +183,7 @@ class Event {
     String? endTime,
     String? description,
     String? recurrence,
+    String? filename,
   }) {
     return Event(
       title: title ?? this.title,
@@ -189,12 +193,13 @@ class Event {
       endTime: endTime ?? this.endTime,
       description: description ?? this.description,
       recurrence: recurrence ?? this.recurrence,
+      filename: filename ?? this.filename,
     );
   }
 
   @override
   String toString() {
-    return 'Event(title: $title, startDate: $startDate, endDate: $endDate, startTime: $startTime, endTime: $endTime, description: $description, recurrence: $recurrence)';
+    return 'Event(title: $title, startDate: $startDate, endDate: $endDate, startTime: $startTime, endTime: $endTime, description: $description, recurrence: $recurrence, filename: $filename)';
   }
 
   @override
@@ -207,11 +212,12 @@ class Event {
         other.startTime == startTime &&
         other.endTime == endTime &&
         other.description == description &&
-        other.recurrence == recurrence;
+        other.recurrence == recurrence &&
+        other.filename == filename;
   }
 
   @override
-  int get hashCode => title.hashCode ^ startDate.hashCode ^ (endDate?.hashCode ?? 0) ^ (startTime?.hashCode ?? 0) ^ (endTime?.hashCode ?? 0) ^ description.hashCode ^ recurrence.hashCode;
+  int get hashCode => title.hashCode ^ startDate.hashCode ^ (endDate?.hashCode ?? 0) ^ (startTime?.hashCode ?? 0) ^ (endTime?.hashCode ?? 0) ^ description.hashCode ^ recurrence.hashCode ^ (filename?.hashCode ?? 0);
 
   // Static utility methods for recurrence handling
   static List<Event> expandRecurring(Event event, DateTime targetDate, {DateTime? maxDate}) {

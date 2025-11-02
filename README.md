@@ -44,7 +44,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 
 3. **Generate Rust bridge code**:
    ```bash
-   flutter_rust_bridge_codegen generate
+   flutter_rust_bridge_codegen generate --config-file frb.yaml
    ```
 
 4. **Run the app**:
@@ -84,6 +84,26 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
   flutter build linux  # or macos, windows
   ```
 
+### Rebuilding After Rust Changes
+
+If you make changes to the Rust code in the `native/` directory, follow these steps to rebuild and regenerate the bridge:
+
+1. Build the Rust library:
+   ```bash
+   cd native && cargo build --release
+   ```
+
+2. Regenerate the Flutter Rust Bridge code:
+   ```bash
+   flutter_rust_bridge_codegen generate --config-file frb.yaml
+   ```
+
+3. Clean and reinstall Flutter dependencies:
+   ```bash
+   fvm flutter clean
+   fvm flutter pub get
+   ```
+
 ## Usage
 
 1. Launch the app on your device or in the browser.
@@ -106,9 +126,11 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
         - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
         - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options.
 
- The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
+  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 
- ## Testing
+## Troubleshooting
+
+- **GUI Launch Issues**: If the app crashes on sync pull during launch, ensure the Git repository is properly initialized. The app handles empty repositories without a HEAD by using the remote default branch, preventing crashes in partial sync initialization scenarios.
 
  The app includes a suite of tests to ensure functionality and reliability. Tests cover widget interactions, theme management, and core app behavior.
 

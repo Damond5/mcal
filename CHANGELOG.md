@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Removed invalid `flutter_rust_bridge_build` dependency from pubspec.yaml dev_dependencies.
 - Added platform check to only initialize workmanager on Android/iOS, preventing UnimplementedError on Linux where Timer is used for periodic sync.
+- Fixed GUI crash on app start due to sync pull failing on repositories without HEAD by updating Rust git functions (git_pull_impl, git_push_impl, git_fetch_impl) to use remote default branch instead of requiring repo.head(), resolving issues with uninitialized git repos.
 
 ## [1.0.1] - 2025-11-02
 

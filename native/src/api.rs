@@ -110,12 +110,13 @@ pub fn git_list_branches(path: String) -> Result<Vec<String>, GitError> {
 
 fn git_pull_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let head_ref = repo.head()?;
-    let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).map(|s| s.to_string()).unwrap_or_else(|| {
+    let branch_name = if let Ok(head_ref) = repo.head() {
+        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
+    } else {
         repo.find_remote("origin").ok()
             .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
             .unwrap_or("main".to_string())
-    });
+    };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -132,7 +133,11 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
         Ok("Already up to date".to_string())
     } else if analysis.0.is_fast_forward() {
         let refname = format!("refs/heads/{}", branch_name);
-        let mut reference = repo.find_reference(&refname)?;
+        let mut reference = if let Ok(r) = repo.find_reference(&refname) {
+            r
+        } else {
+            repo.reference(&refname, fetch_commit.id(), true, "Creating branch")?
+        };
         reference.set_target(fetch_commit.id(), "Fast-forward")?;
         repo.set_head(&refname)?;
         repo.checkout_head(None)?;
@@ -149,12 +154,13 @@ pub fn git_pull(path: String, username: Option<String>, password: Option<String>
 
 fn git_push_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let head_ref = repo.head()?;
-    let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).map(|s| s.to_string()).unwrap_or_else(|| {
+    let branch_name = if let Ok(head_ref) = repo.head() {
+        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
+    } else {
         repo.find_remote("origin").ok()
             .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
             .unwrap_or("main".to_string())
-    });
+    };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -205,12 +211,13 @@ pub fn git_add_remote(path: String, name: String, url: String) -> Result<String,
 
 fn git_fetch_impl(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let head_ref = repo.head()?;
-    let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).map(|s| s.to_string()).unwrap_or_else(|| {
+    let branch_name = if let Ok(head_ref) = repo.head() {
+        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
+    } else {
         repo.find_remote("origin").ok()
             .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
             .unwrap_or("main".to_string())
-    });
+    };
     let mut remote_obj = repo.find_remote(&remote)?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();

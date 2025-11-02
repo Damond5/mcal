@@ -72,6 +72,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
   ```bash
   flutter build web
   ```
+  Note: Web builds are not supported due to FFI incompatibility with Rust-based Git sync. The app will fail to build for web platforms.
 
 - **Desktop**:
   ```bash
@@ -92,12 +93,13 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
   6. To sync events:
       - Events are automatically synced: pulls on app start, pushes after changes.
       - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
-      - For manual sync, tap the Sync button in the app bar to open the sync menu.
-       - Use Init Sync to initialize with a Git remote URL, username, and password/token for private repos (HTTPS only; SSH uses keys).
-       - Use Update Credentials to change username/password without re-initializing.
-       - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
-       - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
-       - Android Support: For Git sync on Android, install Termux (from F-Droid/Google Play) and run 'pkg install git' to enable sync functionality.
+       - For manual sync, tap the Sync button in the app bar to open the sync menu.
+        - Use Init Sync to initialize with a Git remote URL, username, password/token, and SSH key path for private repos (supports both HTTPS and SSH authentication).
+        - Use Update Credentials to change username/password/SSH key without re-initializing.
+        - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
+        - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
+        - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
+        - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options.
 
  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 
@@ -108,7 +110,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
  ### Test Coverage
 
  - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
-  - **Unit Tests**: Tests for the `ThemeProvider` and `EventProvider` classes, including theme mode setting, toggling, persistence, dark mode logic, and event management and storage.
+  - **Unit Tests**: Tests for the `ThemeProvider`, `EventProvider`, `NotificationService`, `SyncService`, and `SyncSettings` classes, including theme mode setting, toggling, persistence, dark mode logic, event management and storage, notification scheduling, sync operations, and settings persistence.
 
  ### Test Files
 
@@ -146,7 +148,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **timezone**: Handles timezone-aware scheduling for notifications.
 - **uuid**: Generates unique identifiers for events.
 - **markdown**: Parses and generates Markdown for event storage.
-- **process_run**: Executes system commands for Git synchronization.
+- **flutter_rust_bridge**: Bridges Dart and Rust for Git synchronization operations.
 
 For a full list, see `pubspec.yaml`.
 

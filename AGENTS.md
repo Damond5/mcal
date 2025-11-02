@@ -56,12 +56,12 @@ theme rebuilding with `Consumer` widgets.
 - **Code Quality**: Fixed all lints (e.g., added `key` parameters,
 made state class public, ensured dependencies are explicit in
 pubspec.yaml). Followed Material Design 3 guidelines.
-- **Testing**: Comprehensive test suite with widget tests for GUI
-functionality (app loading, calendar display, day selection, theme toggle
-interactions) and unit tests for business logic (ThemeProvider and EventProvider state
-management, persistence). Used Flutter's testing framework with mockito
-for SharedPreferences mocking. All tests run via `fvm flutter test` to
-ensure reliability and prevent regressions.
+  - **Testing**: Comprehensive test suite with widget tests for GUI
+  functionality (app loading, calendar display, day selection, theme toggle
+  interactions) and unit tests for business logic (ThemeProvider, EventProvider, NotificationService, SyncService, and SyncSettings state
+  management, persistence). Used Flutter's testing framework with mockito
+  for SharedPreferences mocking. All tests run via `fvm flutter test` to
+  ensure reliability and prevent regressions.
     - Hybrid testing approach: Unit tests for isolated logic (models, services), integration tests for end-to-end workflows (UI interactions, real plugins). Run units with `fvm flutter test`, integrations with `fvm flutter test integration_test/` (desktop) or `--device-id <id>` (device).
    - **Event System**: Implemented event management fully aligned with rcal's event specification,
    using individual Markdown files per event (one file per event with sanitized title as filename) in the app's calendar subdirectory within the documents directory. Each file contains event details in Markdown format: Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly). Supports add/view/edit/delete
@@ -70,8 +70,8 @@ ensure reliability and prevent regressions.
    notifications and Git sync.
    - **Filename Storage**: Added `filename` field to `Event` model to store the actual filename used for persistence, ensuring correct file deletion and updates even when multiple events have similar titles and counters are appended.
   - **Recurrence Handling**: Recurring events are expanded into individual instances for display and interaction.
-  - **Sync System**: Implemented Git-based synchronization using `SyncService`
-  class with `Process.run` for executing git commands in the app's calendar subdirectory within the documents directory.
+   - **Sync System**: Implemented Git-based synchronization using `SyncService`
+   class with Rust + git2 + flutter_rust_bridge for executing Git operations in the app's calendar subdirectory within the documents directory.
   Remote URL stored in `shared_preferences`. Supports init, pull, push, and status
   operations with user-friendly error handling. Integrated into `EventProvider`
   for seamless sync functionality. Added automatic syncing: pulls changes on app start if initialized, pushes changes after event add/update/delete operations. Manual sync available via `SyncButton` in app bar
@@ -79,14 +79,19 @@ ensure reliability and prevent regressions.
   Uses async/await with loading indicators and displays results/errors via SnackBar.
   GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.
    - **Auto Sync Enhancements**: Added configurable auto sync settings (`SyncSettings` model) stored in `shared_preferences`, including enable/disable auto sync, sync frequency (5-60 minutes), and sync on app resume. Implemented periodic background sync using `workmanager` on Android/iOS (minimum 15 minutes) and `Timer` on Linux. Added conflict resolution UI for merge conflicts during pull, with options to prefer remote, keep local, or cancel. Auto sync on resume pulls if >5 minutes since last sync. Settings accessible via "Settings" in sync menu.
-   - **Authentication for Sync**: For private repositories, the app supports separate username and password/token input during sync initialization. Credentials are stored separately from URLs using flutter_secure_storage for enhanced security, with dynamic injection only during Git operations. For HTTPS URLs, credentials are encoded and embedded temporarily for Git authentication. For SSH, use key-based auth with the SSH URL. Credentials are only accepted for HTTPS URLs to prevent confusion. Input validation includes length limits (100 chars), printable character checks, and regex-based URL validation. All logs, errors, and UI messages are sanitized to prevent credential leakage. No permanent embedding in stored URLs to facilitate rotation and reduce exposure.
-   - **Mobile Git Sync**: Git sync on Android is not supported due to libc compatibility issues with bundled binaries. Users are prompted to install Termux and Git manually for sync functionality.
+   - **Authentication for Sync**: For private repositories, the app supports separate username and password/token input during sync initialization, as well as SSH key paths. Credentials are stored separately from URLs using flutter_secure_storage for enhanced security, with dynamic injection only during Git operations. For HTTPS URLs, credentials are encoded and embedded temporarily for Git authentication. For SSH, key-based auth is supported with configurable key paths. Input validation includes length limits (100 chars), printable character checks, and regex-based URL validation. All logs, errors, and UI messages are sanitized to prevent credential leakage. No permanent embedding in stored URLs to facilitate rotation and reduce exposure.
+   - **Mobile Git Sync**: Git sync on Android is now supported using a custom-built Rust library with vendored OpenSSL for compatibility. No additional setup required.
+   - **Branch Handling**: Git operations dynamically detect and use the current branch instead of hardcoding "master", supporting modern Git workflows with "main" or other branch names.
+   - **Conflict Resolution**: Implemented programmatic conflict resolution in Rust, replacing shell Git dependencies for better security and consistency. Added `gitMergePreferRemote` and `gitMergeAbort` functions for handling merge conflicts.
  - **Notification System**: Implemented local notifications using `flutter_local_notifications` (v17.2.2) for cross-platform support (Android, iOS, Linux). Consistent with rcal's daemon mode: notifications 30 minutes before timed events, midday the day before for all-day events. Singleton `NotificationService` handles scheduling/unscheduling, prevents duplicates by tracking IDs, and requests permissions on app start. Integrated into `EventProvider` for automatic scheduling on event CRUD operations and loading existing events. Added LinuxNotificationDetails for proper Linux support with notification daemons like Dunst, and initialized timezone database for zoned scheduling. On Linux, uses a periodic timer to check for upcoming events and show immediate notifications, as scheduled notifications may not persist when the app is closed.
 - **Workmanager Update**: Updated `workmanager` to version 0.9.0 for better compatibility with newer Flutter versions.
 - **Android Build Enhancements**: Enabled core library desugaring in Android build to support `flutter_local_notifications` v17.2.2 requirements.
+- **CMake Fixes**: Renamed custom targets in Android CMakeLists.txt to avoid duplicate target names, ensuring successful APK builds.
+- **Generated Code Warnings**: Suppressed lint warnings in auto-generated bridge code using ignore comments to maintain clean lint output.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.
 - **Event Date Caching**: Added caching for event dates in EventProvider to improve performance by precomputing Set<DateTime> of all event dates instead of expanding recurring events on every calendar day query.
 - **Notification Constants Extraction**: Extracted notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) to the Event model for better maintainability and consistency.
 - **Consistency with rcal**: All features should be consistent with https://github.com/Damond5/rcal, adapted for a Flutter GUI app.
+- **Linux Build Warnings Suppression**: Added -Wno-deprecated-literal-operator to Linux CMakeLists.txt to suppress json.hpp warnings treated as errors, ensuring successful builds without altering plugin dependencies.

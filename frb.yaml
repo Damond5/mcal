@@ -1,0 +1,8 @@
+rust_input: mcal_native::lib
+rust_root: native/
+dart_output: lib/
+c_output: ios/Runner/
+duplicated_c_output:
+    - macos/Runner/
+    - linux/
+    - windows/

@@ -1,14 +1,26 @@
 import "package:flutter/services.dart";
  import "package:flutter_test/flutter_test.dart";
+ import "package:mockito/annotations.dart";
+ import "package:mockito/mockito.dart";
  import "package:shared_preferences/shared_preferences.dart";
  import "package:mcal/models/event.dart";
  import "package:mcal/providers/event_provider.dart";
+ import "package:mcal/rust_api.dart";
+
+@GenerateMocks([RustLibApi])
+import "event_provider_test.mocks.dart";
 
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late EventProvider eventProvider;
+  late MockRustLibApi mockApi;
+
+  setUpAll(() {
+    mockApi = MockRustLibApi();
+    RustLib.initMock(api: mockApi);
+  });
 
    setUp(() {
     eventProvider = EventProvider();

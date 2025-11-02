@@ -5,3 +5,5 @@
 .fvmrc
 .idea
 build
+native/target
+android/app/src/main/cpp/libs

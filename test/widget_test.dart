@@ -7,6 +7,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -14,6 +16,10 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:mcal/main.dart';
 import 'package:mcal/providers/theme_provider.dart';
 import 'package:mcal/providers/event_provider.dart';
+import 'package:mcal/rust_api.dart';
+
+@GenerateMocks([RustLibApi])
+import 'widget_test.mocks.dart';
 
 // Helper to pump the app
 Future<void> pumpApp(WidgetTester tester) async {
@@ -30,6 +36,15 @@ Future<void> pumpApp(WidgetTester tester) async {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late MockRustLibApi mockApi;
+
+  setUpAll(() {
+    mockApi = MockRustLibApi();
+    RustLib.initMock(api: mockApi);
+  });
+
   testWidgets('Calendar app loads and displays initial state', (WidgetTester tester) async {
     await pumpApp(tester);
 

@@ -13,6 +13,7 @@ import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
 import 'widgets/sync_button.dart';
 import 'widgets/event_form_dialog.dart';
+import 'rust_api.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -23,6 +24,7 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await RustLib.init();
   Workmanager().initialize(callbackDispatcher);
   runApp(
     MultiProvider(

@@ -1,7 +1,8 @@
-   import "dart:io";
-   import "dart:developer";
-   import "package:flutter_secure_storage/flutter_secure_storage.dart";
-   import "package:path_provider/path_provider.dart";
+import "dart:io";
+import "dart:developer";
+import "package:flutter_secure_storage/flutter_secure_storage.dart";
+import "package:path_provider/path_provider.dart";
+import "../rust_api.dart";
 
 class SyncConflictException implements Exception {
   final String message;
@@ -12,7 +13,11 @@ class SyncService {
   static const String _remoteUrlKey = "git_remote_url";
   static const String _usernameKey = "git_username";
   static const String _passwordKey = "git_password";
+  static const String _sshKeyKey = "git_ssh_key_path";
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final RustLibApi _api;
+
+  SyncService([RustLibApi? api]) : _api = api ?? RustLib.instance.api;
 
   Future<String> _getGitExecutable() async {
     return 'git';
@@ -41,11 +46,15 @@ class SyncService {
     return await _secureStorage.read(key: _passwordKey);
   }
 
-  Future<void> updateCredentials(String? username, String? password) async {
-    await _setCredentials(username, password);
+  Future<String?> _getSshKeyPath() async {
+    return await _secureStorage.read(key: _sshKeyKey);
   }
 
-  Future<void> _setCredentials(String? username, String? password) async {
+  Future<void> updateCredentials(String? username, String? password, {String? sshKeyPath}) async {
+    await _setCredentials(username, password, sshKeyPath: sshKeyPath);
+  }
+
+  Future<void> _setCredentials(String? username, String? password, {String? sshKeyPath}) async {
     if (username != null) {
       await _secureStorage.write(key: _usernameKey, value: username);
     } else {
@@ -55,6 +64,11 @@ class SyncService {
       await _secureStorage.write(key: _passwordKey, value: password);
     } else {
       await _secureStorage.delete(key: _passwordKey);
+    }
+    if (sshKeyPath != null) {
+      await _secureStorage.write(key: _sshKeyKey, value: sshKeyPath);
+    } else {
+      await _secureStorage.delete(key: _sshKeyKey);
     }
   }
 
@@ -124,40 +138,32 @@ class SyncService {
     await _runGitCommand(['--version']);
   }
 
-  Future<void> initSync(String url, {String? username, String? password}) async {
-    if (Platform.isAndroid) {
-      throw Exception("Git sync is not supported on Android due to libc compatibility issues. Please install Termux (from F-Droid or Google Play) and Git manually, then use the app.");
-    }
+  Future<void> initSync(String url, {String? username, String? password, String? sshKeyPath}) async {
     log('Initializing sync for URL: <redacted>, with credentials: ${username != null && password != null ? 'provided' : 'none'}');
     url = url.trim().replaceAll('"', '').replaceAll("'", '');
     if (!_isValidUrl(url)) {
       throw Exception("Invalid URL format. Use HTTPS, HTTP, or SSH URL.");
     }
     // Store credentials separately
-    await _setCredentials(username, password);
+    await _setCredentials(username, password, sshKeyPath: sshKeyPath);
     // Store base URL without credentials
     await _setRemoteUrl(url);
-    await _checkGitAvailability();
+    final path = await _getAppDocDir();
     try {
-      await _runGitCommand(['init']);
-      await _runGitCommand(['remote', 'remove', 'origin'], errorMessage: "Failed to remove existing remote");
-      await _runGitCommand(['remote', 'add', 'origin', url]);
+      await _api.gitInit(path: path);
+      await _api.gitAddRemote(path: path, name: 'origin', url: url);
       try {
-        await _runGitCommand(['fetch', 'origin']);
+        await _api.gitFetch(path: path, remote: 'origin', username: username, password: password);
         try {
-          await _runGitCommand(['checkout', 'main']);
-          await _runGitCommand(['branch', '--set-upstream-to=origin/main']);
+          await _api.gitCheckout(path: path, branch: 'main');
         } catch (e) {
           try {
-            await _runGitCommand(['checkout', 'master']);
-            await _runGitCommand(['branch', '--set-upstream-to=origin/master']);
+            await _api.gitCheckout(path: path, branch: 'master');
           } catch (e) {
             try {
-              await _runGitCommand(['checkout', 'develop']);
-              await _runGitCommand(['branch', '--set-upstream-to=origin/develop']);
+              await _api.gitCheckout(path: path, branch: 'develop');
             } catch (e) {
-              await _runGitCommand(['checkout', 'trunk']);
-              await _runGitCommand(['branch', '--set-upstream-to=origin/trunk']);
+              await _api.gitCheckout(path: path, branch: 'trunk');
             }
           }
         }
@@ -168,6 +174,7 @@ class SyncService {
        log('Sync initialization failed: $e');
        throw Exception("Sync initialization failed: $e");
      }
+     print('DEBUG: initSync completed successfully');
   }
 
   Future<void> pullSync() async {
@@ -176,16 +183,22 @@ class SyncService {
     if (url == null) {
       throw Exception("No remote URL configured. Please initialize sync first.");
     }
-    await _checkGitAvailability();
-     try {
-       await _runGitCommand(['pull', 'origin']);
-     } catch (e) {
-       log('Pull sync failed: $e');
-       if (e.toString().toLowerCase().contains('conflict')) {
-         throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
-       }
-       throw Exception("Pull sync failed: $e");
-     }
+    final path = await _getAppDocDir();
+    try {
+      final username = await _getUsername();
+      final password = await _getPassword();
+      final sshKeyPath = await _getSshKeyPath();
+      final result = await _api.gitPull(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
+      if (result.contains('Non-fast-forward')) {
+        throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
+      }
+    } catch (e) {
+      log('Pull sync failed: $e');
+      if (e.toString().toLowerCase().contains('conflict')) {
+        throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
+      }
+      throw Exception("Pull sync failed: $e");
+    }
   }
 
   Future<void> pushSync() async {
@@ -194,33 +207,32 @@ class SyncService {
     if (url == null) {
       throw Exception("No remote URL configured. Please initialize sync first.");
     }
-    await _checkGitAvailability();
+    final path = await _getAppDocDir();
+    final username = await _getUsername();
+    final password = await _getPassword();
+    final sshKeyPath = await _getSshKeyPath();
     try {
-      final result = await _runGitCommandWithResult(['status', '--porcelain']);
-      if (result.exitCode != 0 || result.stdout.toString().trim().isEmpty) {
+      final status = await _api.gitStatus(path: path);
+      if (status == 'Working directory clean') {
         throw Exception("No changes to push");
       }
-      await _runGitCommand(['add', '.']);
-      await _runGitCommand(['commit', '-m', 'Sync events']);
-      await _runGitCommand(['push', 'origin']);
-     } catch (e) {
-       log('Push sync failed: $e');
-       throw Exception("Push sync failed: $e");
-     }
+      await _api.gitAddAll(path: path);
+      await _api.gitCommit(path: path, message: 'Sync events');
+      await _api.gitPush(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
+      } catch (e) {
+        log('Push sync failed: $e');
+        throw Exception("Push sync failed: $e");
+      }
   }
 
   Future<String> getSyncStatus() async {
-    await _checkGitAvailability();
+    final path = await _getAppDocDir();
     try {
-      final result = await _runGitCommandWithResult(['status', '--porcelain']);
-      if (result.exitCode == 0) {
-        return result.stdout.toString().trim().isEmpty ? "clean" : "modified";
-      } else {
-        if (result.stderr.toString().contains("not a git repository")) {
-          return "not initialized";
-        }
-        throw Exception("Failed to get git status: ${result.stderr}");
+      final status = await _api.gitStatus(path: path);
+      if (status.contains('not a git repository')) {
+        return "not initialized";
       }
+      return status == 'Working directory clean' ? "clean" : "modified";
     } catch (e) {
       log('Failed to get git status: $e');
       throw Exception("Failed to get git status: $e");
@@ -233,10 +245,9 @@ class SyncService {
   }
 
   Future<void> resolveConflictPreferRemote() async {
-    await _checkGitAvailability();
+    final path = await _getAppDocDir();
     try {
-      await _runGitCommand(['add', '.']);
-      await _runGitCommand(['rebase', '--continue']);
+      await _api.gitMergePreferRemote(path: path);
     } catch (e) {
       log('Resolve conflict failed: $e');
       throw Exception("Failed to resolve conflict: $e");
@@ -244,9 +255,9 @@ class SyncService {
   }
 
   Future<void> abortConflict() async {
-    await _checkGitAvailability();
+    final path = await _getAppDocDir();
     try {
-      await _runGitCommand(['rebase', '--abort']);
+      await _api.gitMergeAbort(path: path);
     } catch (e) {
       log('Abort conflict failed: $e');
       throw Exception("Failed to abort conflict: $e");

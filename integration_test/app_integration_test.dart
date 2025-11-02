@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mcal/main.dart';
 import 'package:mcal/providers/event_provider.dart';
 import 'package:mcal/providers/theme_provider.dart';
+import 'package:mcal/rust_api.dart';
 import 'package:mcal/widgets/theme_toggle_button.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -35,6 +36,7 @@ void main() {
 
   group('App Integration Tests', () {
     testWidgets('App loads and displays calendar', (WidgetTester tester) async {
+      await RustLib.init();
       // Build the app
       await tester.pumpWidget(
         MultiProvider(
@@ -57,6 +59,7 @@ void main() {
     });
 
     testWidgets('Theme toggle changes theme', (WidgetTester tester) async {
+      await RustLib.init();
       await tester.pumpWidget(
         MultiProvider(
           providers: [

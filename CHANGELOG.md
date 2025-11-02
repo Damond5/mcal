@@ -7,9 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-11-02
+
+### Fixed
+- Fixed compilation issues in the Rust git2 implementation.
+- Updated bridge code for improved integration and compatibility.
+- Fixed test failures related to the Rust git2 implementation.
+- Ensured successful builds across all supported platforms.
+
+## [1.0.0] - 2025-10-25
+
 ### Added
 - Added integration tests for app workflows (calendar display, theme toggle) using integration_test package. Implemented hybrid testing: units for logic, integrations for UI/real deps.
-- Git sync on Android now requires manual installation of Termux and Git due to binary compatibility issues.
+- Git sync on Android now supported using custom-built Rust library with vendored OpenSSL, eliminating need for Termux installation.
+- Unit tests for NotificationService, SyncService, and SyncSettings models.
+- Event date caching in EventProvider to improve performance by precomputing Set<DateTime> of all event dates.
+- Notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) extracted to Event model for better maintainability and consistency.
+- SSH authentication support for Git sync with configurable key paths.
+- Dynamic branch handling in Git operations, supporting modern repositories with "main" or custom branch names.
+- Programmatic conflict resolution in Rust, replacing shell Git dependencies for better security and consistency.
+
+### Changed
+- Changed Git synchronization implementation from using `Process.run` to Rust + git2 + flutter_rust_bridge for improved cross-platform compatibility and performance.
+- Updated workmanager to version 0.9.0 for better compatibility with newer Flutter versions.
+- Enabled core library desugaring in Android build to support flutter_local_notifications v17.2.2 requirements.
+- Upgraded flutter_secure_storage from ^9.0.0 to ^9.2.4 for latest fixes and improvements.
+
+### Fixed
+- Fixed lint warnings in auto-generated bridge code by adding ignore comments for unused import and field.
+- Fixed Android CMake build error caused by duplicate target names in CMakeLists.txt.
+- Android APK build now succeeds after CMake fix.
+- Integration tests now pass after resolving build dependencies.
+- Fixed Linux build warnings by suppressing deprecated literal operator warnings in CMakeLists.txt.
 
 ## [1.0.0] - 2025-10-25
 

@@ -17,7 +17,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Event Management**: Create, view, edit, and delete events with full details including title, start/end dates, start/end times, description, and recurrence (none/daily/weekly/monthly). Supports all-day events and multi-day spans.
 - **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date, with recurring events expanded automatically.
 - **Data Persistence**: Events are stored locally in individual Markdown files per event, following the rcal specification for compatibility and portability.
-- **Git Synchronization**: Sync events across devices using Git repositories with init, pull, push, and status operations. Includes automatic syncing with configurable settings and conflict resolution.
+- **Git Synchronization**: Sync events across devices using Git repositories. Supports comprehensive Git operations including initialization, cloning, branching management, pulling, pushing, status checking, remote management, fetching, checkout, staging, committing, conflict resolution, stashing, and diffing. Includes automatic syncing with configurable settings and conflict resolution.
 - **Notifications**: Receive local notifications for upcoming events. Timed events notify 30 minutes before start time, all-day events notify at midday the day before. On Linux, notifications are shown while the app is running using a background timer.
 
 ## Setup Instructions
@@ -115,16 +115,29 @@ If you make changes to the Rust code in the `native/` directory, follow these st
     - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
     - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
-  6. To sync events:
-      - Events are automatically synced: pulls on app start, pushes after changes.
-      - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
-       - For manual sync, tap the Sync button in the app bar to open the sync menu.
-        - Use Init Sync to initialize with a Git remote URL, username, password/token, and SSH key path for private repos (supports both HTTPS and SSH authentication).
-        - Use Update Credentials to change username/password/SSH key without re-initializing.
-        - Use Pull to fetch latest events from remote (with conflict resolution if needed), Push to upload local changes, Status to check repository state.
-        - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
-        - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
-        - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options.
+   6. To sync events:
+       - Events are automatically synced: pulls on app start, pushes after changes.
+       - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
+        - For manual sync, tap the Sync button in the app bar to open the sync menu.
+         - **Init Sync**: Initializes a new Git repository or clones from a remote URL with authentication (HTTPS/SSH). Used to set up sync for the first time.
+         - **Pull**: Fetches and merges changes from the remote repository, handling fast-forward merges and conflict resolution.
+         - **Push**: Pushes local commits to the remote repository.
+         - **Status**: Returns a list of files with their status changes (modified, staged, untracked).
+         - **Add Remote**: Adds or updates the remote repository URL.
+         - **Fetch**: Fetches changes from the remote without merging.
+         - **Checkout**: Switches to the specified branch.
+         - **Add All**: Stages all modified and new files for commit.
+         - **Commit**: Commits staged changes with a message.
+         - **Merge Prefer Remote**: Resolves merge conflicts by preferring remote changes and committing.
+         - **Merge Abort**: Aborts an ongoing merge operation.
+         - **Stash**: Stashes current working directory changes.
+         - **Diff**: Shows differences between the working directory and the last commit.
+         - **Current Branch**: Retrieves the name of the current branch.
+         - **List Branches**: Lists all branches in the repository.
+         - Use Update Credentials to change username/password/SSH key without re-initializing.
+         - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
+         - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
+         - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options.
 
   The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 

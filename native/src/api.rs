@@ -1,6 +1,8 @@
 use git2::Repository;
 use std::path::Path;
 use std::process::Command;
+use git2::cert::*;
+use x509_parser::prelude::*;
 
 #[flutter_rust_bridge::frb]
 #[derive(Debug)]
@@ -47,6 +49,32 @@ fn get_credentials(url: &str, username: &Option<String>, password: &Option<Strin
     }
 }
 
+// Helper function for certificate validation
+fn validate_certificate(hostname: &str, cert_data: &[u8]) -> Result<(), String> {
+    // Check hostname using x509-parser
+    let (_, cert) = x509_parser::parse_x509_certificate(cert_data)
+        .map_err(|e| format!("Failed to parse certificate for hostname check: {}", e))?;
+    let sans = cert.subject_alternative_name();
+    if let Ok(Some(sans)) = sans {
+        for san in &sans.value.general_names {
+            if let GeneralName::DNSName(dns) = san {
+                if *dns == hostname {
+                    return Ok(());
+                }
+            }
+        }
+    }
+    // Also check common name
+    if let Some(cn) = cert.subject().iter_common_name().next() {
+        if let Ok(cn_str) = cn.as_str() {
+            if cn_str == hostname {
+                return Ok(());
+            }
+        }
+    }
+    Err(format!("Hostname '{}' does not match certificate", hostname))
+}
+
 // Define the API struct
 #[flutter_rust_bridge::frb(init)]
 pub fn init_app() {
@@ -74,11 +102,21 @@ pub fn git_init(path: String) -> Result<String, GitError> {
 #[flutter_rust_bridge::frb]
 pub fn git_clone(url: String, path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let mut callbacks = git2::RemoteCallbacks::new();
-    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
+    let _url_clone = url.clone();
     callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks.certificate_check(move |cert, hostname| {
+        if let Some(x509) = cert.as_x509() {
+            match validate_certificate(hostname, x509.data()) {
+                Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
+                Err(e) => Err(git2::Error::from_str(&e)),
+            }
+        } else {
+            Ok(git2::CertificateCheckStatus::CertificateOk)
+        }
+    });
     let mut fetch_options = git2::FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
     let mut builder = git2::build::RepoBuilder::new();
@@ -120,11 +158,20 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
     };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
-    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
     callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks.certificate_check(move |cert, hostname| {
+        if let Some(x509) = cert.as_x509() {
+            match validate_certificate(hostname, x509.data()) {
+                Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
+                Err(e) => Err(git2::Error::from_str(&e)),
+            }
+        } else {
+            Ok(git2::CertificateCheckStatus::CertificateOk)
+        }
+    });
     let mut fetch_options = git2::FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
     remote.fetch(&[branch_name.as_str()], Some(&mut fetch_options), None)?;
@@ -165,11 +212,20 @@ fn git_push_impl(path: String, username: Option<String>, password: Option<String
     };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
-    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
     callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks.certificate_check(move |cert, hostname| {
+        if let Some(x509) = cert.as_x509() {
+            match validate_certificate(hostname, x509.data()) {
+                Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
+                Err(e) => Err(git2::Error::from_str(&e)),
+            }
+        } else {
+            Ok(git2::CertificateCheckStatus::CertificateOk)
+        }
+    });
     let mut push_options = git2::PushOptions::new();
     push_options.remote_callbacks(callbacks);
     let refspec = format!("refs/heads/{}", branch_name);
@@ -223,11 +279,20 @@ fn git_fetch_impl(path: String, remote: String, username: Option<String>, passwo
     };
     let mut remote_obj = repo.find_remote(&remote)?;
     let mut callbacks = git2::RemoteCallbacks::new();
-    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
     callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks.certificate_check(move |cert, hostname| {
+        if let Some(x509) = cert.as_x509() {
+            match validate_certificate(hostname, x509.data()) {
+                Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
+                Err(e) => Err(git2::Error::from_str(&e)),
+            }
+        } else {
+            Ok(git2::CertificateCheckStatus::CertificateOk)
+        }
+    });
     let mut fetch_options = git2::FetchOptions::new();
     fetch_options.remote_callbacks(callbacks);
     remote_obj.fetch(&[branch_name.as_str()], Some(&mut fetch_options), None)?;

@@ -74,6 +74,7 @@ pub fn git_init(path: String) -> Result<String, GitError> {
 #[flutter_rust_bridge::frb]
 pub fn git_clone(url: String, path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
@@ -119,6 +120,7 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
     };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
@@ -163,6 +165,7 @@ fn git_push_impl(path: String, username: Option<String>, password: Option<String
     };
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
@@ -220,6 +223,7 @@ fn git_fetch_impl(path: String, remote: String, username: Option<String>, passwo
     };
     let mut remote_obj = repo.find_remote(&remote)?;
     let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.certificate_check(|_cert, _host| Ok(git2::CertificateCheckStatus::CertificateOk));
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();

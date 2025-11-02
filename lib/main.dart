@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -26,7 +28,9 @@ void callbackDispatcher() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
-  Workmanager().initialize(callbackDispatcher);
+  if (!Platform.isLinux) {
+    Workmanager().initialize(callbackDispatcher);
+  }
   runApp(
     MultiProvider(
       providers: [

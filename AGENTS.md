@@ -2,6 +2,7 @@
 
 ## Prerequisites
 - **Java**: OpenJDK 17 (or 11) required for Android builds. Avoid development versions like 25.
+- **Flutter Rust Bridge**: Migrated to v2. Removed invalid `flutter_rust_bridge_build` dependency from dev_dependencies. Use `flutter_rust_bridge_codegen generate --config-file frb.yaml` to generate bridge code.
 
 ## Build/Lint/Test Commands
 - **Check environment**: `fvm flutter doctor`
@@ -83,9 +84,13 @@ pubspec.yaml). Followed Material Design 3 guidelines.
    - **Authentication for Sync**: For private repositories, the app supports separate username and password/token input during sync initialization, as well as SSH key paths. Credentials are stored separately from URLs using flutter_secure_storage for enhanced security, with dynamic injection only during Git operations. For HTTPS URLs, credentials are encoded and embedded temporarily for Git authentication. For SSH, key-based auth is supported with configurable key paths. Input validation includes length limits (100 chars), printable character checks, and regex-based URL validation. All logs, errors, and UI messages are sanitized to prevent credential leakage. No permanent embedding in stored URLs to facilitate rotation and reduce exposure.
    - **Mobile Git Sync**: Git sync on Android is now supported using a custom-built Rust library with vendored OpenSSL for compatibility. No additional setup required.
    - **Branch Handling**: Git operations dynamically detect and use the current branch instead of hardcoding "master", supporting modern Git workflows with "main" or other branch names.
-    - **Conflict Resolution**: Implemented programmatic conflict resolution in Rust using Git commands for reliability. `gitMergePreferRemote` resolves conflicts by preferring remote changes and committing, while `gitMergeAbort` cleans up failed merges. Replaces placeholder implementations for full sync conflict handling.
+     - **Conflict Resolution**: Implemented programmatic conflict resolution in Rust using Git commands for reliability. `gitMergePreferRemote` resolves conflicts by preferring remote changes and committing, while `gitMergeAbort` cleans up failed merges. Replaces placeholder implementations for full sync conflict handling.
+     - **Git Error Handling**: Introduced custom `GitError` enum for type-safe error handling in Git operations, improving error reporting and debugging.
+     - **Status Output Structuring**: Added `StatusEntry` struct for structured Git status output, enabling better parsing and display of repository status information.
+     - **Dynamic Branch Detection**: Implemented dynamic branch detection using `remote.default_branch()` to support modern Git workflows with default branches like "main" or custom names.
+     - **Additional Git Functions**: Added `git_stash` and `git_diff` functions to the Rust Git implementation for enhanced repository management capabilities.
  - **Notification System**: Implemented local notifications using `flutter_local_notifications` (v17.2.2) for cross-platform support (Android, iOS, Linux). Consistent with rcal's daemon mode: notifications 30 minutes before timed events, midday the day before for all-day events. Singleton `NotificationService` handles scheduling/unscheduling, prevents duplicates by tracking IDs, and requests permissions on app start. Integrated into `EventProvider` for automatic scheduling on event CRUD operations and loading existing events. Added LinuxNotificationDetails for proper Linux support with notification daemons like Dunst, and initialized timezone database for zoned scheduling. On Linux, uses a periodic timer to check for upcoming events and show immediate notifications, as scheduled notifications may not persist when the app is closed.
-- **Workmanager Update**: Updated `workmanager` to version 0.9.0 for better compatibility with newer Flutter versions.
+- **Workmanager Update**: Updated `workmanager` to version 0.9.0 for better compatibility with newer Flutter versions. Added platform check to only initialize workmanager on Android/iOS; uses Timer for periodic sync on Linux.
 - **Android Build Enhancements**: Enabled core library desugaring in Android build to support `flutter_local_notifications` v17.2.2 requirements.
 - **CMake Fixes**: Renamed custom targets in Android CMakeLists.txt to avoid duplicate target names, ensuring successful APK builds.
 - **Generated Code Warnings**: Suppressed lint warnings in auto-generated bridge code using ignore comments to maintain clean lint output.

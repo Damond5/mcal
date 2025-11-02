@@ -9,10 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Debug logging for GUI errors to console output, enabling easier troubleshooting of user-facing errors during development.
+- Custom `GitError` enum for type-safe error handling in Git operations.
+- `StatusEntry` struct for structured Git status output.
+- Dynamic branch detection using `remote.default_branch()` for flexible repository support.
+- `git_stash` and `git_diff` functions added to the Rust Git implementation.
 
 ### Changed
 - Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.
+- Updated error handling in Git operations for improved reliability and user feedback.
 - Migrated Flutter Rust Bridge from v1 to v2, updating dependencies, configuration, and codegen process for improved performance and compatibility.
+
+### Fixed
+- Removed invalid `flutter_rust_bridge_build` dependency from pubspec.yaml dev_dependencies.
+- Added platform check to only initialize workmanager on Android/iOS, preventing UnimplementedError on Linux where Timer is used for periodic sync.
 
 ## [1.0.1] - 2025-11-02
 

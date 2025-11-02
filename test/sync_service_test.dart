@@ -3,8 +3,9 @@
   import "package:mockito/annotations.dart";
   import "package:mockito/mockito.dart";
   import "package:shared_preferences/shared_preferences.dart";
-  import "package:mcal/services/sync_service.dart";
-  import "package:mcal/frb_generated.dart";
+import "package:mcal/services/sync_service.dart";
+import "package:mcal/frb_generated.dart";
+import "package:mcal/api.dart";
 
 @GenerateMocks([RustLibApi])
 import "sync_service_test.mocks.dart";
@@ -78,7 +79,7 @@ void main() {
   test('pushSync calls gitPush with auth', () async {
     syncService = SyncService(mockApi);
     await syncService.initSync('https://example.com/repo.git', username: 'user', password: 'pass', sshKeyPath: '/path/to/key');
-    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'modified');
+    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => [StatusEntry(path: 'file.txt', status: 'modified')]);
     when(mockApi.crateApiGitAddAll(path: anyNamed('path'))).thenAnswer((_) async => 'Added');
     when(mockApi.crateApiGitCommit(path: anyNamed('path'), message: anyNamed('message'))).thenAnswer((_) async => 'Committed');
     when(mockApi.crateApiGitPush(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pushed');
@@ -86,7 +87,7 @@ void main() {
   });
 
   test('getSyncStatus returns string', () async {
-    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'Working directory clean');
+    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => []);
     expect(await syncService.getSyncStatus(), isA<String>());
   });
 

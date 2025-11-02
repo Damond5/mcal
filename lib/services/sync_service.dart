@@ -19,8 +19,6 @@ class SyncService {
 
   SyncService([RustLibApi? api]) : _api = api ?? RustLib.instance.api;
 
-
-
   Future<String> _getAppDocDir() async {
     final dir = await getApplicationDocumentsDirectory();
     final calendarDir = Directory('${dir.path}/calendar');
@@ -77,8 +75,6 @@ class SyncService {
       await _secureStorage.delete(key: _sshKeyKey);
     }
   }
-
-
 
   bool _isValidUrl(String url) {
     // Regex for HTTPS/HTTP: basic host validation
@@ -199,7 +195,7 @@ class SyncService {
     final sshKeyPath = await _getSshKeyPath();
     try {
       final status = await _api.crateApiGitStatus(path: path);
-      if (status == 'Working directory clean') {
+      if (status.isEmpty) {
         log('Push sync skipped: no changes to push');
         throw Exception("No changes to push");
       }
@@ -224,11 +220,15 @@ class SyncService {
     final path = await _getAppDocDir();
     try {
       final status = await _api.crateApiGitStatus(path: path);
-      if (status.contains('not a git repository')) {
+      if (status.isEmpty) {
+        return "clean";
+      } else {
+        return "modified";
+      }
+    } catch (e) {
+      if (e.toString().contains('not a git repository')) {
         return "not initialized";
       }
-      return status == 'Working directory clean' ? "clean" : "modified";
-    } catch (e) {
       log('Failed to get git status: $e');
       throw Exception("Failed to get git status: $e");
     }

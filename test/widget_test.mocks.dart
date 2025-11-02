@@ -5,6 +5,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
 
+import 'package:mcal/api.dart' as _i5;
 import 'package:mcal/frb_generated.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i4;
@@ -22,7 +23,6 @@ import 'package:mockito/src/dummies.dart' as _i4;
 // ignore_for_file: unnecessary_parenthesis
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
-// ignore_for_file: invalid_use_of_internal_member
 
 /// A class which mocks [RustLibApi].
 ///
@@ -167,6 +167,19 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<String>);
 
   @override
+  _i3.Future<String> crateApiGitDiff({required String? path}) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGitDiff, [], {#path: path}),
+            returnValue: _i3.Future<String>.value(
+              _i4.dummyValue<String>(
+                this,
+                Invocation.method(#crateApiGitDiff, [], {#path: path}),
+              ),
+            ),
+          )
+          as _i3.Future<String>);
+
+  @override
   _i3.Future<String> crateApiGitFetch({
     required String? path,
     required String? remote,
@@ -303,17 +316,29 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<String>);
 
   @override
-  _i3.Future<String> crateApiGitStatus({required String? path}) =>
+  _i3.Future<String> crateApiGitStash({required String? path}) =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiGitStatus, [], {#path: path}),
+            Invocation.method(#crateApiGitStash, [], {#path: path}),
             returnValue: _i3.Future<String>.value(
               _i4.dummyValue<String>(
                 this,
-                Invocation.method(#crateApiGitStatus, [], {#path: path}),
+                Invocation.method(#crateApiGitStash, [], {#path: path}),
               ),
             ),
           )
           as _i3.Future<String>);
+
+  @override
+  _i3.Future<List<_i5.StatusEntry>> crateApiGitStatus({
+    required String? path,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGitStatus, [], {#path: path}),
+            returnValue: _i3.Future<List<_i5.StatusEntry>>.value(
+              <_i5.StatusEntry>[],
+            ),
+          )
+          as _i3.Future<List<_i5.StatusEntry>>);
 
   @override
   _i3.Future<void> crateApiInitApp() =>

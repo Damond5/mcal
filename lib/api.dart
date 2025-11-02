@@ -5,8 +5,11 @@
 
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_status_impl`
+// These functions are ignored because they are not marked as `pub`: `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_stash_impl`, `git_status_impl`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `fmt`, `fmt`, `from`, `from`
 
 Future<int> add({required int left, required int right}) =>
     RustLib.instance.api.crateApiAdd(left: left, right: right);
@@ -58,7 +61,7 @@ Future<String> gitPush({
   sshKeyPath: sshKeyPath,
 );
 
-Future<String> gitStatus({required String path}) =>
+Future<List<StatusEntry>> gitStatus({required String path}) =>
     RustLib.instance.api.crateApiGitStatus(path: path);
 
 Future<String> gitAddRemote({
@@ -96,3 +99,37 @@ Future<String> gitMergePreferRemote({required String path}) =>
 
 Future<String> gitMergeAbort({required String path}) =>
     RustLib.instance.api.crateApiGitMergeAbort(path: path);
+
+Future<String> gitStash({required String path}) =>
+    RustLib.instance.api.crateApiGitStash(path: path);
+
+Future<String> gitDiff({required String path}) =>
+    RustLib.instance.api.crateApiGitDiff(path: path);
+
+@freezed
+sealed class GitError with _$GitError implements FrbException {
+  const GitError._();
+
+  const factory GitError.io(String field0) = GitError_Io;
+  const factory GitError.git(String field0) = GitError_Git;
+  const factory GitError.auth(String field0) = GitError_Auth;
+  const factory GitError.other(String field0) = GitError_Other;
+}
+
+class StatusEntry {
+  final String path;
+  final String status;
+
+  const StatusEntry({required this.path, required this.status});
+
+  @override
+  int get hashCode => path.hashCode ^ status.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StatusEntry &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          status == other.status;
+}

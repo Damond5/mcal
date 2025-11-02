@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated bridge code for improved integration and compatibility.
 - Fixed test failures related to the Rust git2 implementation.
 - Ensured successful builds across all supported platforms.
+- Updated flutter_rust_bridge to resolve integration test failures.
+- Built Android libraries for improved compatibility and test reliability.
+- Fixed integration test setup to ensure proper execution and coverage.
 
 ## [1.0.0] - 2025-10-25
 

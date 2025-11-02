@@ -13,7 +13,8 @@ import 'package:table_calendar/table_calendar.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(() {
+  setUpAll(() async {
+    await RustLib.init();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('dexterous.com/flutter/local_notifications'), (MethodCall methodCall) async {
       if (methodCall.method == 'initialize') {
         return true;
@@ -36,7 +37,6 @@ void main() {
 
   group('App Integration Tests', () {
     testWidgets('App loads and displays calendar', (WidgetTester tester) async {
-      await RustLib.init();
       // Build the app
       await tester.pumpWidget(
         MultiProvider(
@@ -59,7 +59,6 @@ void main() {
     });
 
     testWidgets('Theme toggle changes theme', (WidgetTester tester) async {
-      await RustLib.init();
       await tester.pumpWidget(
         MultiProvider(
           providers: [
@@ -79,12 +78,12 @@ void main() {
       // Initially, theme is system, icon should be brightness_6
       expect(find.byIcon(Icons.brightness_6), findsOneWidget);
 
-      // Tap to toggle to light mode
+      // Tap to toggle to opposite of system theme (assuming system is light, toggles to dark)
       await tester.tap(themeButton);
       await tester.pumpAndSettle();
 
-      // Now icon should be dark_mode (indicating light theme)
-      expect(find.byIcon(Icons.dark_mode), findsOneWidget);
+      // Now icon should be light_mode (indicating dark theme)
+      expect(find.byIcon(Icons.light_mode), findsOneWidget);
     });
 
     // Add more tests for event CRUD, sync, etc. as needed

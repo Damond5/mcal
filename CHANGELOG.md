@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Debug logging for GUI errors to console output, enabling easier troubleshooting of user-facing errors during development.
+
 ### Changed
 - Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.
 

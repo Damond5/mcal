@@ -14,6 +14,7 @@ import 'widgets/theme_toggle_button.dart';
 import 'widgets/sync_button.dart';
 import 'widgets/event_form_dialog.dart';
 import 'rust_api.dart';
+import 'utils/error_logger.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -94,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     await NotificationService().initialize();
     final granted = await NotificationService().requestPermissions();
     if (!granted && mounted) {
+      logGuiError('Notification permissions denied', context: 'notification_permissions');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Notification permissions denied. Events will not notify.')),
       );

@@ -27,6 +27,7 @@
 
 ## Design Choices for Simple Calendar App
 
+- **Error Logging**: Implemented debug logging for GUI errors using a utility function that logs to console in debug mode, allowing developers to capture detailed error information from device output for troubleshooting without relying solely on UI messages.
 - **Calendar Library**: Chose `table_calendar` (v3.2.0) for its
 highly customizable and feature-packed calendar widget, supporting
 month/week views, selection, and formatting.

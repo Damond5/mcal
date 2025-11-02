@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:provider/provider.dart";
 import "../providers/event_provider.dart";
 import "../services/sync_service.dart";
+import "../utils/error_logger.dart";
 import "sync_settings_dialog.dart";
 import "conflict_resolution_dialog.dart";
 
@@ -66,21 +67,22 @@ class SyncButton extends StatelessWidget {
         ),
       );
       try {
-        await eventProvider.updateCredentials(creds['username'], creds['password']);
-        if (context.mounted) {
-          Navigator.of(context).pop(); // close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Credentials updated successfully")),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
-          );
-        }
-      }
+         await eventProvider.updateCredentials(creds['username'], creds['password']);
+         if (context.mounted) {
+           Navigator.of(context).pop(); // close loading
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text("Credentials updated successfully")),
+           );
+         }
+       } catch (e) {
+         if (context.mounted) {
+           Navigator.of(context).pop(); // close loading
+           logGuiError("Credentials update failed", error: e, context: "update_credentials");
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+           );
+         }
+       }
     }
   }
 
@@ -102,21 +104,22 @@ class SyncButton extends StatelessWidget {
         ),
       );
       try {
-        await eventProvider.syncInit(creds['url']!, username: creds['username'], password: creds['password']);
-        if (context.mounted) {
-          Navigator.of(context).pop(); // close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Sync initialized successfully")),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // close loading
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
-          );
-        }
-      }
+         await eventProvider.syncInit(creds['url']!, username: creds['username'], password: creds['password']);
+         if (context.mounted) {
+           Navigator.of(context).pop(); // close loading
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text("Sync initialized successfully")),
+           );
+         }
+       } catch (e) {
+         if (context.mounted) {
+           Navigator.of(context).pop(); // close loading
+           logGuiError("Sync initialization failed", error: e, context: "sync_init");
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+           );
+         }
+       }
     }
   }
 
@@ -143,19 +146,20 @@ class SyncButton extends StatelessWidget {
           const SnackBar(content: Text("Pulled successfully")),
         );
       }
-    } on SyncConflictException {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        await ConflictResolutionDialog.show(context);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
-        );
-      }
-    }
+     } on SyncConflictException {
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         await ConflictResolutionDialog.show(context);
+       }
+     } catch (e) {
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         logGuiError("Sync pull failed", error: e, context: "sync_pull");
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+         );
+       }
+     }
   }
 
   void _showPushDialog(BuildContext context) async {
@@ -174,21 +178,22 @@ class SyncButton extends StatelessWidget {
       ),
     );
     try {
-      await eventProvider.syncPush();
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Pushed successfully")),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
-        );
-      }
-    }
+       await eventProvider.syncPush();
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text("Pushed successfully")),
+         );
+       }
+     } catch (e) {
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         logGuiError("Sync push failed", error: e, context: "sync_push");
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+         );
+       }
+     }
   }
 
   void _showStatusDialog(BuildContext context) async {
@@ -207,21 +212,22 @@ class SyncButton extends StatelessWidget {
       ),
     );
     try {
-      final status = await eventProvider.syncStatus();
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Status: $status")),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
-        );
-      }
-    }
+       final status = await eventProvider.syncStatus();
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Status: $status")),
+         );
+       }
+     } catch (e) {
+       if (context.mounted) {
+         Navigator.of(context).pop();
+         logGuiError("Sync status check failed", error: e, context: "sync_status");
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text("Error: ${_extractErrorMessage(e)}")),
+         );
+       }
+     }
   }
 
   void _showSettingsDialog(BuildContext context) {

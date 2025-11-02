@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
+import '../utils/error_logger.dart';
 
 class EventFormDialog extends StatefulWidget {
   final Event? event; // null for add, existing for edit
@@ -101,19 +102,23 @@ class EventFormDialogState extends State<EventFormDialog> {
     final title = titleController.text.trim();
     if (title.isEmpty) {
       setState(() => errorMessage = 'Title is required');
+      logGuiError('Title is required', context: 'event_validation');
       return false;
     }
     if (title.contains('..') || title.startsWith('/')) {
       setState(() => errorMessage = 'Title contains invalid characters');
+      logGuiError('Title contains invalid characters', context: 'event_validation');
       return false;
     }
     if (selectedEndDate != null && selectedEndDate!.isBefore(selectedStartDate)) {
       setState(() => errorMessage = 'End date must be after start date');
+      logGuiError('End date must be after start date', context: 'event_validation');
       return false;
     }
     if (!isAllDay) {
       if (selectedStartTime == null) {
         setState(() => errorMessage = 'Start time is required for timed events');
+        logGuiError('Start time is required for timed events', context: 'event_validation');
         return false;
       }
       if (selectedEndTime != null) {
@@ -123,6 +128,7 @@ class EventFormDialogState extends State<EventFormDialog> {
         final endMinutes = endTimeOfDay.hour * 60 + endTimeOfDay.minute;
         if (endMinutes <= startMinutes) {
           setState(() => errorMessage = 'End time must be after start time');
+          logGuiError('End time must be after start time', context: 'event_validation');
           return false;
         }
       }

@@ -49,10 +49,10 @@ void main() {
       return null;
     });
     // Common mocks for initSync
-    when(mockApi.gitInit(path: anyNamed('path'))).thenAnswer((_) async => 'Initialized');
-    when(mockApi.gitAddRemote(path: anyNamed('path'), name: anyNamed('name'), url: anyNamed('url'))).thenAnswer((_) async => 'Remote added');
-    when(mockApi.gitFetch(path: anyNamed('path'), remote: anyNamed('remote'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Fetched');
-    when(mockApi.gitCheckout(path: anyNamed('path'), branch: anyNamed('branch'))).thenAnswer((_) async => 'Checked out');
+    when(mockApi.crateApiGitInit(path: anyNamed('path'))).thenAnswer((_) async => 'Initialized');
+    when(mockApi.crateApiGitAddRemote(path: anyNamed('path'), name: anyNamed('name'), url: anyNamed('url'))).thenAnswer((_) async => 'Remote added');
+    when(mockApi.crateApiGitFetch(path: anyNamed('path'), remote: anyNamed('remote'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Fetched');
+    when(mockApi.crateApiGitCheckout(path: anyNamed('path'), branch: anyNamed('branch'))).thenAnswer((_) async => 'Checked out');
   });
 
   test('initSync stores remote URL', () async {
@@ -67,7 +67,7 @@ void main() {
   test('pullSync calls gitPull with auth', () async {
     syncService = SyncService(mockApi);
     await syncService.initSync('https://example.com/repo.git', username: 'user', password: 'pass', sshKeyPath: '/path/to/key');
-    when(mockApi.gitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pulled');
+    when(mockApi.crateApiGitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pulled');
     await expectLater(syncService.pullSync(), completes);
   });
 
@@ -78,25 +78,25 @@ void main() {
   test('pushSync calls gitPush with auth', () async {
     syncService = SyncService(mockApi);
     await syncService.initSync('https://example.com/repo.git', username: 'user', password: 'pass', sshKeyPath: '/path/to/key');
-    when(mockApi.gitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'modified');
-    when(mockApi.gitAddAll(path: anyNamed('path'))).thenAnswer((_) async => 'Added');
-    when(mockApi.gitCommit(path: anyNamed('path'), message: anyNamed('message'))).thenAnswer((_) async => 'Committed');
-    when(mockApi.gitPush(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pushed');
+    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'modified');
+    when(mockApi.crateApiGitAddAll(path: anyNamed('path'))).thenAnswer((_) async => 'Added');
+    when(mockApi.crateApiGitCommit(path: anyNamed('path'), message: anyNamed('message'))).thenAnswer((_) async => 'Committed');
+    when(mockApi.crateApiGitPush(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pushed');
     await expectLater(syncService.pushSync(), completes);
   });
 
   test('getSyncStatus returns string', () async {
-    when(mockApi.gitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'Working directory clean');
+    when(mockApi.crateApiGitStatus(path: anyNamed('path'))).thenAnswer((_) async => 'Working directory clean');
     expect(await syncService.getSyncStatus(), isA<String>());
   });
 
   test('resolveConflictPreferRemote calls gitMergePreferRemote', () async {
-    when(mockApi.gitMergePreferRemote(path: anyNamed('path'))).thenAnswer((_) async => 'Resolved');
+    when(mockApi.crateApiGitMergePreferRemote(path: anyNamed('path'))).thenAnswer((_) async => 'Resolved');
     await expectLater(syncService.resolveConflictPreferRemote(), completes);
   });
 
   test('abortConflict calls gitMergeAbort', () async {
-    when(mockApi.gitMergeAbort(path: anyNamed('path'))).thenAnswer((_) async => 'Aborted');
+    when(mockApi.crateApiGitMergeAbort(path: anyNamed('path'))).thenAnswer((_) async => 'Aborted');
     await expectLater(syncService.abortConflict(), completes);
   });
 }

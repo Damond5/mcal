@@ -19,9 +19,7 @@ class SyncService {
 
   SyncService([RustLibApi? api]) : _api = api ?? RustLib.instance.api;
 
-  Future<String> _getGitExecutable() async {
-    return 'git';
-  }
+
 
   Future<String> _getAppDocDir() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -80,71 +78,7 @@ class SyncService {
     }
   }
 
-  Future<void> _runGitCommand(List<String> args, {String? errorMessage}) async {
-    final result = await _runGitCommandWithResult(args);
-    if (result.exitCode != 0) {
-      final sanitizedStderr = result.stderr.toString().replaceAll(
-        RegExp(r'https?://[^@]+@[^/]+'),
-        '<redacted>',
-      );
-      log(
-        'Git command failed: git ${args.join(' ')}, stderr: $sanitizedStderr',
-      );
-      throw Exception(errorMessage ?? "Git command failed: $sanitizedStderr");
-    }
-  }
 
-  Future<ProcessResult> _runGitCommandWithResult(List<String> args) async {
-    final executable = await _getGitExecutable();
-    final workingDirectory = await _getAppDocDir();
-    final modifiedArgs = await _injectCredentialsIntoArgs(args);
-    final sanitizedArgs = modifiedArgs.map((arg) {
-      if (arg.startsWith('https://') ||
-          arg.startsWith('http://') ||
-          arg.startsWith('git@') ||
-          arg.startsWith('ssh://')) {
-        return '<redacted>';
-      }
-      return arg;
-    }).toList();
-    try {
-      final result = await Process.run(
-        executable,
-        modifiedArgs,
-        workingDirectory: workingDirectory,
-      );
-      return result;
-    } catch (e) {
-      final sanitizedError = e.toString().replaceAll(
-        RegExp(r'https?://[^@]+@[^/]+'),
-        '<redacted>',
-      );
-      log(
-        'Failed to run git command: $executable ${sanitizedArgs.join(' ')}, error: $sanitizedError',
-      );
-      throw Exception("Failed to run git command: $sanitizedError");
-    }
-  }
-
-  Future<List<String>> _injectCredentialsIntoArgs(List<String> args) async {
-    final username = await _getUsername();
-    final password = await _getPassword();
-    final url = await _getRemoteUrl();
-    if (url == null || username == null || password == null) {
-      return args; // No injection needed
-    }
-    return args.map((arg) {
-      if (arg == url &&
-          (url.startsWith('https://') || url.startsWith('http://'))) {
-        final scheme = url.startsWith('https://') ? 'https://' : 'http://';
-        final afterScheme = url.substring(scheme.length);
-        if (!afterScheme.contains('@')) {
-          return '$scheme${Uri.encodeComponent(username)}:${Uri.encodeComponent(password)}@$afterScheme';
-        }
-      }
-      return arg;
-    }).toList();
-  }
 
   bool _isValidUrl(String url) {
     // Regex for HTTPS/HTTP: basic host validation
@@ -183,25 +117,25 @@ class SyncService {
     await _setRemoteUrl(url);
     final path = await _getAppDocDir();
     try {
-      await _api.gitInit(path: path);
-      await _api.gitAddRemote(path: path, name: 'origin', url: url);
+      await _api.crateApiGitInit(path: path);
+      await _api.crateApiGitAddRemote(path: path, name: 'origin', url: url);
       try {
-        await _api.gitFetch(
+        await _api.crateApiGitFetch(
           path: path,
           remote: 'origin',
           username: username,
           password: password,
         );
         try {
-          await _api.gitCheckout(path: path, branch: 'main');
+          await _api.crateApiGitCheckout(path: path, branch: 'main');
         } catch (e) {
           try {
-            await _api.gitCheckout(path: path, branch: 'master');
+            await _api.crateApiGitCheckout(path: path, branch: 'master');
           } catch (e) {
             try {
-              await _api.gitCheckout(path: path, branch: 'develop');
+              await _api.crateApiGitCheckout(path: path, branch: 'develop');
             } catch (e) {
-              await _api.gitCheckout(path: path, branch: 'trunk');
+              await _api.crateApiGitCheckout(path: path, branch: 'trunk');
             }
           }
         }
@@ -227,7 +161,7 @@ class SyncService {
       final username = await _getUsername();
       final password = await _getPassword();
       final sshKeyPath = await _getSshKeyPath();
-      final result = await _api.gitPull(
+      final result = await _api.crateApiGitPull(
         path: path,
         username: username,
         password: password,
@@ -264,16 +198,16 @@ class SyncService {
     final password = await _getPassword();
     final sshKeyPath = await _getSshKeyPath();
     try {
-      final status = await _api.gitStatus(path: path);
+      final status = await _api.crateApiGitStatus(path: path);
       if (status == 'Working directory clean') {
         log('Push sync skipped: no changes to push');
         throw Exception("No changes to push");
       }
       log('Adding and committing changes');
-      await _api.gitAddAll(path: path);
-      await _api.gitCommit(path: path, message: 'Sync events');
+      await _api.crateApiGitAddAll(path: path);
+      await _api.crateApiGitCommit(path: path, message: 'Sync events');
       log('Pushing to remote');
-      await _api.gitPush(
+      await _api.crateApiGitPush(
         path: path,
         username: username,
         password: password,
@@ -289,7 +223,7 @@ class SyncService {
   Future<String> getSyncStatus() async {
     final path = await _getAppDocDir();
     try {
-      final status = await _api.gitStatus(path: path);
+      final status = await _api.crateApiGitStatus(path: path);
       if (status.contains('not a git repository')) {
         return "not initialized";
       }
@@ -309,7 +243,7 @@ class SyncService {
     final path = await _getAppDocDir();
     try {
       log('Resolving merge conflict by preferring remote changes');
-      await _api.gitMergePreferRemote(path: path);
+      await _api.crateApiGitMergePreferRemote(path: path);
       log('Merge conflict resolved successfully by preferring remote');
     } catch (e) {
       log('Resolve conflict failed: $e');
@@ -321,7 +255,7 @@ class SyncService {
     final path = await _getAppDocDir();
     try {
       log('Aborting merge conflict');
-      await _api.gitMergeAbort(path: path);
+      await _api.crateApiGitMergeAbort(path: path);
       log('Merge conflict aborted successfully');
     } catch (e) {
       log('Abort conflict failed: $e');

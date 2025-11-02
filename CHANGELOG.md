@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.
+- Migrated Flutter Rust Bridge from v1 to v2, updating dependencies, configuration, and codegen process for improved performance and compatibility.
 
 ## [1.0.1] - 2025-11-02
 

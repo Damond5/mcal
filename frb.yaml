@@ -1,9 +1,9 @@
-rust_input: native/src/api.frb
+rust_input: crate::api
 rust_root: native/
 dart_output: lib/
 dart_root: .
-c_output: ios/Runner/
+c_output: ios/Runner/bridge_generated.h
 duplicated_c_output:
-    - macos/Runner/
-    - linux/
-    - windows/
+    - macos/Runner/bridge_generated.h
+    - linux/bridge_generated.h
+    - windows/bridge_generated.h

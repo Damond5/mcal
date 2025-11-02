@@ -1,7 +1,7 @@
-builders:
-  flutter_rust_bridge:
-    import: "package:flutter_rust_bridge/flutter_rust_bridge.dart"
-    builder_factories: ["flutterRustBridgeBuilder"]
-    build_extensions: {".dart": [".frb.dart"]}
-    auto_apply: dependents
-    build_to: source
+# builders:
+#   flutter_rust_bridge:
+#     import: "package:flutter_rust_bridge/flutter_rust_bridge.dart"
+#     builder_factories: ["flutterRustBridgeBuilder"]
+#     build_extensions: {".dart": [".frb.dart"]}
+#     auto_apply: dependents
+#     build_to: source

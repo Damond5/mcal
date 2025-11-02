@@ -42,7 +42,12 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
    flutter pub get
    ```
 
-3. **Run the app**:
+3. **Generate Rust bridge code**:
+   ```bash
+   flutter_rust_bridge_codegen generate
+   ```
+
+4. **Run the app**:
    - For mobile/emulator:
      ```bash
      flutter run

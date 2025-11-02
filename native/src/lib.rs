@@ -4,6 +4,7 @@ mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be
 use flutter_rust_bridge::*;
 use git2::Repository;
 use std::path::Path;
+use std::process::Command;
 
 // Helper function for credentials
 fn get_credentials(url: &str, username: &Option<String>, password: &Option<String>, ssh_key_path: &Option<String>) -> git2::Cred {
@@ -186,29 +187,71 @@ pub fn git_commit(path: String, message: String) -> Result<String, String> {
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_merge_prefer_remote(_path: String) -> Result<String, String> {
-    Ok("Prefer remote resolution not implemented".to_string())
+pub fn git_merge_prefer_remote(path: String) -> Result<String, String> {
+    let output = Command::new("git")
+        .arg("checkout")
+        .arg("--theirs")
+        .arg(".")
+        .current_dir(&path)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    let output = Command::new("git")
+        .arg("add")
+        .arg(".")
+        .current_dir(&path)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    let output = Command::new("git")
+        .arg("commit")
+        .arg("-m")
+        .arg("Merge resolved by preferring remote")
+        .current_dir(&path)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok("Merge resolved by preferring remote".to_string())
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_merge_abort(_path: String) -> Result<String, String> {
-    Ok("Merge abort not implemented".to_string())
+pub fn git_merge_abort(path: String) -> Result<String, String> {
+    let output = Command::new("git")
+        .arg("merge")
+        .arg("--abort")
+        .current_dir(&path)
+        .output()
+        .map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok("Merge aborted".to_string())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use tempdir::TempDir;
 
     #[test]
     fn test_add() {
         assert_eq!(add(2, 3), 5);
     }
 
-    // Note: Git function tests require actual repos, so these are placeholders
     #[test]
     fn test_git_init() {
-        // Placeholder: test git_init with temp dir
-        // This would require creating a temp directory and checking if .git exists
+        let temp_dir = TempDir::new("test_git_init").unwrap();
+        let path = temp_dir.path().to_str().unwrap().to_string();
+        let result = git_init(path.clone());
+        assert!(result.is_ok());
+        assert!(fs::metadata(format!("{}/.git", path)).is_ok());
     }
 
     #[test]
@@ -216,5 +259,124 @@ mod tests {
         // Test error handling for invalid paths
         let result = git_status("/invalid/path".to_string());
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_git_merge_prefer_remote() {
+        let temp_dir = TempDir::new("test_merge_prefer_remote").unwrap();
+        let path = temp_dir.path().to_str().unwrap().to_string();
+
+        // Initialize repo
+        git_init(path.clone()).unwrap();
+
+        // Create and commit a file
+        fs::write(format!("{}/test.txt", path), "initial content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Initial commit".to_string()).unwrap();
+
+        // Create branch
+        let output = Command::new("git")
+            .arg("checkout")
+            .arg("-b")
+            .arg("feature")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+
+        // Modify file in feature branch
+        fs::write(format!("{}/test.txt", path), "feature content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Feature commit".to_string()).unwrap();
+
+        // Switch back to master and modify the same file
+        let output = Command::new("git")
+            .arg("checkout")
+            .arg("master")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        fs::write(format!("{}/test.txt", path), "master content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Master commit".to_string()).unwrap();
+
+        // Merge feature branch to create conflict
+        let output = Command::new("git")
+            .arg("merge")
+            .arg("feature")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        // Expect conflict
+        assert!(!output.status.success());
+
+        // Now test prefer remote (feature branch)
+        let result = git_merge_prefer_remote(path.clone());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Merge resolved by preferring remote".to_string());
+
+        // Check content is from feature
+        let content = fs::read_to_string(format!("{}/test.txt", path)).unwrap();
+        assert_eq!(content, "feature content");
+    }
+
+    #[test]
+    fn test_git_merge_abort() {
+        let temp_dir = TempDir::new("test_merge_abort").unwrap();
+        let path = temp_dir.path().to_str().unwrap().to_string();
+
+        // Initialize repo
+        git_init(path.clone()).unwrap();
+
+        // Create and commit a file
+        fs::write(format!("{}/test.txt", path), "initial content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Initial commit".to_string()).unwrap();
+
+        // Create branch
+        let output = Command::new("git")
+            .arg("checkout")
+            .arg("-b")
+            .arg("feature")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+
+        // Modify file in feature branch
+        fs::write(format!("{}/test.txt", path), "feature content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Feature commit".to_string()).unwrap();
+
+        // Switch back to master and modify the same file
+        let output = Command::new("git")
+            .arg("checkout")
+            .arg("master")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        fs::write(format!("{}/test.txt", path), "master content").unwrap();
+        git_add_all(path.clone()).unwrap();
+        git_commit(path.clone(), "Master commit".to_string()).unwrap();
+
+        // Merge feature branch to create conflict
+        let output = Command::new("git")
+            .arg("merge")
+            .arg("feature")
+            .current_dir(&path)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+
+        // Now test abort
+        let result = git_merge_abort(path.clone());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Merge aborted".to_string());
+
+        // Check content is back to master
+        let content = fs::read_to_string(format!("{}/test.txt", path)).unwrap();
+        assert_eq!(content, "master content");
     }
 }

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.
+
 ## [1.0.1] - 2025-11-02
 
 ### Fixed
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated flutter_rust_bridge to resolve integration test failures.
 - Built Android libraries for improved compatibility and test reliability.
 - Fixed integration test setup to ensure proper execution and coverage.
+- Implemented proper conflict resolution in sync operations, replacing unimplemented placeholders with functional Git merge handling.
 
 ## [1.0.0] - 2025-10-25
 

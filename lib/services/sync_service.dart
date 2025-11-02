@@ -134,9 +134,7 @@ class SyncService {
     return false;
   }
 
-  Future<void> _checkGitAvailability() async {
-    await _runGitCommand(['--version']);
-  }
+
 
   Future<void> initSync(String url, {String? username, String? password, String? sshKeyPath}) async {
     log('Initializing sync for URL: <redacted>, with credentials: ${username != null && password != null ? 'provided' : 'none'}');
@@ -174,7 +172,7 @@ class SyncService {
        log('Sync initialization failed: $e');
        throw Exception("Sync initialization failed: $e");
      }
-     print('DEBUG: initSync completed successfully');
+
   }
 
   Future<void> pullSync() async {
@@ -190,8 +188,10 @@ class SyncService {
       final sshKeyPath = await _getSshKeyPath();
       final result = await _api.gitPull(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
       if (result.contains('Non-fast-forward')) {
+        log('Pull sync detected non-fast-forward merge, treating as conflict');
         throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
       }
+      log('Pull sync completed successfully: $result');
     } catch (e) {
       log('Pull sync failed: $e');
       if (e.toString().toLowerCase().contains('conflict')) {
@@ -214,11 +214,15 @@ class SyncService {
     try {
       final status = await _api.gitStatus(path: path);
       if (status == 'Working directory clean') {
+        log('Push sync skipped: no changes to push');
         throw Exception("No changes to push");
       }
+      log('Adding and committing changes');
       await _api.gitAddAll(path: path);
       await _api.gitCommit(path: path, message: 'Sync events');
+      log('Pushing to remote');
       await _api.gitPush(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
+      log('Push sync completed successfully');
       } catch (e) {
         log('Push sync failed: $e');
         throw Exception("Push sync failed: $e");
@@ -247,7 +251,9 @@ class SyncService {
   Future<void> resolveConflictPreferRemote() async {
     final path = await _getAppDocDir();
     try {
+      log('Resolving merge conflict by preferring remote changes');
       await _api.gitMergePreferRemote(path: path);
+      log('Merge conflict resolved successfully by preferring remote');
     } catch (e) {
       log('Resolve conflict failed: $e');
       throw Exception("Failed to resolve conflict: $e");
@@ -257,7 +263,9 @@ class SyncService {
   Future<void> abortConflict() async {
     final path = await _getAppDocDir();
     try {
+      log('Aborting merge conflict');
       await _api.gitMergeAbort(path: path);
+      log('Merge conflict aborted successfully');
     } catch (e) {
       log('Abort conflict failed: $e');
       throw Exception("Failed to abort conflict: $e");

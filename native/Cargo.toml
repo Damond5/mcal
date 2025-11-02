@@ -12,3 +12,6 @@ git2 = { version = "0.19", features = ["vendored-libgit2", "vendored-openssl"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+
+[dev-dependencies]
+tempdir = "0.3"

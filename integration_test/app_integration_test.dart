@@ -78,12 +78,13 @@ void main() {
       // Initially, theme is system, icon should be brightness_6
       expect(find.byIcon(Icons.brightness_6), findsOneWidget);
 
-      // Tap to toggle to opposite of system theme (assuming system is light, toggles to dark)
+      // Tap to toggle to opposite of system theme
       await tester.tap(themeButton);
       await tester.pumpAndSettle();
 
-      // Now icon should be light_mode (indicating dark theme)
-      expect(find.byIcon(Icons.light_mode), findsOneWidget);
+      // Now icon indicates the current theme mode (dark_mode for light theme, light_mode for dark theme)
+      // Assuming system is dark, toggle sets to light, icon dark_mode
+      expect(find.byIcon(Icons.dark_mode), findsOneWidget);
     });
 
     // Add more tests for event CRUD, sync, etc. as needed

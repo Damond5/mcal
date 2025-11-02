@@ -7,6 +7,8 @@
 ## Build/Lint/Test Commands
 - **Check environment**: `fvm flutter doctor`
 - **Install dependencies**: `fvm flutter pub get`
+- **Generate Rust bridge code**: `flutter_rust_bridge_codegen generate --config-file frb.yaml`
+- **Build Rust libraries for Android**: `cd native && cargo ndk -o ../android/app/src/main/cpp/libs build --release`
 - **Build debug**: `fvm flutter run`
 - **Build release APK**: `fvm flutter build apk`
 - **Build web**: `fvm flutter build web`

@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-flutter_rust_bridge = "=2.11.1"
+flutter_rust_bridge = "2"
 git2 = { version = "0.19", features = ["vendored-libgit2", "vendored-openssl"] }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"

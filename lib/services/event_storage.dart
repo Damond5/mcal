@@ -32,7 +32,9 @@ class EventStorage {
           final content = await file.readAsString();
           final filename = path.basename(file.path);
           final event = Event.fromMarkdown(content, filename);
-          log('Parsed event: ${event.title} on ${event.startDate} from $filename');
+          log(
+            'Parsed event: ${event.title} on ${event.startDate} from $filename',
+          );
           events.add(event);
         } catch (e) {
           log('Error parsing event file ${file.path}: $e');

@@ -35,92 +35,95 @@ class CalendarWidgetState extends State<CalendarWidget> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TableCalendar(
-                key: ValueKey('calendar_${eventProvider.refreshCounter}'),
-                firstDay: DateTime.utc(2010, 10, 16),
-                lastDay: DateTime.utc(2030, 3, 14),
-                focusedDay: _focusedDay,
-                startingDayOfWeek: StartingDayOfWeek.monday,
-                weekNumbersVisible: true,
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
-                 eventLoader: (day) {
-                   final hasEvent = eventProvider.eventDates.contains(
-                     DateTime(day.year, day.month, day.day),
-                   );
-                   if (hasEvent) log('Markers for ${day.year}-${day.month}-${day.day}: yes');
-                   return hasEvent ? [day] : [];
-                 },
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                  context.read<EventProvider>().setSelectedDate(selectedDay);
-                },
-                onPageChanged: (focusedDay) {
-                  setState(() {
-                    _focusedDay = focusedDay;
-                  });
-                },
-                calendarStyle: CalendarStyle(
-                  cellMargin: const EdgeInsets.all(4.0),
-                  cellPadding: const EdgeInsets.all(2.0),
-                  markerDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.secondary,
-                    shape: BoxShape.circle,
+                  key: ValueKey('calendar_${eventProvider.refreshCounter}'),
+                  firstDay: DateTime.utc(2010, 10, 16),
+                  lastDay: DateTime.utc(2030, 3, 14),
+                  focusedDay: _focusedDay,
+                  startingDayOfWeek: StartingDayOfWeek.monday,
+                  weekNumbersVisible: true,
+                  selectedDayPredicate: (day) {
+                    return isSameDay(_selectedDay, day);
+                  },
+                  eventLoader: (day) {
+                    final hasEvent = eventProvider.eventDates.contains(
+                      DateTime(day.year, day.month, day.day),
+                    );
+                    if (hasEvent)
+                      log(
+                        'Markers for ${day.year}-${day.month}-${day.day}: yes',
+                      );
+                    return hasEvent ? [day] : [];
+                  },
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                    context.read<EventProvider>().setSelectedDate(selectedDay);
+                  },
+                  onPageChanged: (focusedDay) {
+                    setState(() {
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  calendarStyle: CalendarStyle(
+                    cellMargin: const EdgeInsets.all(4.0),
+                    cellPadding: const EdgeInsets.all(2.0),
+                    markerDecoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondary,
+                      shape: BoxShape.circle,
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedDecoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    todayTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    selectedTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    defaultTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    weekendTextStyle: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    outsideTextStyle: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    ),
                   ),
-                  todayDecoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  selectedDecoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  todayTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  selectedTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  defaultTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  weekendTextStyle: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  outsideTextStyle: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
+                  headerStyle: HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    titleTextStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    leftChevronIcon: Icon(
+                      Icons.chevron_left,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    rightChevronIcon: Icon(
+                      Icons.chevron_right,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ),
-                headerStyle: HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                  titleTextStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  leftChevronIcon: Icon(
-                    Icons.chevron_left,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                   rightChevronIcon: Icon(
-                     Icons.chevron_right,
-                     color: Theme.of(context).colorScheme.onSurface,
-                   ),
-                 ),
-               ),
-               if (_selectedDay != null) ...[
+                if (_selectedDay != null) ...[
                   const SizedBox(height: 20),
                   EventList(
                     key: ValueKey('eventlist_${eventProvider.refreshCounter}'),

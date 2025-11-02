@@ -15,7 +15,9 @@ class EventList extends StatelessWidget {
     return Consumer<EventProvider>(
       builder: (context, eventProvider, child) {
         final events = eventProvider.getEventsForDate(selectedDate);
-        log('Building EventList for $selectedDate with ${events.length} events');
+        log(
+          'Building EventList for $selectedDate with ${events.length} events',
+        );
 
         if (events.isEmpty) {
           return const Padding(

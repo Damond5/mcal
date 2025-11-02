@@ -1,8 +1,4 @@
 # TODO
-- Get documentation context for flutter rust bridge
-  - Context7 mcp?
-  - Fetch online documentation with webtool?
-  - Other solutions?
 - Full GUI Testing: Run the app in a graphical environment (e.g., with X11/Wayland) to verify visual components, event management, and sync UI dialogs work correctly
 - Integration Testing: Perform end-to-end tests with actual Git repos (initialized and uninitialized) to ensure sync operations (init, pull, push, status) handle all edge cases
 - Potential Enhancements: If needed, add features like improved error messaging for sync failures or support for additional Git auth methods

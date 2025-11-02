@@ -16,10 +16,10 @@ void main() {
   late SyncService syncService;
   late MockRustLibApi mockApi;
 
-  final Map<String, String?> _mockStorage = {};
+  final Map<String, String?> mockStorage = {};
 
   setUp(() {
-    _mockStorage.clear();
+    mockStorage.clear();
     mockApi = MockRustLibApi();
     syncService = SyncService(mockApi);
     SharedPreferences.setMockInitialValues({});
@@ -32,19 +32,19 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'), (MethodCall methodCall) async {
       if (methodCall.method == 'read') {
         final key = methodCall.arguments['key'] as String;
-        return _mockStorage[key];
+        return mockStorage[key];
       } else if (methodCall.method == 'write') {
         final key = methodCall.arguments['key'] as String;
         final value = methodCall.arguments['value'] as String?;
         if (value == null) {
-          _mockStorage.remove(key);
+          mockStorage.remove(key);
         } else {
-          _mockStorage[key] = value;
+          mockStorage[key] = value;
         }
         return null;
       } else if (methodCall.method == 'delete') {
         final key = methodCall.arguments['key'] as String;
-        _mockStorage.remove(key);
+        mockStorage.remove(key);
         return null;
       }
       return null;

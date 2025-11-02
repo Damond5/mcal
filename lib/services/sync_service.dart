@@ -17,6 +17,7 @@ class SyncService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final RustLibApi _api;
 
+  // ignore: invalid_use_of_internal_member
   SyncService([RustLibApi? api]) : _api = api ?? RustLib.instance.api;
 
   Future<String> _getAppDocDir() async {

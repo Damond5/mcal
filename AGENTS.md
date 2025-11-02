@@ -98,8 +98,11 @@ pubspec.yaml). Followed Material Design 3 guidelines.
 - **Future Extensibility**: Designed with room for features like
 event lists, custom themes, or data persistence by making dates
 configurable. Theme system is extensible for additional themes.
-- **Event Date Caching**: Added caching for event dates in EventProvider to improve performance by precomputing Set<DateTime> of all event dates instead of expanding recurring events on every calendar day query.
-- **Notification Constants Extraction**: Extracted notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) to the Event model for better maintainability and consistency.
+   - **Event Date Caching**: Added caching for event dates in EventProvider to improve performance by precomputing Set<DateTime> of all event dates instead of expanding recurring events on every calendar day query.
+   - **Notification Constants Extraction**: Extracted notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) to the Event model for better maintainability and consistency.
+   - **Sync GUI Update Enhancements**: Added logging in syncPull and EventList build for debugging GUI updates, wrapped EventList in Consumer with refreshCounter key to force rebuilds, and updated pull snackbar to show loaded events count for better user feedback.
+   - **Push Sync Behavior**: Modified pushSync to skip silently if no changes to push, preventing unnecessary error messages when auto-push is triggered without modifications.
+   - **Event Loading on Launch**: Ensured events load from filesystem on app launch via loadAllEvents in main.dart, with detailed logging for debugging. Removed early return in loadAllEvents to always reload after sync. Added loading indicator in CalendarWidget while events load.
 - **Consistency with rcal**: All features should be consistent with https://github.com/Damond5/rcal, adapted for a Flutter GUI app.
 - **Android Rust Library Build**: To integrate Rust code for performance-critical features like Git synchronization, the app uses `cargo ndk` to build Rust libraries into shared object (.so) files for Android ABIs (arm64-v8a, armeabi-v7a, x86_64, x86). These pre-built libraries are stored in `android/app/src/main/cpp/libs/` and imported via CMake in `android/app/src/main/cpp/CMakeLists.txt`, allowing seamless linking into the APK without runtime compilation, ensuring compatibility and efficiency in the Android build process.
 - **Linux Build Warnings Suppression**: Added -Wno-deprecated-literal-operator to Linux CMakeLists.txt to suppress json.hpp warnings treated as errors, ensuring successful builds without altering plugin dependencies.

@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -112,6 +113,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       );
     }
     if (mounted) {
+      log('Loading events on launch');
       await context.read<EventProvider>().loadAllEvents();
       if (mounted) {
         await context.read<EventProvider>().autoSyncOnStart();

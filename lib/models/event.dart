@@ -365,6 +365,7 @@ class Event {
         }
       }
     }
+    log('Computed event dates: ${dates.map((d) => '${d.year}-${d.month}-${d.day}').join(', ')}');
     return dates;
   }
 }

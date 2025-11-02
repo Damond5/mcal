@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/event.dart';
@@ -14,6 +15,7 @@ class EventList extends StatelessWidget {
     return Consumer<EventProvider>(
       builder: (context, eventProvider, child) {
         final events = eventProvider.getEventsForDate(selectedDate);
+        log('Building EventList for $selectedDate with ${events.length} events');
 
         if (events.isEmpty) {
           return const Padding(

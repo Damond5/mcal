@@ -33,6 +33,7 @@ class EventProvider extends ChangeNotifier {
   int get refreshCounter => _refreshCounter;
   SyncSettings get syncSettings => _syncSettings;
   Set<DateTime> get eventDates => _eventDates;
+  int get eventsCount => _allEvents.length;
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
@@ -92,8 +93,7 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> loadAllEvents() async {
-    if (_allEvents.isNotEmpty) return;
-
+    // Always load to ensure fresh data, especially after sync
     _isLoading = true;
     notifyListeners();
 
@@ -218,6 +218,7 @@ class EventProvider extends ChangeNotifier {
       // Reload events after pull
       _allEvents.clear();
       await loadAllEvents();
+      log('Loaded ${_allEvents.length} events after pull');
       // _refreshCounter incremented in loadAllEvents
     } catch (e) {
       log('Sync pull failed: $e');

@@ -160,9 +160,9 @@ class SyncButton extends StatelessWidget {
       await eventProvider.syncPull();
       if (context.mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Pulled successfully")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Pulled successfully, loaded ${eventProvider.eventsCount} events")),
+        );
       }
     } on SyncConflictException {
       if (context.mounted) {

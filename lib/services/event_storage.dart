@@ -18,6 +18,7 @@ class EventStorage {
 
   Future<List<Event>> loadAllEvents() async {
     final dir = await _getCalendarDirectory();
+    log('Loading events from directory: $dir');
     final calendarDir = Directory(dir);
     final events = <Event>[];
 
@@ -25,19 +26,24 @@ class EventStorage {
       final files = (await calendarDir.list().toList()).whereType<File>().where(
         (f) => f.path.endsWith('.md'),
       );
+      log('Found ${files.length} .md files');
       for (final file in files) {
         try {
           final content = await file.readAsString();
           final filename = path.basename(file.path);
           final event = Event.fromMarkdown(content, filename);
+          log('Parsed event: ${event.title} on ${event.startDate} from $filename');
           events.add(event);
         } catch (e) {
           log('Error parsing event file ${file.path}: $e');
           // Skip invalid files
         }
       }
+    } else {
+      log('Calendar directory does not exist: $dir');
     }
 
+    log('Total events loaded: ${events.length}');
     return events;
   }
 

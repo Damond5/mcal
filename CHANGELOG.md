@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `StatusEntry` struct for structured Git status output.
 - Dynamic branch detection using `remote.default_branch()` for flexible repository support.
 - `git_stash` and `git_diff` functions added to the Rust Git implementation.
+- Sync GUI update enhancements: Added logging for debugging, forced EventList rebuilds with refreshCounter key, and informative pull snackbar showing loaded events count.
 
 ### Changed
 - Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.
@@ -23,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed invalid `flutter_rust_bridge_build` dependency from pubspec.yaml dev_dependencies.
 - Added platform check to only initialize workmanager on Android/iOS, preventing UnimplementedError on Linux where Timer is used for periodic sync.
 - Fixed GUI crash on app start due to sync pull failing on repositories without HEAD by updating Rust git functions (git_pull_impl, git_push_impl, git_fetch_impl) to use remote default branch instead of requiring repo.head(), resolving issues with uninitialized git repos.
+- Modified pushSync to skip silently if no changes to push, preventing error messages during auto-push operations without modifications.
+- Ensured events load from filesystem on app launch with detailed logging for debugging. Removed early return in loadAllEvents to always reload after sync. Added loading indicator in CalendarWidget.
 
 ## [1.0.1] - 2025-11-02
 

@@ -197,7 +197,7 @@ class SyncService {
       final status = await _api.crateApiGitStatus(path: path);
       if (status.isEmpty) {
         log('Push sync skipped: no changes to push');
-        throw Exception("No changes to push");
+        return;
       }
       log('Adding and committing changes');
       await _api.crateApiGitAddAll(path: path);

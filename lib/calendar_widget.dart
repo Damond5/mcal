@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -22,15 +23,19 @@ class CalendarWidgetState extends State<CalendarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Consumer<EventProvider>(
-              builder: (context, eventProvider, child) => TableCalendar(
-                key: ValueKey(eventProvider.refreshCounter),
+    return Consumer<EventProvider>(
+      builder: (context, eventProvider, child) {
+        if (eventProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TableCalendar(
+                key: ValueKey('calendar_${eventProvider.refreshCounter}'),
                 firstDay: DateTime.utc(2010, 10, 16),
                 lastDay: DateTime.utc(2030, 3, 14),
                 focusedDay: _focusedDay,
@@ -39,12 +44,13 @@ class CalendarWidgetState extends State<CalendarWidget> {
                 selectedDayPredicate: (day) {
                   return isSameDay(_selectedDay, day);
                 },
-                eventLoader: (day) =>
-                    eventProvider.eventDates.contains(
-                      DateTime(day.year, day.month, day.day),
-                    )
-                    ? [day]
-                    : [],
+                 eventLoader: (day) {
+                   final hasEvent = eventProvider.eventDates.contains(
+                     DateTime(day.year, day.month, day.day),
+                   );
+                   if (hasEvent) log('Markers for ${day.year}-${day.month}-${day.day}: yes');
+                   return hasEvent ? [day] : [];
+                 },
                 onDaySelected: (selectedDay, focusedDay) {
                   setState(() {
                     _selectedDay = selectedDay;
@@ -108,20 +114,24 @@ class CalendarWidgetState extends State<CalendarWidget> {
                     Icons.chevron_left,
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
-                  rightChevronIcon: Icon(
-                    Icons.chevron_right,
-                    color: Theme.of(context).colorScheme.onSurface,
+                   rightChevronIcon: Icon(
+                     Icons.chevron_right,
+                     color: Theme.of(context).colorScheme.onSurface,
+                   ),
+                 ),
+               ),
+               if (_selectedDay != null) ...[
+                  const SizedBox(height: 20),
+                  EventList(
+                    key: ValueKey('eventlist_${eventProvider.refreshCounter}'),
+                    selectedDate: _selectedDay!,
                   ),
-                ),
-              ),
+                ],
+              ],
             ),
-            if (_selectedDay != null) ...[
-              const SizedBox(height: 20),
-              EventList(selectedDate: _selectedDay!),
-            ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -4,7 +4,7 @@
   import "package:mockito/mockito.dart";
   import "package:shared_preferences/shared_preferences.dart";
   import "package:mcal/services/sync_service.dart";
-import "package:mcal/rust_api.dart";
+  import "package:mcal/frb_generated.dart";
 
 @GenerateMocks([RustLibApi])
 import "sync_service_test.mocks.dart";

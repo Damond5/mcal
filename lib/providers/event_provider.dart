@@ -1,4 +1,4 @@
-   import "package:flutter/material.dart";
+import "package:flutter/material.dart";
 import "dart:async";
 import "dart:io";
 import "dart:developer";
@@ -91,8 +91,6 @@ class EventProvider extends ChangeNotifier {
     return expanded.where((e) => Event.occursOnDate(e, date)).toList();
   }
 
-
-
   Future<void> loadAllEvents() async {
     if (_allEvents.isNotEmpty) return;
 
@@ -130,7 +128,9 @@ class EventProvider extends ChangeNotifier {
       _allEvents.add(eventWithFilename);
       _computeEventDates();
       if (!Platform.isLinux) {
-        await _notificationService.scheduleNotificationForEvent(eventWithFilename);
+        await _notificationService.scheduleNotificationForEvent(
+          eventWithFilename,
+        );
       }
       _refreshCounter++;
       notifyListeners();
@@ -151,7 +151,9 @@ class EventProvider extends ChangeNotifier {
       }
       _computeEventDates();
       if (!Platform.isLinux) {
-        await _notificationService.scheduleNotificationForEvent(newEventWithFilename);
+        await _notificationService.scheduleNotificationForEvent(
+          newEventWithFilename,
+        );
       }
       _refreshCounter++;
       notifyListeners();
@@ -188,7 +190,11 @@ class EventProvider extends ChangeNotifier {
     await _syncService.updateCredentials(username, password);
   }
 
-  Future<void> syncInit(String url, {String? username, String? password}) async {
+  Future<void> syncInit(
+    String url, {
+    String? username,
+    String? password,
+  }) async {
     if (_isSyncing) return;
     _isSyncing = true;
     notifyListeners();
@@ -214,11 +220,11 @@ class EventProvider extends ChangeNotifier {
       await loadAllEvents();
       // _refreshCounter incremented in loadAllEvents
     } catch (e) {
-       log('Sync pull failed: $e');
-       _isSyncing = false;
-       notifyListeners();
-       rethrow;
-     }
+      log('Sync pull failed: $e');
+      _isSyncing = false;
+      notifyListeners();
+      rethrow;
+    }
     _isSyncing = false;
     notifyListeners();
   }
@@ -254,7 +260,8 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> autoSyncOnStart() async {
-    if (await _syncService.isSyncInitialized() && _syncSettings.resumeSyncEnabled) {
+    if (await _syncService.isSyncInitialized() &&
+        _syncSettings.resumeSyncEnabled) {
       try {
         await syncPull();
       } catch (e) {
@@ -264,9 +271,12 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> autoSyncPeriodic() async {
-    if (await _syncService.isSyncInitialized() && _syncSettings.autoSyncEnabled) {
+    if (await _syncService.isSyncInitialized() &&
+        _syncSettings.autoSyncEnabled) {
       final now = DateTime.now();
-      if (_lastSyncTime == null || now.difference(_lastSyncTime!).inMinutes >= _syncSettings.syncFrequencyMinutes) {
+      if (_lastSyncTime == null ||
+          now.difference(_lastSyncTime!).inMinutes >=
+              _syncSettings.syncFrequencyMinutes) {
         try {
           await syncPull();
           _lastSyncTime = now;
@@ -280,9 +290,11 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> autoSyncOnResume() async {
-    if (await _syncService.isSyncInitialized() && _syncSettings.resumeSyncEnabled) {
+    if (await _syncService.isSyncInitialized() &&
+        _syncSettings.resumeSyncEnabled) {
       final now = DateTime.now();
-      if (_lastSyncTime == null || now.difference(_lastSyncTime!).inMinutes > 5) {
+      if (_lastSyncTime == null ||
+          now.difference(_lastSyncTime!).inMinutes > 5) {
         try {
           await syncPull();
           _lastSyncTime = now;
@@ -307,23 +319,40 @@ class EventProvider extends ChangeNotifier {
 
   void _startNotificationTimer() {
     _notificationTimer?.cancel();
-    _notificationTimer = Timer.periodic(const Duration(minutes: 1), (_) => _checkUpcomingEvents());
+    _notificationTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _checkUpcomingEvents(),
+    );
   }
 
   void _checkUpcomingEvents() {
     final now = DateTime.now();
     final upcoming = <Event>[];
     for (final event in _allEvents) {
-      final instances = Event.expandRecurring(event, now.add(const Duration(days: 30)));
+      final instances = Event.expandRecurring(
+        event,
+        now.add(const Duration(days: 30)),
+      );
       for (final instance in instances) {
         DateTime notificationTime;
         if (instance.isAllDay) {
-          final dayBefore = instance.startDate.subtract(const Duration(days: 1));
-          notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, Event.allDayNotificationHour, 0);
+          final dayBefore = instance.startDate.subtract(
+            const Duration(days: 1),
+          );
+          notificationTime = DateTime(
+            dayBefore.year,
+            dayBefore.month,
+            dayBefore.day,
+            Event.allDayNotificationHour,
+            0,
+          );
         } else {
-          notificationTime = instance.startDateTime.subtract(const Duration(minutes: Event.notificationOffsetMinutes));
+          notificationTime = instance.startDateTime.subtract(
+            const Duration(minutes: Event.notificationOffsetMinutes),
+          );
         }
-        if (now.isAfter(notificationTime) && now.isBefore(instance.startDateTime)) {
+        if (now.isAfter(notificationTime) &&
+            now.isBefore(instance.startDateTime)) {
           upcoming.add(instance);
         }
       }

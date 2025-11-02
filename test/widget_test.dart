@@ -16,7 +16,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:mcal/main.dart';
 import 'package:mcal/providers/theme_provider.dart';
 import 'package:mcal/providers/event_provider.dart';
-import 'package:mcal/rust_api.dart';
+import 'package:mcal/frb_generated.dart';
 
 @GenerateMocks([RustLibApi])
 import 'widget_test.mocks.dart';

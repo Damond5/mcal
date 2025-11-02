@@ -2,7 +2,7 @@ import "dart:io";
 import "dart:developer";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:path_provider/path_provider.dart";
-import "../rust_api.dart";
+import "../frb_generated.dart";
 
 class SyncConflictException implements Exception {
   final String message;
@@ -50,11 +50,19 @@ class SyncService {
     return await _secureStorage.read(key: _sshKeyKey);
   }
 
-  Future<void> updateCredentials(String? username, String? password, {String? sshKeyPath}) async {
+  Future<void> updateCredentials(
+    String? username,
+    String? password, {
+    String? sshKeyPath,
+  }) async {
     await _setCredentials(username, password, sshKeyPath: sshKeyPath);
   }
 
-  Future<void> _setCredentials(String? username, String? password, {String? sshKeyPath}) async {
+  Future<void> _setCredentials(
+    String? username,
+    String? password, {
+    String? sshKeyPath,
+  }) async {
     if (username != null) {
       await _secureStorage.write(key: _usernameKey, value: username);
     } else {
@@ -75,8 +83,13 @@ class SyncService {
   Future<void> _runGitCommand(List<String> args, {String? errorMessage}) async {
     final result = await _runGitCommandWithResult(args);
     if (result.exitCode != 0) {
-      final sanitizedStderr = result.stderr.toString().replaceAll(RegExp(r'https?://[^@]+@[^/]+'), '<redacted>');
-      log('Git command failed: git ${args.join(' ')}, stderr: $sanitizedStderr');
+      final sanitizedStderr = result.stderr.toString().replaceAll(
+        RegExp(r'https?://[^@]+@[^/]+'),
+        '<redacted>',
+      );
+      log(
+        'Git command failed: git ${args.join(' ')}, stderr: $sanitizedStderr',
+      );
       throw Exception(errorMessage ?? "Git command failed: $sanitizedStderr");
     }
   }
@@ -86,17 +99,29 @@ class SyncService {
     final workingDirectory = await _getAppDocDir();
     final modifiedArgs = await _injectCredentialsIntoArgs(args);
     final sanitizedArgs = modifiedArgs.map((arg) {
-      if (arg.startsWith('https://') || arg.startsWith('http://') || arg.startsWith('git@') || arg.startsWith('ssh://')) {
+      if (arg.startsWith('https://') ||
+          arg.startsWith('http://') ||
+          arg.startsWith('git@') ||
+          arg.startsWith('ssh://')) {
         return '<redacted>';
       }
       return arg;
     }).toList();
     try {
-      final result = await Process.run(executable, modifiedArgs, workingDirectory: workingDirectory);
+      final result = await Process.run(
+        executable,
+        modifiedArgs,
+        workingDirectory: workingDirectory,
+      );
       return result;
     } catch (e) {
-      final sanitizedError = e.toString().replaceAll(RegExp(r'https?://[^@]+@[^/]+'), '<redacted>');
-      log('Failed to run git command: $executable ${sanitizedArgs.join(' ')}, error: $sanitizedError');
+      final sanitizedError = e.toString().replaceAll(
+        RegExp(r'https?://[^@]+@[^/]+'),
+        '<redacted>',
+      );
+      log(
+        'Failed to run git command: $executable ${sanitizedArgs.join(' ')}, error: $sanitizedError',
+      );
       throw Exception("Failed to run git command: $sanitizedError");
     }
   }
@@ -109,7 +134,8 @@ class SyncService {
       return args; // No injection needed
     }
     return args.map((arg) {
-      if (arg == url && (url.startsWith('https://') || url.startsWith('http://'))) {
+      if (arg == url &&
+          (url.startsWith('https://') || url.startsWith('http://'))) {
         final scheme = url.startsWith('https://') ? 'https://' : 'http://';
         final afterScheme = url.substring(scheme.length);
         if (!afterScheme.contains('@')) {
@@ -122,22 +148,31 @@ class SyncService {
 
   bool _isValidUrl(String url) {
     // Regex for HTTPS/HTTP: basic host validation
-    final httpsRegex = RegExp(r'^https?://[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+(?:/.*)?$');
+    final httpsRegex = RegExp(
+      r'^https?://[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+(?:/.*)?$',
+    );
     if (httpsRegex.hasMatch(url)) {
       return true;
     }
     // Regex for SSH: git@host:path or ssh://git@host/path
-    final sshRegex = RegExp(r'^(git@[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+:|ssh://git@[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+/).+$');
+    final sshRegex = RegExp(
+      r'^(git@[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+:|ssh://git@[a-zA-Z0-9.-]+(?:\.[a-zA-Z]{2,})+/).+$',
+    );
     if (sshRegex.hasMatch(url)) {
       return true;
     }
     return false;
   }
 
-
-
-  Future<void> initSync(String url, {String? username, String? password, String? sshKeyPath}) async {
-    log('Initializing sync for URL: <redacted>, with credentials: ${username != null && password != null ? 'provided' : 'none'}');
+  Future<void> initSync(
+    String url, {
+    String? username,
+    String? password,
+    String? sshKeyPath,
+  }) async {
+    log(
+      'Initializing sync for URL: <redacted>, with credentials: ${username != null && password != null ? 'provided' : 'none'}',
+    );
     url = url.trim().replaceAll('"', '').replaceAll("'", '');
     if (!_isValidUrl(url)) {
       throw Exception("Invalid URL format. Use HTTPS, HTTP, or SSH URL.");
@@ -151,7 +186,12 @@ class SyncService {
       await _api.gitInit(path: path);
       await _api.gitAddRemote(path: path, name: 'origin', url: url);
       try {
-        await _api.gitFetch(path: path, remote: 'origin', username: username, password: password);
+        await _api.gitFetch(
+          path: path,
+          remote: 'origin',
+          username: username,
+          password: password,
+        );
         try {
           await _api.gitCheckout(path: path, branch: 'main');
         } catch (e) {
@@ -168,34 +208,44 @@ class SyncService {
       } catch (e) {
         // Ignore if remote is empty
       }
-     } catch (e) {
-       log('Sync initialization failed: $e');
-       throw Exception("Sync initialization failed: $e");
-     }
-
+    } catch (e) {
+      log('Sync initialization failed: $e');
+      throw Exception("Sync initialization failed: $e");
+    }
   }
 
   Future<void> pullSync() async {
     log('Pulling sync from remote');
     final url = await _getRemoteUrl();
     if (url == null) {
-      throw Exception("No remote URL configured. Please initialize sync first.");
+      throw Exception(
+        "No remote URL configured. Please initialize sync first.",
+      );
     }
     final path = await _getAppDocDir();
     try {
       final username = await _getUsername();
       final password = await _getPassword();
       final sshKeyPath = await _getSshKeyPath();
-      final result = await _api.gitPull(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
+      final result = await _api.gitPull(
+        path: path,
+        username: username,
+        password: password,
+        sshKeyPath: sshKeyPath,
+      );
       if (result.contains('Non-fast-forward')) {
         log('Pull sync detected non-fast-forward merge, treating as conflict');
-        throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
+        throw SyncConflictException(
+          "Merge conflict detected during pull. Please resolve manually.",
+        );
       }
       log('Pull sync completed successfully: $result');
     } catch (e) {
       log('Pull sync failed: $e');
       if (e.toString().toLowerCase().contains('conflict')) {
-        throw SyncConflictException("Merge conflict detected during pull. Please resolve manually.");
+        throw SyncConflictException(
+          "Merge conflict detected during pull. Please resolve manually.",
+        );
       }
       throw Exception("Pull sync failed: $e");
     }
@@ -205,7 +255,9 @@ class SyncService {
     log('Pushing sync to remote');
     final url = await _getRemoteUrl();
     if (url == null) {
-      throw Exception("No remote URL configured. Please initialize sync first.");
+      throw Exception(
+        "No remote URL configured. Please initialize sync first.",
+      );
     }
     final path = await _getAppDocDir();
     final username = await _getUsername();
@@ -221,12 +273,17 @@ class SyncService {
       await _api.gitAddAll(path: path);
       await _api.gitCommit(path: path, message: 'Sync events');
       log('Pushing to remote');
-      await _api.gitPush(path: path, username: username, password: password, sshKeyPath: sshKeyPath);
+      await _api.gitPush(
+        path: path,
+        username: username,
+        password: password,
+        sshKeyPath: sshKeyPath,
+      );
       log('Push sync completed successfully');
-      } catch (e) {
-        log('Push sync failed: $e');
-        throw Exception("Push sync failed: $e");
-      }
+    } catch (e) {
+      log('Push sync failed: $e');
+      throw Exception("Push sync failed: $e");
+    }
   }
 
   Future<String> getSyncStatus() async {

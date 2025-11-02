@@ -13,7 +13,7 @@ import 'themes/dark_theme.dart';
 import 'widgets/theme_toggle_button.dart';
 import 'widgets/sync_button.dart';
 import 'widgets/event_form_dialog.dart';
-import 'rust_api.dart';
+import 'frb_generated.dart';
 import 'utils/error_logger.dart';
 
 @pragma('vm:entry-point')
@@ -47,11 +47,11 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-           title: 'MCal: Mobile Calendar',
+          title: 'MCal: Mobile Calendar',
           theme: getLightTheme(),
           darkTheme: getDarkTheme(),
           themeMode: themeProvider.themeMode,
-           home: const MyHomePage(title: 'MCal: Mobile Calendar'),
+          home: const MyHomePage(title: 'MCal: Mobile Calendar'),
         );
       },
     );
@@ -95,9 +95,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     await NotificationService().initialize();
     final granted = await NotificationService().requestPermissions();
     if (!granted && mounted) {
-      logGuiError('Notification permissions denied', context: 'notification_permissions');
+      logGuiError(
+        'Notification permissions denied',
+        context: 'notification_permissions',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notification permissions denied. Events will not notify.')),
+        const SnackBar(
+          content: Text(
+            'Notification permissions denied. Events will not notify.',
+          ),
+        ),
       );
     }
     if (mounted) {
@@ -110,14 +117,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        actions: const [
-          SyncButton(),
-          ThemeToggleButton(),
-        ],
+        actions: const [SyncButton(), ThemeToggleButton()],
       ),
       body: const CalendarWidget(),
       floatingActionButton: FloatingActionButton(
@@ -135,7 +138,4 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       ),
     );
   }
-
-
-
 }

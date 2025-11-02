@@ -51,7 +51,8 @@ class _SyncSettingsDialogState extends State<SyncSettingsDialog> {
               max: 60,
               divisions: 11,
               label: _syncFrequencyMinutes.round().toString(),
-              onChanged: (value) => setState(() => _syncFrequencyMinutes = value),
+              onChanged: (value) =>
+                  setState(() => _syncFrequencyMinutes = value),
             ),
           ),
         ],

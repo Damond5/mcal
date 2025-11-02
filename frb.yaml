@@ -1,6 +1,7 @@
-rust_input: mcal_native::lib
+rust_input: native/src/api.frb
 rust_root: native/
 dart_output: lib/
+dart_root: .
 c_output: ios/Runner/
 duplicated_c_output:
     - macos/Runner/

@@ -22,7 +22,9 @@ class EventStorage {
     final events = <Event>[];
 
     if (await calendarDir.exists()) {
-      final files = (await calendarDir.list().toList()).whereType<File>().where((f) => f.path.endsWith('.md'));
+      final files = (await calendarDir.list().toList()).whereType<File>().where(
+        (f) => f.path.endsWith('.md'),
+      );
       for (final file in files) {
         try {
           final content = await file.readAsString();

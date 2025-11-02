@@ -17,9 +17,7 @@ ThemeData getLightTheme() {
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
     textTheme: const TextTheme(
@@ -28,14 +26,8 @@ ThemeData getLightTheme() {
         fontWeight: FontWeight.w600,
         color: Colors.black87,
       ),
-      bodyLarge: TextStyle(
-        fontSize: 16,
-        color: Colors.black87,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 14,
-        color: Colors.black54,
-      ),
+      bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
+      bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
     ),
   );
 }

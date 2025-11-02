@@ -9,13 +9,18 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _notifications =
+      FlutterLocalNotificationsPlugin();
   final Set<String> _scheduledNotificationIds = {};
 
   Future<void> initialize() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings();
-    const linuxSettings = LinuxInitializationSettings(defaultActionName: 'Open notification');
+    const linuxSettings = LinuxInitializationSettings(
+      defaultActionName: 'Open notification',
+    );
     const settings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
@@ -33,13 +38,21 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions() async {
-    final androidGranted = await _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission() ?? false;
+    final androidGranted =
+        await _notifications
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.requestNotificationsPermission() ??
+        false;
 
-    final iosGranted = await _notifications
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(alert: true, badge: true, sound: true) ?? false;
+    final iosGranted =
+        await _notifications
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >()
+            ?.requestPermissions(alert: true, badge: true, sound: true) ??
+        false;
 
     // Linux doesn't require explicit permissions
     final linuxGranted = !Platform.isLinux || true;
@@ -75,13 +88,21 @@ class NotificationService {
     if (event.isAllDay) {
       // All-day event: notify at midday the day before
       final dayBefore = event.startDate.subtract(const Duration(days: 1));
-      notificationTime = DateTime(dayBefore.year, dayBefore.month, dayBefore.day, Event.allDayNotificationHour, 0);
+      notificationTime = DateTime(
+        dayBefore.year,
+        dayBefore.month,
+        dayBefore.day,
+        Event.allDayNotificationHour,
+        0,
+      );
       title = 'Upcoming All-Day Event';
       body = '${event.title} starts tomorrow';
     } else {
       // Timed event: notify 30 minutes before
       final eventStart = event.startDateTime;
-      notificationTime = eventStart.subtract(const Duration(minutes: Event.notificationOffsetMinutes));
+      notificationTime = eventStart.subtract(
+        const Duration(minutes: Event.notificationOffsetMinutes),
+      );
       title = 'Upcoming Event';
       body = '${event.title} starts at ${event.startTime}';
     }
@@ -103,7 +124,11 @@ class NotificationService {
 
     final linuxDetails = LinuxNotificationDetails();
 
-    final details = NotificationDetails(android: androidDetails, iOS: iosDetails, linux: linuxDetails);
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+      linux: linuxDetails,
+    );
 
     try {
       await _notifications.zonedSchedule(
@@ -113,18 +138,25 @@ class NotificationService {
         tz.TZDateTime.from(notificationTime, tz.local),
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
       _scheduledNotificationIds.add(notificationId);
-      log('Scheduled notification for event ${event.title} at $notificationTime');
+      log(
+        'Scheduled notification for event ${event.title} at $notificationTime',
+      );
     } catch (e) {
       log('Failed to schedule notification for event ${event.title}: $e');
     }
   }
 
   Future<void> cancelNotificationsForEvent(Event event) async {
-    final baseId = _getNotificationId(event).split('_')[0]; // Get base part before date
-    final idsToRemove = _scheduledNotificationIds.where((id) => id.startsWith(baseId)).toList();
+    final baseId = _getNotificationId(
+      event,
+    ).split('_')[0]; // Get base part before date
+    final idsToRemove = _scheduledNotificationIds
+        .where((id) => id.startsWith(baseId))
+        .toList();
     for (final id in idsToRemove) {
       await _notifications.cancel(id.hashCode);
       _scheduledNotificationIds.remove(id);
@@ -162,15 +194,14 @@ class NotificationService {
 
     final linuxDetails = LinuxNotificationDetails();
 
-    final details = NotificationDetails(android: androidDetails, iOS: iosDetails, linux: linuxDetails);
+    final details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+      linux: linuxDetails,
+    );
 
     try {
-      await _notifications.show(
-        event.title.hashCode,
-        title,
-        body,
-        details,
-      );
+      await _notifications.show(event.title.hashCode, title, body, details);
       log('Showed notification for event ${event.title}');
     } catch (e) {
       log('Failed to show notification for event ${event.title}: $e');

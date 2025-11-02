@@ -9,7 +9,8 @@ class ThemeProvider extends ChangeNotifier {
 
   bool get isDarkMode {
     if (_themeMode == ThemeMode.system) {
-      return WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      return WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark;
     }
     return _themeMode == ThemeMode.dark;
   }
@@ -20,7 +21,8 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt(_themeKey) ?? 0; // 0 = system, 1 = light, 2 = dark
+    final themeIndex =
+        prefs.getInt(_themeKey) ?? 0; // 0 = system, 1 = light, 2 = dark
     _themeMode = ThemeMode.values[themeIndex];
     notifyListeners();
   }
@@ -35,11 +37,15 @@ class ThemeProvider extends ChangeNotifier {
   void toggleTheme() {
     if (_themeMode == ThemeMode.system) {
       // If system, switch to opposite of current system theme
-      final isCurrentlyDark = WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark;
+      final isCurrentlyDark =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+          Brightness.dark;
       setThemeMode(isCurrentlyDark ? ThemeMode.light : ThemeMode.dark);
     } else {
       // Toggle between light and dark
-      setThemeMode(_themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light);
+      setThemeMode(
+        _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light,
+      );
     }
   }
 }

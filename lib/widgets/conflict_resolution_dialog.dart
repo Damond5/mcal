@@ -48,15 +48,21 @@ class ConflictResolutionDialog extends StatelessWidget {
           await context.read<EventProvider>().syncPull(); // retry pull
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conflict resolved, pulled successfully')),
+            const SnackBar(
+              content: Text('Conflict resolved, pulled successfully'),
+            ),
           );
-         } catch (e) {
-           if (!context.mounted) return;
-           logGuiError("Conflict resolution failed", error: e, context: "conflict_resolution");
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Failed to resolve conflict: $e')),
-           );
-         }
+        } catch (e) {
+          if (!context.mounted) return;
+          logGuiError(
+            "Conflict resolution failed",
+            error: e,
+            context: "conflict_resolution",
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to resolve conflict: $e')),
+          );
+        }
       }
     } else if (result == 'local') {
       if (context.mounted) {
@@ -64,15 +70,21 @@ class ConflictResolutionDialog extends StatelessWidget {
           await SyncService().abortConflict();
           if (!context.mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Conflict aborted, kept local changes')),
+            const SnackBar(
+              content: Text('Conflict aborted, kept local changes'),
+            ),
           );
-         } catch (e) {
-           if (!context.mounted) return;
-           logGuiError("Conflict abort failed", error: e, context: "conflict_abort");
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Failed to abort conflict: $e')),
-           );
-         }
+        } catch (e) {
+          if (!context.mounted) return;
+          logGuiError(
+            "Conflict abort failed",
+            error: e,
+            context: "conflict_abort",
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to abort conflict: $e')),
+          );
+        }
       }
     }
   }

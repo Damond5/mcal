@@ -1,7 +1,12 @@
- import 'dart:developer';
+import 'dart:developer';
 
 class Event {
-  static const List<String> validRecurrences = ['none', 'daily', 'weekly', 'monthly'];
+  static const List<String> validRecurrences = [
+    'none',
+    'daily',
+    'weekly',
+    'monthly',
+  ];
   static const int minYear = 1900;
   static const int maxYear = 2100;
   static const int notificationOffsetMinutes = 30;
@@ -26,12 +31,27 @@ class Event {
     this.filename,
   }) {
     if (title.isEmpty) throw ArgumentError('Title cannot be empty');
-    if (title.length > 100) throw ArgumentError('Title must be 100 characters or less');
-    if (!validRecurrences.contains(recurrence)) throw ArgumentError('Invalid recurrence: $recurrence');
-    if (endDate != null && endDate!.isBefore(startDate)) throw ArgumentError('End date cannot be before start date');
-    if (startTime != null && !_isValidTime(startTime!)) throw ArgumentError('Invalid start time format');
-    if (endTime != null && !_isValidTime(endTime!)) throw ArgumentError('Invalid end time format');
-    if (startTime != null && endTime != null && endDate == null && _compareTimes(startTime!, endTime!) >= 0) throw ArgumentError('End time must be after start time on the same day');
+    if (title.length > 100) {
+      throw ArgumentError('Title must be 100 characters or less');
+    }
+    if (!validRecurrences.contains(recurrence)) {
+      throw ArgumentError('Invalid recurrence: $recurrence');
+    }
+    if (endDate != null && endDate!.isBefore(startDate)) {
+      throw ArgumentError('End date cannot be before start date');
+    }
+    if (startTime != null && !_isValidTime(startTime!)) {
+      throw ArgumentError('Invalid start time format');
+    }
+    if (endTime != null && !_isValidTime(endTime!)) {
+      throw ArgumentError('Invalid end time format');
+    }
+    if (startTime != null &&
+        endTime != null &&
+        endDate == null &&
+        _compareTimes(startTime!, endTime!) >= 0) {
+      throw ArgumentError('End time must be after start time on the same day');
+    }
   }
 
   // Check if event is all-day
@@ -39,18 +59,28 @@ class Event {
 
   // Get the start DateTime (combines date and time)
   DateTime get startDateTime {
-    if (startTime == null) return DateTime(startDate.year, startDate.month, startDate.day);
+    if (startTime == null) {
+      return DateTime(startDate.year, startDate.month, startDate.day);
+    }
     final parts = startTime!.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
-    return DateTime(startDate.year, startDate.month, startDate.day, hour, minute);
+    return DateTime(
+      startDate.year,
+      startDate.month,
+      startDate.day,
+      hour,
+      minute,
+    );
   }
 
   // Get the end DateTime if applicable
   DateTime? get endDateTime {
     if (endDate == null && endTime == null) return null;
     final date = endDate ?? startDate;
-    if (endTime == null) return DateTime(date.year, date.month, date.day, 23, 59); // End of day
+    if (endTime == null) {
+      return DateTime(date.year, date.month, date.day, 23, 59); // End of day
+    }
     final parts = endTime!.split(':');
     final hour = int.parse(parts[0]);
     final minute = int.parse(parts[1]);
@@ -106,10 +136,18 @@ class Event {
         }
       }
 
-      if (startDate == null) throw FormatException('Invalid event markdown: missing start date');
-      if (endDate != null && endDate.isBefore(startDate)) throw FormatException('End date before start date');
-    if (startTime != null && !_isValidTime(startTime)) throw FormatException('Invalid start time format');
-    if (endTime != null && !_isValidTime(endTime)) throw FormatException('Invalid end time format');
+      if (startDate == null) {
+        throw FormatException('Invalid event markdown: missing start date');
+      }
+      if (endDate != null && endDate.isBefore(startDate)) {
+        throw FormatException('End date before start date');
+      }
+      if (startTime != null && !_isValidTime(startTime)) {
+        throw FormatException('Invalid start time format');
+      }
+      if (endTime != null && !_isValidTime(endTime)) {
+        throw FormatException('Invalid end time format');
+      }
       if (!validRecurrences.contains(recurrence)) recurrence = 'none';
 
       return Event(
@@ -136,7 +174,14 @@ class Event {
       final month = int.parse(parts[1]);
       final day = int.parse(parts[2]);
       // Validate range
-      if (year < minYear || year > maxYear || month < 1 || month > 12 || day < 1 || day > 31) return null;
+      if (year < minYear ||
+          year > maxYear ||
+          month < 1 ||
+          month > 12 ||
+          day < 1 ||
+          day > 31) {
+        return null;
+      }
       return DateTime(year, month, day);
     } catch (e) {
       return null;
@@ -165,8 +210,8 @@ class Event {
     final timeStr = startTime == null
         ? 'all-day'
         : endTime == null
-            ? startTime!
-            : '$startTime to $endTime';
+        ? startTime!
+        : '$startTime to $endTime';
 
     return '''# Event: $title
 
@@ -219,10 +264,22 @@ class Event {
   }
 
   @override
-  int get hashCode => title.hashCode ^ startDate.hashCode ^ (endDate?.hashCode ?? 0) ^ (startTime?.hashCode ?? 0) ^ (endTime?.hashCode ?? 0) ^ description.hashCode ^ recurrence.hashCode ^ (filename?.hashCode ?? 0);
+  int get hashCode =>
+      title.hashCode ^
+      startDate.hashCode ^
+      (endDate?.hashCode ?? 0) ^
+      (startTime?.hashCode ?? 0) ^
+      (endTime?.hashCode ?? 0) ^
+      description.hashCode ^
+      recurrence.hashCode ^
+      (filename?.hashCode ?? 0);
 
   // Static utility methods for recurrence handling
-  static List<Event> expandRecurring(Event event, DateTime targetDate, {DateTime? maxDate}) {
+  static List<Event> expandRecurring(
+    Event event,
+    DateTime targetDate, {
+    DateTime? maxDate,
+  }) {
     final instances = <Event>[];
     instances.add(event); // Base instance
 
@@ -241,8 +298,14 @@ class Event {
       } else if (event.recurrence == 'monthly') {
         // Handle invalid dates (e.g., Jan 31 -> Feb 28/29)
         final nextMonth = DateTime(current.year, current.month + 1, 1);
-        final daysInNextMonth = DateTime(nextMonth.year, nextMonth.month + 1, 0).day;
-        final newDay = current.day > daysInNextMonth ? daysInNextMonth : current.day;
+        final daysInNextMonth = DateTime(
+          nextMonth.year,
+          nextMonth.month + 1,
+          0,
+        ).day;
+        final newDay = current.day > daysInNextMonth
+            ? daysInNextMonth
+            : current.day;
         current = DateTime(current.year, current.month + 1, newDay);
       } else {
         break;
@@ -251,11 +314,16 @@ class Event {
       if (event.endDate != null && current.isAfter(event.endDate!)) break;
 
       if (current.isAfter(event.startDate)) {
-        instances.add(event.copyWith(
-          title: '${event.title} (${current.year}-${current.month}-${current.day})', // Unique title for instance
-          startDate: current,
-          endDate: event.endDate != null ? current.add(current.difference(event.startDate)) : null,
-        ));
+        instances.add(
+          event.copyWith(
+            title:
+                '${event.title} (${current.year}-${current.month}-${current.day})', // Unique title for instance
+            startDate: current,
+            endDate: event.endDate != null
+                ? current.add(current.difference(event.startDate))
+                : null,
+          ),
+        );
       }
     }
 
@@ -263,22 +331,34 @@ class Event {
   }
 
   static bool occursOnDate(Event event, DateTime date) {
-    final start = DateTime(event.startDate.year, event.startDate.month, event.startDate.day);
+    final start = DateTime(
+      event.startDate.year,
+      event.startDate.month,
+      event.startDate.day,
+    );
     final end = event.endDate ?? event.startDate;
     final endDt = DateTime(end.year, end.month, end.day);
     final target = DateTime(date.year, date.month, date.day);
-    return target.isAtSameMomentAs(start) || (target.isAfter(start) && target.isBefore(endDt.add(const Duration(days: 1))));
+    return target.isAtSameMomentAs(start) ||
+        (target.isAfter(start) &&
+            target.isBefore(endDt.add(const Duration(days: 1))));
   }
 
   static Set<DateTime> getAllEventDates(List<Event> events) {
     final dates = <DateTime>{};
     for (final event in events) {
-      final expanded = Event.expandRecurring(event, DateTime.now().add(const Duration(days: 365)));
+      final expanded = Event.expandRecurring(
+        event,
+        DateTime.now().add(const Duration(days: 365)),
+      );
       for (final e in expanded) {
-        dates.add(DateTime(e.startDate.year, e.startDate.month, e.startDate.day));
+        dates.add(
+          DateTime(e.startDate.year, e.startDate.month, e.startDate.day),
+        );
         if (e.endDate != null) {
           DateTime current = e.startDate;
-          while (current.isBefore(e.endDate!) || current.isAtSameMomentAs(e.endDate!)) {
+          while (current.isBefore(e.endDate!) ||
+              current.isAtSameMomentAs(e.endDate!)) {
             dates.add(DateTime(current.year, current.month, current.day));
             current = current.add(const Duration(days: 1));
           }

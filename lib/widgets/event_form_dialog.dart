@@ -7,7 +7,12 @@ class EventFormDialog extends StatefulWidget {
   final Function(Event) onSave;
   final DateTime? defaultDate; // default date for new events
 
-  const EventFormDialog({super.key, this.event, required this.onSave, this.defaultDate});
+  const EventFormDialog({
+    super.key,
+    this.event,
+    required this.onSave,
+    this.defaultDate,
+  });
 
   @override
   EventFormDialogState createState() => EventFormDialogState();
@@ -29,8 +34,11 @@ class EventFormDialogState extends State<EventFormDialog> {
     super.initState();
     final event = widget.event;
     titleController = TextEditingController(text: event?.title ?? '');
-    descriptionController = TextEditingController(text: event?.description ?? '');
-    selectedStartDate = event?.startDate ?? widget.defaultDate ?? DateTime.now();
+    descriptionController = TextEditingController(
+      text: event?.description ?? '',
+    );
+    selectedStartDate =
+        event?.startDate ?? widget.defaultDate ?? DateTime.now();
     selectedEndDate = event?.endDate;
     selectedStartTime = event?.startTime;
     selectedEndTime = event?.endTime;
@@ -56,7 +64,9 @@ class EventFormDialogState extends State<EventFormDialog> {
   }
 
   Future<void> _pickDate(bool isStart) async {
-    final initial = isStart ? selectedStartDate : (selectedEndDate ?? selectedStartDate);
+    final initial = isStart
+        ? selectedStartDate
+        : (selectedEndDate ?? selectedStartDate);
     final date = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -80,14 +90,21 @@ class EventFormDialogState extends State<EventFormDialog> {
   Future<void> _pickTime(bool isStart) async {
     final initial = isStart
         ? (selectedStartTime != null
-            ? TimeOfDay(hour: int.parse(selectedStartTime!.split(':')[0]), minute: int.parse(selectedStartTime!.split(':')[1]))
-            : TimeOfDay.now())
+              ? TimeOfDay(
+                  hour: int.parse(selectedStartTime!.split(':')[0]),
+                  minute: int.parse(selectedStartTime!.split(':')[1]),
+                )
+              : TimeOfDay.now())
         : (selectedEndTime != null
-            ? TimeOfDay(hour: int.parse(selectedEndTime!.split(':')[0]), minute: int.parse(selectedEndTime!.split(':')[1]))
-            : TimeOfDay.now());
+              ? TimeOfDay(
+                  hour: int.parse(selectedEndTime!.split(':')[0]),
+                  minute: int.parse(selectedEndTime!.split(':')[1]),
+                )
+              : TimeOfDay.now());
     final time = await showTimePicker(context: context, initialTime: initial);
     if (time != null) {
-      final timeStr = '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+      final timeStr =
+          '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
       setState(() {
         if (isStart) {
           selectedStartTime = timeStr;
@@ -107,28 +124,47 @@ class EventFormDialogState extends State<EventFormDialog> {
     }
     if (title.contains('..') || title.startsWith('/')) {
       setState(() => errorMessage = 'Title contains invalid characters');
-      logGuiError('Title contains invalid characters', context: 'event_validation');
+      logGuiError(
+        'Title contains invalid characters',
+        context: 'event_validation',
+      );
       return false;
     }
-    if (selectedEndDate != null && selectedEndDate!.isBefore(selectedStartDate)) {
+    if (selectedEndDate != null &&
+        selectedEndDate!.isBefore(selectedStartDate)) {
       setState(() => errorMessage = 'End date must be after start date');
-      logGuiError('End date must be after start date', context: 'event_validation');
+      logGuiError(
+        'End date must be after start date',
+        context: 'event_validation',
+      );
       return false;
     }
     if (!isAllDay) {
       if (selectedStartTime == null) {
-        setState(() => errorMessage = 'Start time is required for timed events');
-        logGuiError('Start time is required for timed events', context: 'event_validation');
+        setState(
+          () => errorMessage = 'Start time is required for timed events',
+        );
+        logGuiError(
+          'Start time is required for timed events',
+          context: 'event_validation',
+        );
         return false;
       }
       if (selectedEndTime != null) {
-        final startTimeOfDay = TimeOfDay.fromDateTime(DateTime.parse('2020-01-01 $selectedStartTime'));
-        final endTimeOfDay = TimeOfDay.fromDateTime(DateTime.parse('2020-01-01 $selectedEndTime'));
+        final startTimeOfDay = TimeOfDay.fromDateTime(
+          DateTime.parse('2020-01-01 $selectedStartTime'),
+        );
+        final endTimeOfDay = TimeOfDay.fromDateTime(
+          DateTime.parse('2020-01-01 $selectedEndTime'),
+        );
         final startMinutes = startTimeOfDay.hour * 60 + startTimeOfDay.minute;
         final endMinutes = endTimeOfDay.hour * 60 + endTimeOfDay.minute;
         if (endMinutes <= startMinutes) {
           setState(() => errorMessage = 'End time must be after start time');
-          logGuiError('End time must be after start time', context: 'event_validation');
+          logGuiError(
+            'End time must be after start time',
+            context: 'event_validation',
+          );
           return false;
         }
       }
@@ -173,7 +209,9 @@ class EventFormDialogState extends State<EventFormDialog> {
                 const Text('Start Date: '),
                 TextButton(
                   onPressed: () => _pickDate(true),
-                  child: Text('${selectedStartDate.month}/${selectedStartDate.day}/${selectedStartDate.year}'),
+                  child: Text(
+                    '${selectedStartDate.month}/${selectedStartDate.day}/${selectedStartDate.year}',
+                  ),
                 ),
               ],
             ),
@@ -182,7 +220,11 @@ class EventFormDialogState extends State<EventFormDialog> {
                 const Text('End Date: '),
                 TextButton(
                   onPressed: () => _pickDate(false),
-                  child: Text(selectedEndDate != null ? '${selectedEndDate!.month}/${selectedEndDate!.day}/${selectedEndDate!.year}' : 'None'),
+                  child: Text(
+                    selectedEndDate != null
+                        ? '${selectedEndDate!.month}/${selectedEndDate!.day}/${selectedEndDate!.year}'
+                        : 'None',
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.clear),
@@ -222,8 +264,14 @@ class EventFormDialogState extends State<EventFormDialog> {
             DropdownButtonFormField<String>(
               initialValue: selectedRecurrence,
               decoration: const InputDecoration(labelText: 'Recurrence'),
-              items: ['none', 'daily', 'weekly', 'monthly'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-              onChanged: (value) => setState(() => selectedRecurrence = value ?? 'none'),
+              items: [
+                'none',
+                'daily',
+                'weekly',
+                'monthly',
+              ].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+              onChanged: (value) =>
+                  setState(() => selectedRecurrence = value ?? 'none'),
             ),
             TextField(
               controller: descriptionController,
@@ -238,10 +286,7 @@ class EventFormDialogState extends State<EventFormDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        TextButton(
-          onPressed: _save,
-          child: const Text('Save'),
-        ),
+        TextButton(onPressed: _save, child: const Text('Save')),
       ],
     );
   }

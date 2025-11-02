@@ -29,13 +29,22 @@ class EventList extends StatelessWidget {
           itemBuilder: (context, index) {
             final event = events[index];
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 4.0,
+              ),
               child: ListTile(
                 title: Text(event.title),
-                subtitle: Text(_formatEventTime(event) + (event.description.isNotEmpty ? ' - ${event.description}' : '')),
+                subtitle: Text(
+                  _formatEventTime(event) +
+                      (event.description.isNotEmpty
+                          ? ' - ${event.description}'
+                          : ''),
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete),
-                  onPressed: () => _showDeleteDialog(context, eventProvider, event),
+                  onPressed: () =>
+                      _showDeleteDialog(context, eventProvider, event),
                 ),
                 onTap: () => _showEventDetails(context, event, eventProvider),
               ),
@@ -54,9 +63,11 @@ class EventList extends StatelessWidget {
         return 'All day (${event.startDate.month}/${event.startDate.day} - ${event.endDate!.month}/${event.endDate!.day})';
       }
     } else {
-      final start = '${event.startTime!.split(':')[0]}:${event.startTime!.split(':')[1]}';
+      final start =
+          '${event.startTime!.split(':')[0]}:${event.startTime!.split(':')[1]}';
       if (event.endTime != null) {
-        final end = '${event.endTime!.split(':')[0]}:${event.endTime!.split(':')[1]}';
+        final end =
+            '${event.endTime!.split(':')[0]}:${event.endTime!.split(':')[1]}';
         return '$start - $end';
       } else {
         return start;
@@ -64,7 +75,11 @@ class EventList extends StatelessWidget {
     }
   }
 
-  void _showDeleteDialog(BuildContext context, EventProvider eventProvider, Event event) {
+  void _showDeleteDialog(
+    BuildContext context,
+    EventProvider eventProvider,
+    Event event,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -87,7 +102,11 @@ class EventList extends StatelessWidget {
     );
   }
 
-  void _showEventDetails(BuildContext context, Event event, EventProvider eventProvider) {
+  void _showEventDetails(
+    BuildContext context,
+    Event event,
+    EventProvider eventProvider,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -96,7 +115,9 @@ class EventList extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Date: ${event.startDate.month}/${event.startDate.day}/${event.startDate.year}${event.endDate != null ? ' - ${event.endDate!.month}/${event.endDate!.day}/${event.endDate!.year}' : ''}'),
+            Text(
+              'Date: ${event.startDate.month}/${event.startDate.day}/${event.startDate.year}${event.endDate != null ? ' - ${event.endDate!.month}/${event.endDate!.day}/${event.endDate!.year}' : ''}',
+            ),
             const SizedBox(height: 8),
             Text('Time: ${_formatEventTime(event)}'),
             const SizedBox(height: 8),
@@ -104,7 +125,8 @@ class EventList extends StatelessWidget {
               Text('Description: ${event.description}'),
               const SizedBox(height: 8),
             ],
-            if (event.recurrence != 'none') Text('Recurrence: ${event.recurrence}'),
+            if (event.recurrence != 'none')
+              Text('Recurrence: ${event.recurrence}'),
           ],
         ),
         actions: [
@@ -112,23 +134,22 @@ class EventList extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
-           TextButton(
-             onPressed: () {
-               Navigator.of(context).pop();
-                showDialog(
-                  context: context,
-                  builder: (context) => EventFormDialog(
-                    event: event,
-                    onSave: (updated) => eventProvider.updateEvent(event, updated),
-                  ),
-                );
-             },
-             child: const Text('Edit'),
-           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              showDialog(
+                context: context,
+                builder: (context) => EventFormDialog(
+                  event: event,
+                  onSave: (updated) =>
+                      eventProvider.updateEvent(event, updated),
+                ),
+              );
+            },
+            child: const Text('Edit'),
+          ),
         ],
       ),
     );
   }
-
-
 }

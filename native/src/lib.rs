@@ -1,10 +1,9 @@
 mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
-// This file initializes the dynamic library and exposes the public API
 
-use flutter_rust_bridge::*;
 use git2::Repository;
 use std::path::Path;
 use std::process::Command;
+use std::ffi::{CStr, CString, c_char};
 
 // Helper function for credentials
 fn get_credentials(url: &str, username: &Option<String>, password: &Option<String>, ssh_key_path: &Option<String>) -> git2::Cred {
@@ -31,21 +30,139 @@ pub fn init_app() {
 }
 
 // Placeholder for Git operations
-#[flutter_rust_bridge::frb]
-pub fn add(left: i32, right: i32) -> i32 {
+pub extern "C" fn add(left: i32, right: i32) -> i32 {
     left + right
 }
 
 // Git operations
-#[flutter_rust_bridge::frb]
-pub fn git_init(path: String) -> Result<String, String> {
+fn git_init_impl(path: String) -> String {
     match Repository::init(&path) {
-        Ok(_) => Ok("Initialized empty Git repository".to_string()),
-        Err(e) => Err(e.to_string()),
+        Ok(_) => "Initialized empty Git repository".to_string(),
+        Err(e) => format!("ERROR: {}", e),
     }
 }
 
-#[flutter_rust_bridge::frb]
+pub extern "C" fn git_init(path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let result = git_init_impl(path);
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_add_remote(path: *const c_char, name: *const c_char, url: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let name = unsafe { CStr::from_ptr(name).to_str().unwrap().to_string() };
+    let url = unsafe { CStr::from_ptr(url).to_str().unwrap().to_string() };
+    let result = match git_add_remote_impl(path, name, url) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_fetch(path: *const c_char, remote: *const c_char, username: *const c_char, password: *const c_char, ssh_key_path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let remote = unsafe { CStr::from_ptr(remote).to_str().unwrap().to_string() };
+    let username = if username.is_null() { None } else { Some(unsafe { CStr::from_ptr(username).to_str().unwrap().to_string() }) };
+    let password = if password.is_null() { None } else { Some(unsafe { CStr::from_ptr(password).to_str().unwrap().to_string() }) };
+    let ssh_key_path = if ssh_key_path.is_null() { None } else { Some(unsafe { CStr::from_ptr(ssh_key_path).to_str().unwrap().to_string() }) };
+    let result = match git_fetch_impl(path, remote, username, password, ssh_key_path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_checkout(path: *const c_char, branch: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let branch = unsafe { CStr::from_ptr(branch).to_str().unwrap().to_string() };
+    let result = match git_checkout_impl(path, branch) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_pull(path: *const c_char, username: *const c_char, password: *const c_char, ssh_key_path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let username = if username.is_null() { None } else { Some(unsafe { CStr::from_ptr(username).to_str().unwrap().to_string() }) };
+    let password = if password.is_null() { None } else { Some(unsafe { CStr::from_ptr(password).to_str().unwrap().to_string() }) };
+    let ssh_key_path = if ssh_key_path.is_null() { None } else { Some(unsafe { CStr::from_ptr(ssh_key_path).to_str().unwrap().to_string() }) };
+    let result = match git_pull_impl(path, username, password, ssh_key_path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_status(path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let result = match git_status_impl(path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_add_all(path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let result = match git_add_all_impl(path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_commit(path: *const c_char, message: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let message = unsafe { CStr::from_ptr(message).to_str().unwrap().to_string() };
+    let result = match git_commit_impl(path, message) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_push(path: *const c_char, username: *const c_char, password: *const c_char, ssh_key_path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let username = if username.is_null() { None } else { Some(unsafe { CStr::from_ptr(username).to_str().unwrap().to_string() }) };
+    let password = if password.is_null() { None } else { Some(unsafe { CStr::from_ptr(password).to_str().unwrap().to_string() }) };
+    let ssh_key_path = if ssh_key_path.is_null() { None } else { Some(unsafe { CStr::from_ptr(ssh_key_path).to_str().unwrap().to_string() }) };
+    let result = match git_push_impl(path, username, password, ssh_key_path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_merge_prefer_remote(path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let result = match git_merge_prefer_remote_impl(path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
+pub extern "C" fn git_merge_abort(path: *const c_char) -> *const c_char {
+    let path = unsafe { CStr::from_ptr(path).to_str().unwrap().to_string() };
+    let result = match git_merge_abort_impl(path) {
+        Ok(s) => s,
+        Err(e) => format!("ERROR: {}", e),
+    };
+    let cstr = CString::new(result).unwrap();
+    cstr.into_raw()
+}
+
 pub fn git_clone(url: String, path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -63,7 +180,28 @@ pub fn git_clone(url: String, path: String, username: Option<String>, password: 
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_pull(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
+pub fn git_current_branch(path: String) -> Result<String, String> {
+    let repo = Repository::open(&path).map_err(|e| e.to_string())?;
+    let head_ref = repo.head().map_err(|e| e.to_string())?;
+    let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown");
+    Ok(branch_name.to_string())
+}
+
+#[flutter_rust_bridge::frb]
+pub fn git_list_branches(path: String) -> Result<Vec<String>, String> {
+    let repo = Repository::open(&path).map_err(|e| e.to_string())?;
+    let branches = repo.branches(None).map_err(|e| e.to_string())?;
+    let mut branch_names = Vec::new();
+    for branch_result in branches {
+        let (branch, _) = branch_result.map_err(|e| e.to_string())?;
+        if let Some(name) = branch.name().map_err(|e| e.to_string())? {
+            branch_names.push(name.to_string());
+        }
+    }
+    Ok(branch_names)
+}
+
+fn git_pull_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let head_ref = repo.head().map_err(|e| e.to_string())?;
     let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("master");
@@ -93,8 +231,7 @@ pub fn git_pull(path: String, username: Option<String>, password: Option<String>
     }
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_push(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
+fn git_push_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let head_ref = repo.head().map_err(|e| e.to_string())?;
     let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("master");
@@ -111,8 +248,7 @@ pub fn git_push(path: String, username: Option<String>, password: Option<String>
     Ok("Pushed successfully".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_status(path: String) -> Result<String, String> {
+fn git_status_impl(path: String) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let statuses = repo.statuses(None).map_err(|e| e.to_string())?;
     let mut status_str = String::new();
@@ -128,15 +264,13 @@ pub fn git_status(path: String) -> Result<String, String> {
     }
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_add_remote(path: String, name: String, url: String) -> Result<String, String> {
+fn git_add_remote_impl(path: String, name: String, url: String) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     repo.remote(&name, &url).map_err(|e| e.to_string())?;
     Ok("Remote added".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_fetch(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
+fn git_fetch_impl(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let head_ref = repo.head().map_err(|e| e.to_string())?;
     let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("master");
@@ -152,8 +286,7 @@ pub fn git_fetch(path: String, remote: String, username: Option<String>, passwor
     Ok("Fetched".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_checkout(path: String, branch: String) -> Result<String, String> {
+fn git_checkout_impl(path: String, branch: String) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let obj = repo.revparse_single(&branch).map_err(|e| e.to_string())?;
     repo.checkout_tree(&obj, None).map_err(|e| e.to_string())?;
@@ -161,8 +294,7 @@ pub fn git_checkout(path: String, branch: String) -> Result<String, String> {
     Ok("Checked out".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_add_all(path: String) -> Result<String, String> {
+fn git_add_all_impl(path: String) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let mut index = repo.index().map_err(|e| e.to_string())?;
     index.add_all(["*"].iter(), git2::IndexAddOption::DEFAULT, None).map_err(|e| e.to_string())?;
@@ -170,8 +302,7 @@ pub fn git_add_all(path: String) -> Result<String, String> {
     Ok("Added all".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_commit(path: String, message: String) -> Result<String, String> {
+fn git_commit_impl(path: String, message: String) -> Result<String, String> {
     let repo = Repository::open(&path).map_err(|e| e.to_string())?;
     let mut index = repo.index().map_err(|e| e.to_string())?;
     let oid = index.write_tree().map_err(|e| e.to_string())?;
@@ -186,8 +317,7 @@ pub fn git_commit(path: String, message: String) -> Result<String, String> {
     Ok(commit.to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_merge_prefer_remote(path: String) -> Result<String, String> {
+fn git_merge_prefer_remote_impl(path: String) -> Result<String, String> {
     let output = Command::new("git")
         .arg("checkout")
         .arg("--theirs")
@@ -220,8 +350,7 @@ pub fn git_merge_prefer_remote(path: String) -> Result<String, String> {
     Ok("Merge resolved by preferring remote".to_string())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn git_merge_abort(path: String) -> Result<String, String> {
+fn git_merge_abort_impl(path: String) -> Result<String, String> {
     let output = Command::new("git")
         .arg("merge")
         .arg("--abort")

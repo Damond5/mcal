@@ -14,11 +14,11 @@ class ThemeToggleButton extends StatelessWidget {
             themeProvider.themeMode == ThemeMode.system
                 ? Icons.brightness_6
                 : themeProvider.isDarkMode
-                    ? Icons.light_mode
-                    : Icons.dark_mode,
+                ? Icons.light_mode
+                : Icons.dark_mode,
           ),
           onPressed: () => themeProvider.toggleTheme(),
-           tooltip: 'Toggle theme',
+          tooltip: 'Toggle theme',
         );
       },
     );

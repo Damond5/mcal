@@ -348,4 +348,15 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
           as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> crateApiSetSslCaCerts({required List<String>? pemCerts}) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiSetSslCaCerts, [], {
+              #pemCerts: pemCerts,
+            }),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }

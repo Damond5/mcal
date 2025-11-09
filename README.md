@@ -136,8 +136,9 @@ If you make changes to the Rust code in the `native/` directory, follow these st
          - **List Branches**: Lists all branches in the repository.
          - Use Update Credentials to change username/password/SSH key without re-initializing.
          - Security: Credentials are stored securely and separately from URLs. All logs and errors are sanitized to prevent exposure.
-         - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
-         - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options.
+          - Android Support: Git sync on Android uses a custom Rust library with vendored OpenSSL; no additional setup required.
+          - SSL Certificates: For HTTPS repositories, the app automatically reads system CA certificates to validate server certificates, supporting custom CA setups in corporate environments. Falls back to default SSL behavior if certificate reading fails.
+          - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options. SSL certificate issues may occur in custom CA environments; the app logs certificate configuration status for debugging.
 
   The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 

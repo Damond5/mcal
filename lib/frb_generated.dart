@@ -66,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1729671013;
+  int get rustContentHash => 1230706316;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -144,6 +144,8 @@ abstract class RustLibApi extends BaseApi {
   Future<List<StatusEntry>> crateApiGitStatus({required String path});
 
   Future<void> crateApiInitApp();
+
+  Future<void> crateApiSetSslCaCerts({required List<String> pemCerts});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -724,6 +726,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
+
+  @override
+  Future<void> crateApiSetSslCaCerts({required List<String> pemCerts}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_String(pemCerts, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 19,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_git_error,
+        ),
+        constMeta: kCrateApiSetSslCaCertsConstMeta,
+        argValues: [pemCerts],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSetSslCaCertsConstMeta => const TaskConstMeta(
+    debugName: "set_ssl_ca_certs",
+    argNames: ["pemCerts"],
+  );
 
   @protected
   String dco_decode_String(dynamic raw) {

@@ -16,6 +16,7 @@ x509-parser = "0.15"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+tempfile = "3.1"
 
 [dev-dependencies]
 tempdir = "0.3"

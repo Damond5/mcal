@@ -1,7 +1,6 @@
 use git2::Repository;
 use std::path::Path;
 use std::process::Command;
-use git2::cert::*;
 use x509_parser::prelude::*;
 
 #[flutter_rust_bridge::frb]
@@ -436,4 +435,18 @@ fn git_merge_abort_impl(path: String) -> Result<String, GitError> {
         return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
     }
     Ok("Merge aborted".to_string())
+}
+
+#[flutter_rust_bridge::frb]
+pub fn set_ssl_ca_certs(pem_certs: Vec<String>) -> Result<(), GitError> {
+    let mut temp_file = tempfile::NamedTempFile::new()?;
+    for cert in pem_certs {
+        std::io::Write::write_all(&mut temp_file, cert.as_bytes())?;
+    }
+    let path = temp_file.path().to_str().unwrap();
+    // Set GIT_SSL_CAINFO environment variable for libgit2
+    std::env::set_var("GIT_SSL_CAINFO", path);
+    // Keep temp_file alive until process ends
+    std::mem::forget(temp_file);
+    Ok(())
 }

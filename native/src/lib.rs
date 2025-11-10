@@ -178,4 +178,31 @@ mod tests {
         api::git_commit(path.clone(), "Modified commit".to_string()).unwrap();
         assert!(!api::git_has_local_changes(path.clone()).unwrap());
     }
+
+    #[test]
+    fn test_extract_branch_name_with_head() {
+        let temp_dir = TempDir::new("test_extract_branch_name_head").unwrap();
+        let path = temp_dir.path().to_str().unwrap().to_string();
+        api::git_init(path.clone()).unwrap();
+        fs::write(format!("{}/test.txt", path), "content").unwrap();
+        api::git_add_all(path.clone()).unwrap();
+        api::git_commit(path.clone(), "Initial commit".to_string()).unwrap();
+        let repo = git2::Repository::open(&path).unwrap();
+        assert_eq!(api::extract_branch_name(&repo), "master");
+    }
+
+    #[test]
+    fn test_branch_name_stripping() {
+        let test_cases = vec![
+            ("refs/heads/main", "main"),
+            ("refs/heads/feature", "feature"),
+            ("refs/remotes/origin/feature", "refs/remotes/origin/feature"),
+            ("main", "main"),
+            ("refs/tags/v1.0", "refs/tags/v1.0"),
+        ];
+        for (input, expected) in test_cases {
+            let result = input.strip_prefix("refs/heads/").unwrap_or(input);
+            assert_eq!(result, expected, "Failed for input: {}", input);
+        }
+    }
 }

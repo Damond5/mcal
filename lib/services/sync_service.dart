@@ -131,29 +131,31 @@ class SyncService {
 
     try {
       await _api.crateApiGitInit(path: path);
-      await _api.crateApiGitAddRemote(path: path, name: 'origin', url: url);
       try {
-        await _api.crateApiGitFetch(
-          path: path,
-          remote: 'origin',
-          username: username,
-          password: password,
-        );
+        await _api.crateApiGitRemoveRemote(path: path, name: 'origin');
+      } catch (_) {
+        // Ignore if remote doesn't exist
+      }
+      await _api.crateApiGitAddRemote(path: path, name: 'origin', url: url);
+      await _api.crateApiGitFetch(
+        path: path,
+        remote: 'origin',
+        username: username,
+        password: password,
+        sshKeyPath: sshKeyPath,
+      );
+      try {
+        await _api.crateApiGitCheckout(path: path, branch: 'main');
+      } catch (e) {
         try {
-          await _api.crateApiGitCheckout(path: path, branch: 'main');
+          await _api.crateApiGitCheckout(path: path, branch: 'master');
         } catch (e) {
           try {
-            await _api.crateApiGitCheckout(path: path, branch: 'master');
+            await _api.crateApiGitCheckout(path: path, branch: 'develop');
           } catch (e) {
-            try {
-              await _api.crateApiGitCheckout(path: path, branch: 'develop');
-            } catch (e) {
-              await _api.crateApiGitCheckout(path: path, branch: 'trunk');
-            }
+            await _api.crateApiGitCheckout(path: path, branch: 'trunk');
           }
         }
-      } catch (e) {
-        // Ignore if remote is empty
       }
     } catch (e) {
       log('Sync initialization failed: $e');

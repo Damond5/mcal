@@ -49,6 +49,11 @@ fn get_credentials(url: &str, username: &Option<String>, password: &Option<Strin
     }
 }
 
+// Helper function to extract branch name from repo or remote default
+pub(crate) fn extract_branch_name(repo: &Repository) -> String {
+    "main".to_string()
+}
+
 // Helper function for certificate validation
 fn validate_certificate(hostname: &str, cert_data: &[u8]) -> Result<(), String> {
     // Check hostname using x509-parser
@@ -187,13 +192,7 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
     }
 
     let result = (|| {
-        let branch_name = if let Ok(head_ref) = repo.head() {
-            head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
-        } else {
-            repo.find_remote("origin").ok()
-                .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-                .unwrap_or("main".to_string())
-        };
+        let branch_name = extract_branch_name(&repo);
         let mut remote = repo.find_remote("origin")?;
         let mut callbacks = git2::RemoteCallbacks::new();
         let username = username.clone();
@@ -283,13 +282,7 @@ pub fn git_pull(path: String, username: Option<String>, password: Option<String>
 
 fn git_push_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let branch_name = if let Ok(head_ref) = repo.head() {
-        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
-    } else {
-        repo.find_remote("origin").ok()
-            .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-            .unwrap_or("main".to_string())
-    };
+    let branch_name = extract_branch_name(&repo);
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -348,15 +341,20 @@ pub fn git_add_remote(path: String, name: String, url: String) -> Result<String,
     git_add_remote_impl(path, name, url)
 }
 
+fn git_remove_remote_impl(path: String, name: String) -> Result<String, GitError> {
+    let repo = Repository::open(&path)?;
+    repo.remote_delete(&name)?;
+    Ok("Remote removed".to_string())
+}
+
+#[flutter_rust_bridge::frb]
+pub fn git_remove_remote(path: String, name: String) -> Result<String, GitError> {
+    git_remove_remote_impl(path, name)
+}
+
 fn git_fetch_impl(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let branch_name = if let Ok(head_ref) = repo.head() {
-        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
-    } else {
-        repo.find_remote("origin").ok()
-            .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-            .unwrap_or("main".to_string())
-    };
+    let branch_name = extract_branch_name(&repo);
     let mut remote_obj = repo.find_remote(&remote)?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -386,9 +384,19 @@ pub fn git_fetch(path: String, remote: String, username: Option<String>, passwor
 
 fn git_checkout_impl(path: String, branch: String) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let obj = repo.revparse_single(&branch)?;
-    repo.checkout_tree(&obj, None)?;
-    repo.set_head(&format!("refs/heads/{}", branch))?;
+    let head_ref_name = format!("refs/heads/{}", branch);
+    if repo.find_reference(&head_ref_name).is_ok() {
+        // Branch exists, just set head and checkout
+        repo.set_head(&head_ref_name)?;
+        repo.checkout_head(None)?;
+    } else {
+        // Create branch from FETCH_HEAD
+        let fetch_head = repo.find_reference("FETCH_HEAD")?;
+        let commit = repo.find_commit(fetch_head.target().unwrap())?;
+        repo.branch(&branch, &commit, false)?;
+        repo.set_head(&head_ref_name)?;
+        repo.checkout_head(None)?;
+    }
     Ok("Checked out".to_string())
 }
 

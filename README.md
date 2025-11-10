@@ -86,23 +86,28 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 
 ### Rebuilding After Rust Changes
 
-If you make changes to the Rust code in the `native/` directory, follow these steps to rebuild and regenerate the bridge:
+If you make changes to the Rust code in the `native/` directory, the rebuild process varies by platform:
 
-1. Build the Rust library:
-   ```bash
-   cd native && cargo build --release
-   ```
+- **Android**: Follow the [Complete Development Cycle](docs/platforms/android-workflow.md#complete-development-cycle) in the Android workflow documentation to ensure proper synchronization and prevent hash mismatches.
 
-2. Regenerate the Flutter Rust Bridge code:
-   ```bash
-   flutter_rust_bridge_codegen generate --config-file frb.yaml
-   ```
+- **Other Platforms**: Follow these general steps:
+  1. Build the Rust library:
+     ```bash
+     cd native && cargo build --release
+     ```
 
-3. Clean and reinstall Flutter dependencies:
-   ```bash
-   fvm flutter clean
-   fvm flutter pub get
-   ```
+  2. Regenerate the Flutter Rust Bridge code:
+     ```bash
+     flutter_rust_bridge_codegen generate --config-file frb.yaml
+     ```
+
+  3. Clean and reinstall Flutter dependencies:
+     ```bash
+     fvm flutter clean
+     fvm flutter pub get
+     ```
+
+**Note**: Android builds require additional steps to rebuild native libraries for all architectures. See the [Android workflow documentation](docs/platforms/android-workflow.md) for complete instructions.
 
 ## Usage
 

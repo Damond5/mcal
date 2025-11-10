@@ -149,4 +149,33 @@ mod tests {
         let content = fs::read_to_string(format!("{}/test.txt", path)).unwrap();
         assert_eq!(content, "master content");
     }
+
+    #[test]
+    fn test_has_local_changes() {
+        let temp_dir = TempDir::new("test_has_local_changes").unwrap();
+        let path = temp_dir.path().to_str().unwrap().to_string();
+
+        // Initialize repo
+        api::git_init(path.clone()).unwrap();
+
+        // Create and commit a file
+        fs::write(format!("{}/test.txt", path), "initial content").unwrap();
+        api::git_add_all(path.clone()).unwrap();
+        api::git_commit(path.clone(), "Initial commit".to_string()).unwrap();
+
+        // No changes
+        assert!(!api::git_has_local_changes(path.clone()).unwrap());
+
+        // Modify file
+        fs::write(format!("{}/test.txt", path), "modified content").unwrap();
+        assert!(api::git_has_local_changes(path.clone()).unwrap());
+
+        // Add to index
+        api::git_add_all(path.clone()).unwrap();
+        assert!(api::git_has_local_changes(path.clone()).unwrap()); // Still has changes (staged)
+
+        // Commit
+        api::git_commit(path.clone(), "Modified commit".to_string()).unwrap();
+        assert!(!api::git_has_local_changes(path.clone()).unwrap());
+    }
 }

@@ -100,4 +100,11 @@ void main() {
     when(mockApi.crateApiGitMergeAbort(path: anyNamed('path'))).thenAnswer((_) async => 'Aborted');
     await expectLater(syncService.abortConflict(), completes);
   });
+
+  test('pullSync calls gitPull with auth', () async {
+    syncService = SyncService(mockApi);
+    await syncService.initSync('https://example.com/repo.git', username: 'user', password: 'pass', sshKeyPath: '/path/to/key');
+    when(mockApi.crateApiGitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pulled');
+    await expectLater(syncService.pullSync(), completes);
+  });
 }

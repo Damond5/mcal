@@ -211,6 +211,14 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<String>);
 
   @override
+  _i3.Future<bool> crateApiGitHasLocalChanges({required String? path}) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGitHasLocalChanges, [], {#path: path}),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
   _i3.Future<String> crateApiGitInit({required String? path}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiGitInit, [], {#path: path}),

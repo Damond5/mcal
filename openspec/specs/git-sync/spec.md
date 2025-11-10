@@ -27,7 +27,12 @@ The application SHALL implement comprehensive Git operations via Rust backend: i
 #### Scenario: Pulling changes
 Given an initialized repository
 When pull is executed
-Then remote changes are fetched and merged, handling fast-forward merges
+Then remote changes are fetched and merged, handling fast-forward merges and properly updating the working directory even when local uncommitted changes exist
+
+#### Scenario: Pulling with local changes
+Given an initialized repository with uncommitted local changes
+When pull is executed
+Then local changes are temporarily stashed, remote changes are applied, and local changes are restored if no conflicts occur
 
 #### Scenario: Pushing commits
 Given local commits exist
@@ -37,7 +42,8 @@ Then commits are pushed to the remote repository
 #### Scenario: Checking repository status
 Given a repository with changes
 When status is requested
-Then a list of modified, staged, and untracked files is returned
+Then a list of modified, staged, and untracked files is returned</content>
+<parameter name="filePath">openspec/changes/fix-git-pull-working-directory-update/specs/git-sync/spec.md
 
 ### Requirement: The application SHALL Authentication Handling
 Git operations SHALL support separate username/password/token for HTTPS and SSH key paths, with secure storage and dynamic injection.

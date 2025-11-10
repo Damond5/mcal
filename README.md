@@ -195,8 +195,16 @@ For a full list, see `pubspec.yaml`.
 
  ## Project Structure
 
-  ```
-  lib/
+   ```
+docs/
+├── platforms/              # Platform-specific workflow files for agents
+│   ├── android-workflow.md
+│   ├── ios-workflow.md
+│   ├── linux-workflow.md
+│   ├── macos-workflow.md
+│   ├── web-workflow.md
+│   └── windows-workflow.md
+lib/
   ├── main.dart                 # App entry point and main widget
   ├── models/
   │   └── event.dart            # Event data model

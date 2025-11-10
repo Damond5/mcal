@@ -1,5 +1,7 @@
 ## Web Development Workflow
 
+**Breadcrumb:** [Project Root](../../README.md) > [Docs](../) > [Platforms](.) > Web Workflow
+
 This section provides guidelines for Web-specific development tasks in the MCAL project.
 
 ### Building the App

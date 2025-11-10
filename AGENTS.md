@@ -23,13 +23,31 @@ This block is auto-managed and should not be edited manually.
 
 <!-- OPENSPEC:END -->
 
-# Platform Development Workflows
+# Platform-Specific Instructions
 
 The MCAL project supports multiple platforms (Android, iOS, Linux, macOS, Web, Windows). Platform-specific development workflows are organized in separate files under the `docs/platforms/` directory for better maintainability.
 
-- [Android Workflow](docs/platforms/android-workflow.md)
-- [iOS Workflow](docs/platforms/ios-workflow.md)
-- [Linux Workflow](docs/platforms/linux-workflow.md)
-- [macOS Workflow](docs/platforms/macos-workflow.md)
-- [Web Workflow](docs/platforms/web-workflow.md)
-- [Windows Workflow](docs/platforms/windows-workflow.md)
+## Platform Instruction Access for AI Agents
+
+AI agents working on platform-specific tasks MUST first identify the current platform and read the corresponding workflow file. Use the following mapping to locate instructions:
+
+| Platform | Workflow File Path | Status |
+|----------|-------------------|--------|
+| Android | @docs/platforms/android-workflow.md | Available |
+| iOS | @docs/platforms/ios-workflow.md | Coming soon |
+| Linux | @docs/platforms/linux-workflow.md | Coming soon |
+| macOS | @docs/platforms/macos-workflow.md | Coming soon |
+| Web | @docs/platforms/web-workflow.md | Coming soon |
+| Windows | @docs/platforms/windows-workflow.md | Coming soon |
+
+**Navigation Guide:**
+- @README.md
+- @docs/platforms/README.md
+
+**AI Agent Instructions:**
+- Detect platform from environment context (e.g., `platform: linux` in env info).
+- Read the linked workflow file before executing platform-specific commands.
+- Use @-prefixed paths for AI-friendly documentation access.
+
+**@ Notation Explanation:**
+The @ notation is used for AI-friendly linking to project documentation paths. For example, @docs/ refers to the docs/ directory, and @/ refers to the openspec/ directory.

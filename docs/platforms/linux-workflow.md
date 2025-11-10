@@ -1,5 +1,7 @@
 ## Linux Development Workflow
 
+**Breadcrumb:** [Project Root](../../README.md) > [Docs](../) > [Platforms](.) > Linux Workflow
+
 This section provides guidelines for Linux-specific development tasks in the MCAL project.
 
 ### Building the App

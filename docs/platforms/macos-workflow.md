@@ -1,5 +1,7 @@
 ## macOS Development Workflow
 
+**Breadcrumb:** [Project Root](../../README.md) > [Docs](../) > [Platforms](.) > macOS Workflow
+
 This section provides guidelines for macOS-specific development tasks in the MCAL project.
 
 ### Building the App

@@ -1,6 +1,25 @@
 ## Android Development Workflow
 
+**Breadcrumb:** [Project Root](../../README.md) > [Docs](../) > [Platforms](.) > Android Workflow
+
+**Navigation:** [Platforms Overview](README.md) | [AGENTS.md](../../AGENTS.md#platform-instruction-access-for-ai-agents) | [Project Root](../../README.md)
+
+---
+
 This section provides guidelines for Android-specific development tasks in the MCAL project, which uses Flutter with Rust integration via Flutter Rust Bridge (FRB). For general project setup, see the [project README](../README.md).
+
+## Table of Contents
+- [Prerequisites](#prerequisites)
+- [Complete Development Cycle](#complete-development-cycle)
+- [Building the Android App](#building-the-android-app)
+- [Testing on Android Devices](#testing-on-android-devices)
+- [Verifying Build Synchronization](#verifying-build-synchronization)
+- [Running Tests](#running-tests)
+- [Handling Flutter Rust Bridge Content Hash Mismatches](#handling-flutter-rust-bridge-content-hash-mismatches)
+- [Cross-Compiling Rust for Android](#cross-compiling-rust-for-android)
+- [Build Automation](#build-automation)
+- [Preventing Common Issues](#preventing-common-issues)
+- [Additional Troubleshooting](#additional-troubleshooting)
 
 ### Prerequisites
 

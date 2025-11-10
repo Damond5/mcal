@@ -1,15 +1,27 @@
 # Platform-Specific Development Workflows
 
+**Breadcrumb:** [Project Root](../../README.md) > [Docs](../) > Platform Workflows
+
 This directory contains detailed development workflow guides for each platform supported by the MCAL project (Android, iOS, Linux, macOS, Web, Windows). These guides provide platform-specific instructions for building, testing, running, and troubleshooting the application.
+
+## Table of Contents
+- [Available Workflows](#available-workflows)
+- [Contributing](#contributing)
 
 ## Available Workflows
 
-- [Android Workflow](android-workflow.md) - Comprehensive guide for Android development, including Flutter Rust Bridge integration and cross-compilation.
-- [iOS Workflow](ios-workflow.md) - iOS-specific development instructions (coming soon).
-- [Linux Workflow](linux-workflow.md) - Linux desktop development instructions (coming soon).
-- [macOS Workflow](macos-workflow.md) - macOS desktop development instructions (coming soon).
-- [Web Workflow](web-workflow.md) - Web platform development instructions (coming soon).
-- [Windows Workflow](windows-workflow.md) - Windows desktop development instructions (coming soon).
+| Platform | File | Description | Status |
+|----------|------|-------------|--------|
+| Android | [android-workflow.md](android-workflow.md) | Comprehensive guide for Android development, including Flutter Rust Bridge integration and cross-compilation | Available |
+| iOS | [ios-workflow.md](ios-workflow.md) | iOS-specific development instructions | Coming soon |
+| Linux | [linux-workflow.md](linux-workflow.md) | Linux desktop development instructions | Coming soon |
+| macOS | [macos-workflow.md](macos-workflow.md) | macOS desktop development instructions | Coming soon |
+| Web | [web-workflow.md](web-workflow.md) | Web platform development instructions | Coming soon |
+| Windows | [windows-workflow.md](windows-workflow.md) | Windows desktop development instructions | Coming soon |
+
+**Quick Links:**
+- [AGENTS.md](../AGENTS.md#platform-instruction-access-for-ai-agents)
+- [Project README](../../README.md)
 
 ## Contributing
 

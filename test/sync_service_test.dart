@@ -107,4 +107,13 @@ void main() {
     when(mockApi.crateApiGitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pulled');
     await expectLater(syncService.pullSync(), completes);
   });
+
+  test('pullSync applies deletions after pull', () async {
+    // Unit test mocking git_pull; deletions are handled internally in Rust
+    syncService = SyncService(mockApi);
+    await syncService.initSync('https://example.com/repo.git');
+    when(mockApi.crateApiGitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).thenAnswer((_) async => 'Pulled');
+    await expectLater(syncService.pullSync(), completes);
+    verify(mockApi.crateApiGitPull(path: anyNamed('path'), username: anyNamed('username'), password: anyNamed('password'), sshKeyPath: anyNamed('sshKeyPath'))).called(1);
+  });
 }

@@ -1,4 +1,5 @@
-use git2::Repository;
+use git2::{Repository, Delta};
+use std::fs;
 use std::path::Path;
 use std::process::Command;
 use x509_parser::prelude::*;
@@ -173,6 +174,10 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
     let mut repo = Repository::open(&path)?;
     let has_changes = has_local_changes(&repo)?;
     let mut stashed = false;
+    let old_tree = repo.head()?.peel_to_tree()?;
+    let old_oid = old_tree.id();
+    drop(old_tree);
+    let mut new_tree: Option<git2::Tree> = None;
 
     // Stash local changes to allow pull to update working directory
     if has_changes {
@@ -223,11 +228,25 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
             reference.set_target(fetch_commit.id(), "Fast-forward")?;
             repo.set_head(&refname)?;
             repo.checkout_head(None)?;
+            new_tree = Some(repo.head()?.peel_to_tree()?);
             Ok("Fast-forward merge completed".to_string())
         } else {
             Err(GitError::Other("Non-fast-forward merge required".to_string()))
         }
     })();
+
+    let deleted_paths: Vec<String> = if result.is_ok() {
+        if let Some(new_tree) = &new_tree {
+            let old_tree = repo.find_tree(old_oid)?;
+            let diff = repo.diff_tree_to_tree(Some(&old_tree), Some(new_tree), None)?;
+            diff.deltas().filter(|d| d.status() == Delta::Deleted).map(|d| d.old_file().path().unwrap().to_string_lossy().to_string()).collect()
+        } else {
+            vec![]
+        }
+    } else {
+        vec![]
+    };
+    drop(new_tree);
 
     // Handle stash restoration after pull operation
     if stashed {
@@ -236,6 +255,17 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
             if let Err(_) = repo.stash_pop(0, None) {
                 // Stash pop failed (conflicts with remote changes), drop stash to prefer remote
                 let _ = repo.stash_drop(0);
+            }
+            // Enforce deletions after stash pop
+            for path in deleted_paths {
+                if let Some(workdir) = repo.workdir() {
+                    let full_path = workdir.join(path);
+                    if full_path.exists() {
+                        if let Err(e) = fs::remove_file(&full_path) {
+                            eprintln!("Failed to remove deleted file {}: {}", full_path.display(), e);
+                        }
+                    }
+                }
             }
         } else {
             // Pull failed, restore local changes to original state

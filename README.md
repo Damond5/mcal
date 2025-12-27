@@ -155,26 +155,33 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
 
  ### Test Coverage
 
- - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
-  - **Unit Tests**: Tests for the `ThemeProvider`, `EventProvider`, `NotificationService`, `SyncService`, and `SyncSettings` classes, including theme mode setting, toggling, persistence, dark mode logic, event management and storage, notification scheduling, sync operations, and settings persistence.
+  - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
+   - **Unit Tests**: Tests for the `ThemeProvider`, `EventProvider`, `NotificationService`, `SyncService`, and `SyncSettings` classes, including theme mode setting, toggling, persistence, dark mode logic, event management and storage, notification scheduling, sync operations, and settings persistence.
+   - **Integration Tests**: End-to-end tests for theme toggle functionality, covering theme mode changes, icon updates, theme persistence across app restarts, and theme cycling.
 
  ### Test Files
 
- - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
-  - `test/event_provider_test.dart`: Contains unit tests for the `EventProvider` class.
-  - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
+  - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
+   - `test/event_provider_test.dart`: Contains unit tests for the `EventProvider` class.
+   - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
+   - `integration_test/app_integration_test.dart`: Contains integration tests for theme toggle functionality, including theme mode changes, icon updates, theme persistence, and theme cycling.
 
- ### Running Tests
+  ### Running Tests
 
- To run all tests:
- ```bash
- flutter test
- ```
+  To run all tests (including unit and widget tests):
+  ```bash
+  flutter test
+  ```
 
- To run a specific test file:
- ```bash
- flutter test test/widget_test.dart
- ```
+  To run a specific test file:
+  ```bash
+  flutter test test/widget_test.dart
+  ```
+
+  To run integration tests:
+  ```bash
+  flutter test integration_test/app_integration_test.dart
+  ```
 
  To run tests with coverage (requires `flutter_test` and coverage tools):
  ```bash

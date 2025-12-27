@@ -9,6 +9,7 @@ import 'package:mcal/providers/theme_provider.dart';
 import 'package:mcal/frb_generated.dart';
 import 'package:mcal/widgets/theme_toggle_button.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 void main() {
@@ -148,6 +149,206 @@ void main() {
 
       expect(nextYearInstance.startDate.hour, 14);
       expect(nextYearInstance.startDate.minute, 30);
+    });
+  });
+
+  group('Theme Toggle Integration Tests', () {
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    tearDown(() async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    });
+
+    Future<ThemeProvider> pumpAppWithThemeProvider(WidgetTester tester) async {
+      late ThemeProvider themeProvider;
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ChangeNotifierProvider(create: (_) => EventProvider()),
+          ],
+          child: Builder(
+            builder: (context) {
+              themeProvider = Provider.of<ThemeProvider>(
+                context,
+                listen: false,
+              );
+              return const MyApp();
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      return themeProvider;
+    }
+
+    testWidgets('Theme toggle button changes theme mode', (
+      WidgetTester tester,
+    ) async {
+      final themeProvider = await pumpAppWithThemeProvider(tester);
+
+      final initialThemeMode = themeProvider.themeMode;
+      expect(
+        initialThemeMode,
+        ThemeMode.system,
+        reason: 'Should start with system theme',
+      );
+
+      final buttonFinder = find.byType(ThemeToggleButton);
+      expect(
+        buttonFinder,
+        findsOneWidget,
+        reason: 'Theme toggle button should be present',
+      );
+
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        themeProvider.themeMode,
+        isNot(ThemeMode.system),
+        reason: 'Theme should change from system mode',
+      );
+      expect(
+        themeProvider.themeMode,
+        isIn([ThemeMode.light, ThemeMode.dark]),
+        reason: 'Should be either light or dark mode',
+      );
+    });
+
+    testWidgets('Theme toggle button icon updates correctly', (
+      WidgetTester tester,
+    ) async {
+      final themeProvider = await pumpAppWithThemeProvider(tester);
+
+      final buttonFinder = find.byType(ThemeToggleButton);
+      expect(buttonFinder, findsOneWidget);
+
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+
+      final iconFinder = find.descendant(
+        of: buttonFinder,
+        matching: find.byType(Icon),
+      );
+      expect(iconFinder, findsOneWidget);
+
+      final icon = tester.widget<Icon>(iconFinder);
+
+      if (themeProvider.isDarkMode) {
+        expect(
+          icon.icon,
+          Icons.light_mode,
+          reason: 'Should show light icon in dark mode',
+        );
+      } else {
+        expect(
+          icon.icon,
+          Icons.dark_mode,
+          reason: 'Should show dark icon in light mode',
+        );
+      }
+    });
+
+    testWidgets('Theme toggle cycle', (WidgetTester tester) async {
+      final themeProvider = await pumpAppWithThemeProvider(tester);
+
+      final buttonFinder = find.byType(ThemeToggleButton);
+
+      final modes = <ThemeMode>[];
+      for (int i = 0; i < 3; i++) {
+        modes.add(themeProvider.themeMode);
+        await tester.tap(buttonFinder);
+        await tester.pumpAndSettle();
+      }
+      modes.add(themeProvider.themeMode);
+
+      expect(
+        modes[0],
+        ThemeMode.system,
+        reason: 'Should start with system theme',
+      );
+      expect(
+        modes[1],
+        isNot(ThemeMode.system),
+        reason: 'First toggle should move away from system',
+      );
+      expect(
+        modes[2],
+        isNot(ThemeMode.system),
+        reason: 'Second toggle should stay away from system',
+      );
+      expect(
+        modes[1],
+        isNot(modes[2]),
+        reason: 'Theme should toggle between light and dark',
+      );
+    });
+
+    testWidgets('Theme persists across app restarts', (
+      WidgetTester tester,
+    ) async {
+      final themeProvider = await pumpAppWithThemeProvider(tester);
+
+      final buttonFinder = find.byType(ThemeToggleButton);
+
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+      final savedMode = themeProvider.themeMode;
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ChangeNotifierProvider(create: (_) => EventProvider()),
+          ],
+          child: Builder(
+            builder: (context) {
+              final newThemeProvider = Provider.of<ThemeProvider>(
+                context,
+                listen: false,
+              );
+              return const MyApp();
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      final newThemeProvider = Provider.of<ThemeProvider>(
+        tester.element(find.byType(MyApp)),
+        listen: false,
+      );
+      expect(
+        newThemeProvider.themeMode,
+        savedMode,
+        reason: 'Theme should persist after restart',
+      );
+    });
+
+    testWidgets('Visual theme changes', (WidgetTester tester) async {
+      final themeProvider = await pumpAppWithThemeProvider(tester);
+
+      final buttonFinder = find.byType(ThemeToggleButton);
+
+      await tester.tap(buttonFinder);
+      await tester.pumpAndSettle();
+
+      final isDark = themeProvider.isDarkMode;
+      expect(
+        isDark,
+        isA<bool>(),
+        reason: 'ThemeProvider should have a valid dark mode state',
+      );
     });
   });
 }

@@ -6,6 +6,7 @@ class Event {
     'daily',
     'weekly',
     'monthly',
+    'yearly',
   ];
   static const int minYear = 1900;
   static const int maxYear = 2100;
@@ -17,7 +18,7 @@ class Event {
   final String? startTime; // HH:MM format or null for all-day
   final String? endTime; // HH:MM format or null
   final String description;
-  final String recurrence; // 'none', 'daily', 'weekly', 'monthly'
+  final String recurrence; // 'none', 'daily', 'weekly', 'monthly', 'yearly'
   final String? filename;
 
   Event({
@@ -275,6 +276,34 @@ class Event {
       (filename?.hashCode ?? 0);
 
   // Static utility methods for recurrence handling
+  static bool _isLeapYear(int year) {
+    return DateTime(year, 2, 29).month == 2;
+  }
+
+  static DateTime _advanceYearWithFeb29Fallback(DateTime current) {
+    final nextYear = current.year + 1;
+
+    if (current.month == 2 && current.day == 29 && !_isLeapYear(nextYear)) {
+      return DateTime(
+        nextYear,
+        2,
+        28,
+        current.hour,
+        current.minute,
+        current.second,
+      );
+    } else {
+      return DateTime(
+        nextYear,
+        current.month,
+        current.day,
+        current.hour,
+        current.minute,
+        current.second,
+      );
+    }
+  }
+
   static List<Event> expandRecurring(
     Event event,
     DateTime targetDate, {
@@ -307,6 +336,25 @@ class Event {
             ? daysInNextMonth
             : current.day;
         current = DateTime(current.year, current.month + 1, newDay);
+      } else if (event.recurrence == 'yearly') {
+        // Advance year with Feb 29th fallback to Feb 28th on non-leap years
+        // Time component is preserved across year boundaries
+        current = _advanceYearWithFeb29Fallback(current);
+        if (current.isAfter(event.startDate)) {
+          instances.add(
+            event.copyWith(
+              title:
+                  '${event.title} (${current.year}-${current.month}-${current.day})',
+              startDate: current,
+              endDate: event.endDate != null
+                  ? current.add(current.difference(event.startDate))
+                  : null,
+            ),
+          );
+        }
+
+        if (!current.isBefore(endDate)) break;
+        if (event.endDate != null && current.isAfter(event.endDate!)) break;
       } else {
         break;
       }

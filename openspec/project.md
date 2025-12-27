@@ -54,7 +54,7 @@ Comprehensive test suite including:
 ## Domain Context
 Calendar application with event management:
 - Events stored as Markdown files with date, time, description, recurrence
-- Recurrence support: none, daily, weekly, monthly
+- Recurrence support: none, daily, weekly, monthly, yearly
 - All-day events supported
 - Calendar weeks start on Monday
 - Week numbers displayed for navigation

@@ -269,6 +269,7 @@ class EventFormDialogState extends State<EventFormDialog> {
                 'daily',
                 'weekly',
                 'monthly',
+                'yearly',
               ].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
               onChanged: (value) =>
                   setState(() => selectedRecurrence = value ?? 'none'),

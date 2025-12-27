@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sync GUI update enhancements: Added logging for debugging, forced EventList rebuilds with refreshCounter key, and informative pull snackbar showing loaded events count.
 - Comprehensive list of Git functions implemented in Rust: git_init, git_clone, git_current_branch, git_list_branches, git_pull, git_push, git_status, git_add_remote, git_fetch, git_checkout, git_add_all, git_commit, git_merge_prefer_remote, git_merge_abort, git_stash, git_diff.
 - SSL CA certificate handling for Git operations over HTTPS, reading system certificates cross-platform and configuring git2 SSL backend.
+- Yearly event recurrence support with Feb 29th fallback to Feb 28th on non-leap years, full alignment with rcal specification including yearly events.
 
 ### Changed
 - Enhanced logging in SyncService for better debugging of sync operations, including success logs and detailed conflict detection messages.

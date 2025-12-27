@@ -1,5 +1,4 @@
 # TODO
-- Tests leave a lot of events in the calendar
 - Rerun all integration tests on android device
 - Build and test on android device manually
 - Add more integration tests

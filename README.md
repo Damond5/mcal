@@ -151,20 +151,42 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
 
 - **GUI Launch Issues**: If the app crashes on sync pull during launch, ensure the Git repository is properly initialized. The app handles empty repositories without a HEAD by using the remote default branch, preventing crashes in partial sync initialization scenarios.
 
- The app includes a suite of tests to ensure functionality and reliability. Tests cover widget interactions, theme management, and core app behavior.
+  The app includes a suite of tests to ensure functionality and reliability. Tests cover widget interactions, theme management, and core app behavior.
 
- ### Test Coverage
+  ### Test Coverage
 
-  - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
-   - **Unit Tests**: Tests for the `ThemeProvider`, `EventProvider`, `NotificationService`, `SyncService`, and `SyncSettings` classes, including theme mode setting, toggling, persistence, dark mode logic, event management and storage, notification scheduling, sync operations, and settings persistence.
-   - **Integration Tests**: End-to-end tests for theme toggle functionality, covering theme mode changes, icon updates, theme persistence across app restarts, and theme cycling.
+   - **Widget Tests**: Basic tests for app loading, calendar display, day selection, and theme toggle functionality.
+    - **Unit Tests**: Tests for the `ThemeProvider`, `EventProvider`, `NotificationService`, `SyncService`, and `SyncSettings` classes, including theme mode setting, toggling, persistence, dark mode logic, event management and storage, notification scheduling, sync operations, and settings persistence.
+    - **Integration Tests**: End-to-end tests for theme toggle functionality, covering theme mode changes, icon updates, theme persistence across app restarts, and theme cycling.
 
- ### Test Files
+  ### Test Files
 
-  - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
-   - `test/event_provider_test.dart`: Contains unit tests for the `EventProvider` class.
-   - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
-   - `integration_test/app_integration_test.dart`: Contains integration tests for theme toggle functionality, including theme mode changes, icon updates, theme persistence, and theme cycling.
+   - `test/test_helpers.dart`: Provides test cleanup utilities and helper functions for test isolation.
+   - `test/test_helpers_test.dart`: Unit tests for the test cleanup utilities.
+   - `test/widget_test.dart`: Contains widget tests for the main app, calendar widget, and theme toggle button.
+    - `test/event_provider_test.dart`: Contains unit tests for the `EventProvider` class.
+    - `test/theme_provider_test.dart`: Contains unit tests for the `ThemeProvider` class.
+    - `test/sync_service_test.dart`: Contains unit tests for the `SyncService` class.
+    - `test/notification_service_test.dart`: Contains unit tests for the `NotificationService` class.
+    - `test/sync_settings_test.dart`: Contains unit tests for the `SyncSettings` model.
+    - `integration_test/app_integration_test.dart`: Contains integration tests for theme toggle functionality, including theme mode changes, icon updates, theme persistence, and theme cycling.
+
+  ### Test Cleanup and Isolation
+
+  To ensure tests don't interfere with each other and don't pollute the filesystem, all test suites use comprehensive cleanup utilities from `test/test_helpers.dart`:
+
+  - **`setupTestEnvironment()`**: Creates a temporary test directory and sets up required test infrastructure
+  - **`cleanupTestEnvironment()`**: Removes all test artifacts after test completion
+  - **`setupTestEventProvider()`**: Creates an isolated `EventProvider` instance with temporary storage
+
+  All test files include `tearDownAll()` callbacks that automatically clean up test artifacts when the test suite completes. Test artifacts are stored in `Directory.systemTemp` for platform-independent cleanup.
+
+  **Debugging Tests**: To preserve test artifacts for debugging (useful when investigating failures), set the environment variable:
+  ```bash
+  MCAL_TEST_CLEANUP=false flutter test
+  ```
+
+  This will keep the test directories and files in the system temp directory for manual inspection.
 
   ### Running Tests
 
@@ -236,12 +258,15 @@ lib/
        ├── event_list.dart       # Displays list of events for a day
        ├── sync_button.dart      # Sync button widget
        └── theme_toggle_button.dart # Theme toggle button widget
-  test/
-  ├── event_provider_test.dart  # Unit tests for EventProvider
-  ├── notification_service_test.dart # Unit tests for NotificationService
-  ├── sync_service_test.dart    # Unit tests for SyncService
-  ├── theme_provider_test.dart  # Unit tests for ThemeProvider
-  └── widget_test.dart          # Widget tests for app components
+   test/
+   ├── test_helpers.dart         # Test cleanup utilities and helper functions
+   ├── test_helpers_test.dart    # Unit tests for test cleanup utilities
+   ├── event_provider_test.dart  # Unit tests for EventProvider
+   ├── notification_service_test.dart # Unit tests for NotificationService
+   ├── sync_service_test.dart    # Unit tests for SyncService
+   ├── sync_settings_test.dart   # Unit tests for SyncSettings model
+   ├── theme_provider_test.dart  # Unit tests for ThemeProvider
+   └── widget_test.dart          # Widget tests for app components
   ```
 
 ## Contributing

@@ -1,14 +1,12 @@
-import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:mockito/annotations.dart";
-import "package:shared_preferences/shared_preferences.dart";
 import "package:mcal/models/event.dart";
 import "package:mcal/providers/event_provider.dart";
 import "package:mcal/frb_generated.dart";
 
 @GenerateMocks([RustLibApi])
 import "event_provider_test.mocks.dart";
-
+import "test_helpers.dart";
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,28 +14,18 @@ void main() {
   late EventProvider eventProvider;
   late MockRustLibApi mockApi;
 
-  setUpAll(() {
+  setUpAll(() async {
     mockApi = MockRustLibApi();
     RustLib.initMock(api: mockApi);
   });
 
-   setUp(() {
+  tearDownAll(() async {
+    await cleanupTestEnvironment();
+  });
+
+  setUp(() async {
     eventProvider = EventProvider();
-    SharedPreferences.setMockInitialValues({});
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.flutter.io/path_provider'), (MethodCall methodCall) async {
-      if (methodCall.method == 'getApplicationDocumentsDirectory') {
-        return '/tmp/test_docs';
-      }
-      return null;
-    });
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'), (MethodCall methodCall) async {
-      if (methodCall.method == 'read') {
-        return null;
-      } else if (methodCall.method == 'write') {
-        return null;
-      }
-      return null;
-    });
+    await setupTestEnvironment();
   });
 
   group('Event Model Tests', () {
@@ -130,10 +118,7 @@ void main() {
     });
 
     test('Event.occursOnDate for single day event', () {
-      final event = Event(
-        title: 'Single',
-        startDate: DateTime(2023, 10, 1),
-      );
+      final event = Event(title: 'Single', startDate: DateTime(2023, 10, 1));
       expect(Event.occursOnDate(event, DateTime(2023, 10, 1)), true);
       expect(Event.occursOnDate(event, DateTime(2023, 10, 2)), false);
     });
@@ -146,21 +131,30 @@ void main() {
       );
       expect(Event.occursOnDate(event, DateTime(2023, 10, 1)), true);
       expect(Event.occursOnDate(event, DateTime(2023, 10, 2)), true);
-      expect(Event.occursOnDate(event, DateTime(2023, 10, 3)), true); // Includes end date
+      expect(
+        Event.occursOnDate(event, DateTime(2023, 10, 3)),
+        true,
+      ); // Includes end date
     });
 
     test('Event.fromMarkdown throws on invalid date', () {
       const invalidMarkdown = '''# Event: Test
 - **Date**: invalid-date
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
+      expect(
+        () => Event.fromMarkdown(invalidMarkdown, 'invalid.md'),
+        throwsFormatException,
+      );
     });
 
     test('Event.fromMarkdown throws on end before start', () {
       const invalidMarkdown = '''# Event: Test
 - **Date**: 2023-10-02 to 2023-10-01
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
+      expect(
+        () => Event.fromMarkdown(invalidMarkdown, 'invalid.md'),
+        throwsFormatException,
+      );
     });
 
     test('Event.fromMarkdown throws on invalid time', () {
@@ -168,7 +162,10 @@ void main() {
 - **Date**: 2023-10-01
 - **Time**: 25:00
 ''';
-      expect(() => Event.fromMarkdown(invalidMarkdown, 'invalid.md'), throwsFormatException);
+      expect(
+        () => Event.fromMarkdown(invalidMarkdown, 'invalid.md'),
+        throwsFormatException,
+      );
     });
   });
 
@@ -185,13 +182,19 @@ void main() {
       );
       await eventProvider.addEvent(event1);
       await eventProvider.addEvent(event2);
-      final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1)).where((e) => e.title == 'Duplicate').toList();
+      final events = eventProvider
+          .getEventsForDate(DateTime(2023, 10, 1))
+          .where((e) => e.title == 'Duplicate')
+          .toList();
       expect(events.length, 1);
       final addedEvent1 = events[0];
       expect(addedEvent1.filename, isNotNull);
       // Delete the first one
       await eventProvider.deleteEvent(addedEvent1);
-      final remaining = eventProvider.getEventsForDate(DateTime(2023, 10, 2)).where((e) => e.title == 'Duplicate').toList();
+      final remaining = eventProvider
+          .getEventsForDate(DateTime(2023, 10, 2))
+          .where((e) => e.title == 'Duplicate')
+          .toList();
       expect(remaining.length, 1);
       // Clean up
       await eventProvider.deleteEvent(remaining[0]);
@@ -216,12 +219,11 @@ void main() {
     });
 
     test('deleteEvent removes event', () async {
-      final event = Event(
-        title: 'Test',
-        startDate: DateTime(2023, 10, 1),
-      );
+      final event = Event(title: 'Test', startDate: DateTime(2023, 10, 1));
       await eventProvider.addEvent(event);
-      final addedEvent = eventProvider.getEventsForDate(DateTime(2023, 10, 1))[0];
+      final addedEvent = eventProvider.getEventsForDate(
+        DateTime(2023, 10, 1),
+      )[0];
       await eventProvider.deleteEvent(addedEvent);
       final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
       expect(events, isEmpty);

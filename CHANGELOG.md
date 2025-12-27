@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensured events load from filesystem on app launch with detailed logging for debugging. Removed early return in loadAllEvents to always reload after sync. Added loading indicator in CalendarWidget.
 - Removed unused imports (openssl_probe, rustls, std::io::Cursor, webpki_roots) from native/src/api.rs to fix compilation warnings.
 - Implemented secure SSL certificate validation using webpki for Git synchronization operations on Android.
+- Fixed test pollution issue by implementing comprehensive test cleanup utilities. Added `test/test_helpers.dart` with `setupTestEnvironment`, `cleanupTestEnvironment`, and `setupTestEventProvider` functions. All test suites now properly clean up test artifacts in a platform-independent directory using `Directory.systemTemp`. Tests can optionally preserve artifacts for debugging by setting `MCAL_TEST_CLEANUP=false` environment variable.
 
 ## [1.0.1] - 2025-11-02
 

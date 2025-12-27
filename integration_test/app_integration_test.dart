@@ -11,12 +11,15 @@ import 'package:mcal/widgets/theme_toggle_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../test/test_helpers.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   setUpAll(() async {
     await RustLib.init();
+    await setupTestEnvironment();
+
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
           const MethodChannel('dexterous.com/flutter/local_notifications'),
@@ -39,6 +42,10 @@ void main() {
             return null;
           },
         );
+  });
+
+  tearDownAll(() async {
+    await cleanupTestEnvironment();
   });
 
   group('App Integration Tests', () {

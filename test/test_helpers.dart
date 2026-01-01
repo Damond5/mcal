@@ -374,3 +374,64 @@ Future<void> clearCertificateMocks() async {
         null,
       );
 }
+
+/// Configures test window size for integration and widget tests.
+///
+/// Sets the test viewport to 1200x800 pixels to ensure all UI elements
+/// (including AppBar action buttons) are visible and tappable during tests.
+///
+/// This is particularly important for tests that interact with AppBar buttons
+/// that may be positioned beyond the default 800x600 test window size.
+///
+/// Must be called in setUp() or before pumpWidget() for each test.
+///
+/// Parameters:
+/// - [tester]: The WidgetTester instance to configure
+///
+/// Example:
+/// ```dart
+/// setUp(() {
+///   setupTestWindowSize(tester);
+/// });
+///
+/// testWidgets('My test', (tester) async {
+///   await tester.pumpWidget(MyApp());
+///   // ThemeToggleButton is now visible at x=835.0
+///   await tester.tap(find.byType(ThemeToggleButton));
+/// });
+///
+/// tearDown(() {
+///   resetTestWindowSize(tester);
+/// });
+/// ```
+void setupTestWindowSize(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1920, 1080);
+  tester.view.devicePixelRatio = 1.0;
+}
+
+/// Resets test window size to default values.
+///
+/// Must be called in tearDown() or addTearDown() to prevent
+/// test state pollution between tests.
+///
+/// Parameters:
+/// - [tester]: The WidgetTester instance to reset
+///
+/// Example:
+/// ```dart
+/// setUp(() {
+///   setupTestWindowSize(tester);
+/// });
+///
+/// testWidgets('My test', (tester) async {
+///   await tester.pumpWidget(MyApp());
+/// });
+///
+/// tearDown(() {
+///   resetTestWindowSize(tester);
+/// });
+/// ```
+void resetTestWindowSize(WidgetTester tester) {
+  tester.view.resetPhysicalSize();
+  tester.view.resetDevicePixelRatio();
+}

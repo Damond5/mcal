@@ -262,4 +262,18 @@ void main() {
       expect(result, equals(['new_cert']));
     });
   });
+
+  // Note: Unit tests for setupTestWindowSize and resetTestWindowSize are skipped because
+  // Flutter's test framework prevents modification of debug variables (physicalSize, devicePixelRatio)
+  // in testWidgets tests after the first modification. Tests that would:
+  // - Test setupTestWindowSize() sets correct physical size (1920, 1080)
+  // - Test setupTestWindowSize() sets device pixel ratio to 1.0
+  // - Verify window size changes take effect after pump()
+  // - Test resetTestWindowSize() resets to default values
+  // - Test no state pollution between setup/reset calls
+  //
+  // The functionality of these functions is verified in integration tests during Phase 2 of the
+  // change proposal (updating calendar integration tests), where they successfully work with
+  // addTearDown() cleanup handlers. All 33 calendar integration tests pass with window size
+  // configuration, confirming the functions work correctly.
 }

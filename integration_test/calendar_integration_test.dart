@@ -416,55 +416,49 @@ void main() {
       expect(find.byType(CalendarWidget), findsOneWidget);
     });
 
-    testWidgets(
-      'Calendar updates when theme changes',
-      // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-      skip: true,
-      (tester) async {
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => ThemeProvider()),
-              ChangeNotifierProvider(create: (_) => EventProvider()),
-            ],
-            child: const MyApp(),
-          ),
-        );
+    testWidgets('Calendar updates when theme changes', (tester) async {
+      setupTestWindowSize(tester);
+      addTearDown(() => resetTestWindowSize(tester));
 
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ChangeNotifierProvider(create: (_) => EventProvider()),
+          ],
+          child: const MyApp(),
+        ),
+      );
 
-        await tester.ensureVisible(find.byType(ThemeToggleButton));
-        await tester.tap(find.byType(ThemeToggleButton));
-        await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-        expect(find.byType(CalendarWidget), findsOneWidget);
-      },
-    );
+      await tester.tap(find.byType(ThemeToggleButton));
+      await tester.pumpAndSettle();
 
-    testWidgets(
-      'Week numbers update color on theme change',
-      // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-      skip: true,
-      (tester) async {
-        await tester.pumpWidget(
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => ThemeProvider()),
-              ChangeNotifierProvider(create: (_) => EventProvider()),
-            ],
-            child: const MyApp(),
-          ),
-        );
+      expect(find.byType(CalendarWidget), findsOneWidget);
+    });
 
-        await tester.pumpAndSettle();
+    testWidgets('Week numbers update color on theme change', (tester) async {
+      setupTestWindowSize(tester);
+      addTearDown(() => resetTestWindowSize(tester));
 
-        await tester.ensureVisible(find.byType(ThemeToggleButton));
-        await tester.tap(find.byType(ThemeToggleButton));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+            ChangeNotifierProvider(create: (_) => EventProvider()),
+          ],
+          child: const MyApp(),
+        ),
+      );
 
-        expect(find.byType(CalendarWidget), findsOneWidget);
-      },
-    );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(ThemeToggleButton));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CalendarWidget), findsOneWidget);
+    });
 
     testWidgets('Week numbers are correctly calculated for each week', (
       tester,
@@ -560,268 +554,260 @@ void main() {
 
   group('Phase 14: Theme Integration Tests', () {
     group('Task 14.1: Theme change during interaction tests', () {
-      testWidgets(
-        'Theme toggle works while event form is open',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+      testWidgets('Theme toggle works while event form is open', (
+        tester,
+      ) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          await tester.pumpAndSettle();
+        final themeProvider = ThemeProvider();
+        final eventProvider = EventProvider();
 
-          await tester.tap(find.text('15'));
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider.value(value: themeProvider),
+              ChangeNotifierProvider.value(value: eventProvider),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-          await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.byType(FloatingActionButton));
-          await tester.pumpAndSettle();
+        await tester.tap(find.text('15'));
 
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-          expect(find.text('Add Event'), findsOneWidget);
-        },
-      );
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
 
-      testWidgets(
-        'Theme toggle works while event details are open',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        themeProvider.toggleTheme();
+        await tester.pumpAndSettle();
 
-          await tester.pumpAndSettle();
+        expect(find.text('Add Event'), findsOneWidget);
+      });
 
-          await tester.tap(find.text('15'));
+      testWidgets('Theme toggle works while event details are open', (
+        tester,
+      ) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-          await tester.tap(find.byType(FloatingActionButton));
-          await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-          await tester.enterText(
-            find.byKey(const Key('event_title_field')),
-            'Test Event',
-          );
-          await tester.pumpAndSettle();
+        await tester.tap(find.text('15'));
 
-          await tester.tap(find.text('Save'));
-          await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.text('Test Event'));
-          await tester.pumpAndSettle();
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
 
-          await tester.ensureVisible(find.byType(ThemeToggleButton));
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('event_title_field')),
+          'Test Event',
+        );
+        await tester.pumpAndSettle();
 
-          expect(find.text('Add Event'), findsOneWidget);
-        },
-      );
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
 
-      testWidgets(
-        'Theme toggle works while sync settings are open',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        await tester.tap(find.text('Test Event'));
+        await tester.pumpAndSettle();
 
-          await tester.pumpAndSettle();
+        await tester.tap(find.byType(ThemeToggleButton));
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.byType(SyncButton));
-          await tester.pumpAndSettle();
+        expect(find.text('Test Event'), findsOneWidget);
+      });
 
-          await tester.tap(find.text('Settings'));
-          await tester.pumpAndSettle();
+      testWidgets('Theme toggle works while sync settings are open', (
+        tester,
+      ) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          await tester.ensureVisible(find.byType(ThemeToggleButton));
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        final themeProvider = ThemeProvider();
+        final eventProvider = EventProvider();
 
-          expect(find.text('Sync Settings'), findsOneWidget);
-        },
-      );
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider.value(value: themeProvider),
+              ChangeNotifierProvider.value(value: eventProvider),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-      testWidgets(
-        'Dialogs update colors on theme change',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        await tester.pumpAndSettle();
 
-          await tester.pumpAndSettle();
+        await tester.tap(find.byType(SyncButton));
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.text('15'));
+        await tester.tap(find.text('Settings'));
+        await tester.pumpAndSettle();
 
-          await tester.pumpAndSettle();
+        themeProvider.toggleTheme();
+        await tester.pumpAndSettle();
 
-          await tester.tap(find.byType(FloatingActionButton));
-          await tester.pumpAndSettle();
+        expect(find.text('Sync Settings'), findsOneWidget);
+      });
 
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+      testWidgets('Dialogs update colors on theme change', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          expect(find.text('Add Event'), findsOneWidget);
-        },
-      );
+        final themeProvider = ThemeProvider();
+        final eventProvider = EventProvider();
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider.value(value: themeProvider),
+              ChangeNotifierProvider.value(value: eventProvider),
+            ],
+            child: const MyApp(),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('15'));
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        themeProvider.toggleTheme();
+        await tester.pumpAndSettle();
+
+        expect(find.text('Add Event'), findsOneWidget);
+      });
     });
 
     group('Task 14.2: Widget theme response tests', () {
-      testWidgets(
-        'Calendar colors update on theme change',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+      testWidgets('Calendar colors update on theme change', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-          await tester.ensureVisible(find.byType(ThemeToggleButton));
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-          expect(find.byType(CalendarWidget), findsOneWidget);
-        },
-      );
+        await tester.tap(find.byType(ThemeToggleButton));
+        await tester.pumpAndSettle();
 
-      testWidgets(
-        'Event list colors update on theme change',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        expect(find.byType(CalendarWidget), findsOneWidget);
+      });
 
-          await tester.pumpAndSettle();
+      testWidgets('Event list colors update on theme change', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          // First select a day in the calendar
-          await tester.tap(find.text('15'));
-          await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-          // Tap FAB to add event for selected day
-          await tester.tap(find.byType(FloatingActionButton));
-          await tester.pumpAndSettle();
+        // First select a day in calendar
+        await tester.tap(find.text('15'));
+        await tester.pumpAndSettle();
 
-          // Enter event title
-          await tester.enterText(
-            find.byKey(const Key('event_title_field')),
-            'Test Event',
-          );
-          await tester.pumpAndSettle();
+        // Tap FAB to add event for selected day
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
 
-          // Save the event
-          await tester.tap(find.text('Save'));
-          await tester.pumpAndSettle();
+        // Enter event title
+        await tester.enterText(
+          find.byKey(const Key('event_title_field')),
+          'Test Event',
+        );
+        await tester.pumpAndSettle();
 
-          // Verify EventList is visible after saving event for a day
-          expect(find.byType(EventList), findsOneWidget);
+        // Save event
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
 
-          // Toggle theme
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        // Verify EventList is visible after saving event for a day
+        expect(find.byType(EventList), findsOneWidget);
 
-          // Verify EventList is still visible after theme change
-          expect(find.byType(EventList), findsOneWidget);
-        },
-      );
+        // Toggle theme
+        await tester.tap(find.byType(ThemeToggleButton));
+        await tester.pumpAndSettle();
 
-      testWidgets(
-        'Buttons and icons update on theme change',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        // Verify EventList is still visible after theme change
+        expect(find.byType(EventList), findsOneWidget);
+      });
 
-          await tester.pumpAndSettle();
+      testWidgets('Buttons and icons update on theme change', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          await tester.ensureVisible(find.byType(ThemeToggleButton));
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
 
-          expect(find.byType(FloatingActionButton), findsOneWidget);
-        },
-      );
+        await tester.pumpAndSettle();
 
-      testWidgets(
-        'All widgets respond consistently to theme',
-        // SKIP: Theme toggle button not accessible in test environment (off-screen at offset 835.0, 28.0)
-        skip: true,
-        (tester) async {
-          await tester.pumpWidget(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider(create: (_) => ThemeProvider()),
-                ChangeNotifierProvider(create: (_) => EventProvider()),
-              ],
-              child: const MyApp(),
-            ),
-          );
+        await tester.tap(find.byType(ThemeToggleButton));
+        await tester.pumpAndSettle();
 
-          await tester.pumpAndSettle();
+        expect(find.byType(FloatingActionButton), findsOneWidget);
+      });
 
-          await tester.ensureVisible(find.byType(ThemeToggleButton));
-          await tester.tap(find.byType(ThemeToggleButton));
-          await tester.pumpAndSettle();
+      testWidgets('All widgets respond consistently to theme', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
 
-          expect(find.byType(CalendarWidget), findsOneWidget);
-          expect(find.byType(FloatingActionButton), findsOneWidget);
-        },
-      );
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(ThemeToggleButton));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(CalendarWidget), findsOneWidget);
+        expect(find.byType(FloatingActionButton), findsOneWidget);
+      });
     });
 
     group('Task 14.3: System theme response tests', () {

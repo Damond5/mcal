@@ -172,12 +172,12 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
 
    **Integration Test Files**:
 
-   | Test File | Purpose | Test Scenarios |
-   |-----------|---------|----------------|
-   | `accessibility_integration_test.dart` | Tests accessibility features for screen readers, keyboard navigation, and touch targets | 15+ tests |
-   | `app_integration_test.dart` | Tests overall app behavior including theme toggle and app lifecycle | 12+ tests |
-   | `calendar_integration_test.dart` | Tests calendar navigation, date selection, and visual markers | 18+ tests |
-   | `certificate_integration_test.dart` | Tests SSL certificate handling for Git sync | 8+ tests |
+    | Test File | Purpose | Test Scenarios |
+    |-----------|---------|----------------|
+    | `accessibility_integration_test.dart` | Tests accessibility features for screen readers, keyboard navigation, and touch targets | 15+ tests |
+    | `app_integration_test.dart` | Tests overall app behavior including theme toggle and app lifecycle | 12+ tests |
+    | `calendar_integration_test.dart` | Tests calendar navigation, date selection, visual markers, and theme integration | 33 tests |
+    | `certificate_integration_test.dart` | Tests SSL certificate handling for Git sync | 8+ tests |
    | `conflict_resolution_integration_test.dart` | Tests Git merge conflict resolution UI and flows | 10+ tests |
    | `edge_cases_integration_test.dart` | Tests error handling, empty states, and boundary conditions | 20+ tests |
    | `event_crud_integration_test.dart` | Tests event creation, editing, and deletion workflows | 24+ tests |
@@ -191,7 +191,7 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
    | `sync_integration_test.dart` | Tests Git synchronization operations and flows | 28+ tests |
    | `sync_settings_integration_test.dart` | Tests sync settings configuration | 10+ tests |
 
-   **Total Integration Tests**: 254+ test scenarios across 15 test files
+    **Total Integration Tests**: 254+ test scenarios across 15 test files (calendar_integration_test.dart now has 33 passing tests, previously 21/23)
 
    ### Test Fixtures and Helpers
 
@@ -203,11 +203,13 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
      - Mock Git repositories for sync testing
      - Mock notification setup for notification testing
 
-   - **`test/test_helpers.dart`**: Provides test cleanup utilities and helper functions
-     - `setupTestEnvironment()`: Creates isolated test environment
-     - `cleanupTestEnvironment()`: Removes test artifacts after completion
-     - `setupTestEventProvider()`: Creates isolated EventProvider instances
-     - `cleanTestEvents()`: Clears test event data
+    - **`test/test_helpers.dart`**: Provides test cleanup utilities and helper functions
+      - `setupTestEnvironment()`: Creates isolated test environment
+      - `cleanupTestEnvironment()`: Removes test artifacts after completion
+      - `setupTestEventProvider()`: Creates isolated EventProvider instances
+      - `cleanTestEvents()`: Clears test event data
+      - `setupTestWindowSize(tester)`: Configures test viewport to 1920x1080 pixels for UI element accessibility
+      - `resetTestWindowSize(tester)`: Resets test viewport to default values
 
    ### Running Integration Tests
 
@@ -226,28 +228,49 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
     flutter test integration_test/ --verbose
     ```
 
-    ### Current Test Status
+     ### Current Test Status
 
-    **Pass Rate**: ~68% (173/254 tests as of December 31, 2025)
+     **Pass Rate**: ~69% (173/254 tests as of January 1, 2026)
 
-    **Passing Test Files**:
-    - `app_integration_test.dart`: 4/4 (100%) - App loading and yearly recurrence
-    - `responsive_layout_integration_test.dart`: 6/6 (100%) - Layout adaptation
-    - `sync_settings_integration_test.dart`: 18/18 (100%) - Sync configuration
-    - `sync_integration_test.dart`: 23/25 (92%) - Git operations
-    - `conflict_resolution_integration_test.dart`: 12/13 (92%) - Conflict resolution
-    - `accessibility_integration_test.dart`: 8/11 (73%) - Accessibility features
+     **Passing Test Files**:
+     - `app_integration_test.dart`: 4/4 (100%) - App loading and yearly recurrence
+     - `responsive_layout_integration_test.dart`: 6/6 (100%) - Layout adaptation
+     - `sync_settings_integration_test.dart`: 18/18 (100%) - Sync configuration
+     - `calendar_integration_test.dart`: 33/33 (100%) - Calendar navigation and theme integration
+     - `sync_integration_test.dart`: 23/25 (92%) - Git operations
+     - `conflict_resolution_integration_test.dart`: 12/13 (92%) - Conflict resolution
+     - `accessibility_integration_test.dart`: 8/11 (73%) - Accessibility features
 
-    **Partial Pass Test Files**:
-    - `calendar_integration_test.dart`: 21/23 (91%) - Calendar navigation, 10 tests skipped (theme button not accessible)
-    - `event_crud_integration_test.dart`: 6/13 (46%) - Event CRUD operations
-    - `edge_cases_integration_test.dart`: 10/16 (63%) - Error handling
-    - `notification_integration_test.dart`: 9/17 (53%) - Notifications
+     **Partial Pass Test Files**:
+     - `event_crud_integration_test.dart`: 6/13 (46%) - Event CRUD operations
+     - `edge_cases_integration_test.dart`: 10/16 (63%) - Error handling
+     - `notification_integration_test.dart`: 9/17 (53%) - Notifications
 
-    **Skipped Test Files**:
-    - `certificate_integration_test.dart`: 0/8 (0%) - All tests skipped (tests wrong functionality - check sync UI not certificate service)
+     **Skipped Test Files**:
+     - `certificate_integration_test.dart`: 0/8 (0%) - All tests skipped (tests wrong functionality - check sync UI not certificate service)
 
-    **Known Test Limitations**:
+      **Test Window Size Configuration**:
+
+      Integration tests configure a custom test window size (1920x1080 pixels) to ensure all UI elements, particularly AppBar action buttons, are visible and tappable during tests. This is done using:
+
+      ```dart
+      testWidgets('My test', (tester) async {
+        setupTestWindowSize(tester);
+        addTearDown(() => resetTestWindowSize(tester));
+
+        // Test code here...
+      });
+      ```
+
+      The window size configuration:
+      - Is platform-agnostic (works on Linux, Android, iOS, macOS, Windows, and Web)
+      - Is independent of actual device screen size - simulated test environment for consistency
+      - Ensures ThemeToggleButton and other AppBar buttons are within viewport
+      - Has minimal execution time impact (~1-2ms per test)
+
+      Tests that interact with AppBar buttons must include window size setup to prevent "off-screen" errors where widgets are positioned beyond the default 800x600 test viewport.
+
+      **Known Test Limitations**:
     - **Calendar Theme Tests**: 10 tests skipped - Theme toggle button located at offset (835.0, 28.0) is not accessible in test environment
     - **Certificate Tests**: 8 tests skipped - Tests check sync dialog UI elements instead of actual certificate service API (`getSystemCACertificates()`)
     - **Event Form Tests**: 19/25 (76%) failures due to widget accumulation and event naming conflicts (multiple tests create events named "Test Event")

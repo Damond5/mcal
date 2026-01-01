@@ -2,9 +2,6 @@
 
 ## Other Tasks
 - Fix notifications not triggering on Android
-- Fix certificate integration tests
-  - Should test certificates and not gui
-  - Do they need to run on Android?
 - Fix calendar integration tests
   - Theme toggle button should not be positioned off screen
 - Integration Testing: Perform end-to-end tests with actual Git repos (initialized and uninitialized) to ensure sync operations (init, pull, push, status) handle all edge cases

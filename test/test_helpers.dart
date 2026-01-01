@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mcal/providers/event_provider.dart';
 import 'package:mcal/services/event_storage.dart';
-import 'package:path/path.dart' as path;
 
 /// Sets up test directory path (platform-independent)
 String getTestDirectoryPath() =>
@@ -185,15 +184,6 @@ Future<void> setupAllIntegrationMocks() async {
         if (methodCall.method == 'gitCheckout') {
           return 'Checkout completed';
         }
-        if (methodCall.method == 'getSystemCertificates') {
-          return '/etc/ssl/certs/ca-certificates.crt';
-        }
-        if (methodCall.method == 'loadCertificates') {
-          return true;
-        }
-        if (methodCall.method == 'setSslCaCerts') {
-          return 'Certificates configured';
-        }
         if (methodCall.method == 'getCredentials') {
           return null;
         }
@@ -300,4 +290,87 @@ Future<void> cleanTestEvents() async {
   // Set test directory for EventStorage
   EventStorage.setTestDirectory(getTestDirectoryPath());
   debugPrint('cleanTestEvents: Set test directory in EventStorage');
+}
+
+/// Checks if the current platform supports certificate operations.
+///
+/// Returns true for Android and iOS platforms, false for Linux, macOS, Windows, and Web.
+/// This helper is used to conditionally run certificate tests only on supported platforms.
+bool platformSupportsCertificates() {
+  return Platform.isAndroid || Platform.isIOS;
+}
+
+/// Sets up mock certificate channel for testing.
+///
+/// This function mocks the 'com.example.mcal/certificates' MethodChannel to:
+/// - Return a list of mock certificates when 'getCACertificates' is called
+/// - Optionally throw exceptions to test error handling
+///
+/// Parameters:
+/// - [certificates]: List of PEM-formatted certificate strings to return
+/// - [throwException]: If true, throws a PlatformException instead of returning certificates
+/// - [exceptionCode]: The exception code to use (default: 'CERTIFICATE_ERROR')
+/// - [exceptionMessage]: The exception message to use (default: 'Failed to read certificates')
+///
+/// Usage example:
+/// ```dart
+/// // Mock successful certificate reading
+/// await setupCertificateMocks(['cert1', 'cert2']);
+///
+/// // Mock certificate failure
+/// await setupCertificateMocks(
+///   [],
+///   throwException: true,
+///   exceptionMessage: 'Certificate store unavailable',
+/// );
+/// ```
+Future<void> setupCertificateMocks({
+  List<String> certificates = const [
+    '-----BEGIN CERTIFICATE-----\nMock certificate\n-----END CERTIFICATE-----',
+  ],
+  bool throwException = false,
+  String exceptionCode = 'CERTIFICATE_ERROR',
+  String exceptionMessage = 'Failed to read certificates',
+}) async {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+        const MethodChannel('com.example.mcal/certificates'),
+        (MethodCall methodCall) async {
+          debugPrint('Certificate mock: ${methodCall.method}');
+          if (methodCall.method == 'getCACertificates') {
+            if (throwException) {
+              throw PlatformException(
+                code: exceptionCode,
+                message: exceptionMessage,
+              );
+            }
+            return certificates;
+          }
+          return null;
+        },
+      );
+}
+
+/// Clears mock certificate channel handlers.
+///
+/// This function removes all mock handlers from the certificate channel,
+/// allowing tests to use a fresh state or the real platform implementation.
+/// Should be called in tearDown() or after each test that uses certificate mocks.
+///
+/// Usage example:
+/// ```dart
+/// setUp(() async {
+///   await setupCertificateMocks();
+/// });
+///
+/// tearDown(() async {
+///   await clearCertificateMocks();
+/// });
+/// ```
+Future<void> clearCertificateMocks() async {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+        const MethodChannel('com.example.mcal/certificates'),
+        null,
+      );
 }

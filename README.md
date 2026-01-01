@@ -275,16 +275,51 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
 
    Unit tests verify individual components in isolation:
 
-   | Test File | Purpose |
-   |-----------|---------|
-   | `test/test_helpers_test.dart` | Tests test cleanup utilities |
-   | `test/event_provider_test.dart` | Tests EventProvider state management |
-   | `test/theme_provider_test.dart` | Tests ThemeProvider state and persistence |
-   | `test/sync_service_test.dart` | Tests Git sync service operations |
-   | `test/notification_service_test.dart` | Tests notification scheduling service |
-   | `test/sync_settings_test.dart` | Tests SyncSettings model |
+    | Test File | Purpose |
+    |-----------|---------|
+    | `test/test_helpers_test.dart` | Tests test cleanup utilities |
+    | `test/event_provider_test.dart` | Tests EventProvider state management |
+    | `test/theme_provider_test.dart` | Tests ThemeProvider state and persistence |
+    | `test/sync_service_test.dart` | Tests Git sync service operations |
+    | `test/notification_service_test.dart` | Tests notification scheduling service |
+    | `test/sync_settings_test.dart` | Tests SyncSettings model |
+    | `test/certificate_service_test.dart` | Tests SSL certificate retrieval and caching |
 
-   ### Widget Tests
+    ### Certificate Testing
+
+    Certificate testing employs a hybrid approach combining cross-platform unit tests with platform-specific integration tests to ensure comprehensive coverage of SSL certificate functionality for Git synchronization.
+
+    **Testing Strategy:**
+
+    - **Unit Tests** (`test/certificate_service_test.dart`): Use a mocked certificate channel to verify the CertificateService logic, including certificate retrieval, caching, error handling, and cache clearing. These tests run on all platforms (Android, iOS, Linux, macOS, Windows, Web) without requiring real certificate access.
+
+    - **Integration Tests** (`integration_test/certificate_integration_test.dart`): Verify end-to-end certificate functionality on real devices and emulators. These tests read actual system CA certificates from the Android and iOS platforms, validate PEM format, and confirm proper integration with the Rust backend. Tests skip gracefully on unsupported platforms (Linux, macOS, Windows, Web).
+
+    **Running Certificate Tests:**
+
+    - Unit tests (all platforms):
+      ```bash
+      fvm flutter test test/certificate_service_test.dart
+      ```
+
+    - Integration tests on Android:
+      ```bash
+      fvm flutter test integration_test/certificate_integration_test.dart --platform android
+      ```
+
+    - Integration tests on iOS:
+      ```bash
+      fvm flutter test integration_test/certificate_integration_test.dart --platform ios
+      ```
+
+    **Test Behavior:**
+
+    - Integration tests automatically skip on Linux, macOS, Windows, and Web platforms with a clear skip message
+    - Certificate caching behavior is verified in both unit and integration tests
+    - PEM format validation ensures certificates are properly formatted for Git SSL connections
+    - Rust backend integration is verified by calling `setSslCaCerts()` with retrieved certificates
+
+    ### Widget Tests
 
    Widget tests verify UI components and interactions:
 

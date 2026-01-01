@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mcal/frb_generated.dart';
@@ -119,6 +120,146 @@ void main() {
 
       // Should have called loadAllEvents during setup
       expect(eventProvider.eventsCount, 0);
+    });
+  });
+
+  group('platformSupportsCertificates', () {
+    test('returns true for Android', () {
+      expect(platformSupportsCertificates(), Platform.isAndroid);
+    });
+
+    test('returns true for iOS', () {
+      expect(platformSupportsCertificates(), Platform.isIOS);
+    });
+
+    test('returns false for Linux', () {
+      if (Platform.isLinux) {
+        expect(platformSupportsCertificates(), false);
+      }
+    });
+
+    test('returns false for macOS', () {
+      if (Platform.isMacOS) {
+        expect(platformSupportsCertificates(), false);
+      }
+    });
+
+    test('returns false for Windows', () {
+      if (Platform.isWindows) {
+        expect(platformSupportsCertificates(), false);
+      }
+    });
+  });
+
+  group('setupCertificateMocks', () {
+    setUp(() async {
+      await clearCertificateMocks();
+    });
+
+    tearDown(() async {
+      await clearCertificateMocks();
+    });
+
+    test('returns mocked certificates when invoked', () async {
+      final mockCerts = ['cert1', 'cert2', 'cert3'];
+      await setupCertificateMocks(certificates: mockCerts);
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, equals(mockCerts));
+    });
+
+    test('throws PlatformException when throwException is true', () async {
+      const exceptionMessage = 'Certificate store unavailable';
+      await setupCertificateMocks(
+        certificates: [],
+        throwException: true,
+        exceptionMessage: exceptionMessage,
+      );
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+
+      expect(
+        () => channel.invokeMethod('getCACertificates'),
+        throwsA(
+          isA<PlatformException>().having(
+            (e) => e.message,
+            'message',
+            exceptionMessage,
+          ),
+        ),
+      );
+    });
+
+    test('uses default certificate when none provided', () async {
+      await setupCertificateMocks();
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, isA<List>());
+      expect(result.length, greaterThan(0));
+    });
+
+    test('returns empty list when empty certificates provided', () async {
+      await setupCertificateMocks(certificates: []);
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, isEmpty);
+    });
+
+    test('handles null certificates correctly', () async {
+      await setupCertificateMocks(certificates: const []);
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, isNotNull);
+      expect(result, isEmpty);
+    });
+  });
+
+  group('clearCertificateMocks', () {
+    test('removes mock handler from certificate channel', () async {
+      await setupCertificateMocks(certificates: ['cert1']);
+      await clearCertificateMocks();
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      expect(
+        () => channel.invokeMethod('getCACertificates'),
+        throwsA(isA<MissingPluginException>()),
+      );
+    });
+
+    test('can set up mocks again after clearing', () async {
+      await setupCertificateMocks(certificates: ['cert1']);
+      await clearCertificateMocks();
+
+      await setupCertificateMocks(certificates: ['cert2']);
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, equals(['cert2']));
+    });
+
+    test('does not throw when clearing unset mocks', () async {
+      expect(() async => await clearCertificateMocks(), returnsNormally);
+    });
+
+    test('ensures no state pollution between tests', () async {
+      await setupCertificateMocks(certificates: ['test_cert']);
+      await clearCertificateMocks();
+
+      await setupCertificateMocks(certificates: ['new_cert']);
+
+      const channel = MethodChannel('com.example.mcal/certificates');
+      final result = await channel.invokeMethod('getCACertificates');
+
+      expect(result, equals(['new_cert']));
     });
   });
 }

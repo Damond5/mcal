@@ -480,3 +480,41 @@ Then the app switches to dark mode
 And when the user taps the theme toggle button third time
 Then the app returns to system theme mode
 
+### Requirement: The application SHALL Certificate Mocking Utilities
+The application SHALL provide utility functions in `test/test_helpers.dart` for mocking the certificate MethodChannel in unit tests, enabling consistent and maintainable test setups:
+
+- `setupCertificateMocks()` function to configure mock channel with test data
+- `clearCertificateMocks()` function to remove mock handlers for test cleanup
+- Optional parameters to return certificates, throw exceptions, or simulate various error conditions
+- Documentation comments explaining usage and purpose
+
+These utilities SHALL be used by certificate unit tests and SHALL have their own tests in `test/test_helpers_test.dart`.
+
+#### Scenario: Setup certificate mocks for unit tests
+Given a unit test needs to test CertificateService
+When `setupCertificateMocks(certificates: testCerts)` is called
+Then the `com.example.mcal/certificates` MethodChannel is mocked
+And `getCACertificates` returns the provided test certificates
+And CertificateService can be tested without platform dependencies
+
+#### Scenario: Setup certificate mocks to simulate errors
+Given a unit test needs to test error handling
+When `setupCertificateMocks(error: testException)` is called
+Then the `com.example.mcal/certificates` MethodChannel is mocked
+And `getCACertificates` throws the provided test exception
+And CertificateService error handling can be verified
+
+#### Scenario: Clear certificate mocks after test
+Given a unit test has configured certificate mocks
+When `clearCertificateMocks()` is called in `tearDown()`
+Then the mock handler for certificate channel is removed
+And subsequent tests start with clean mock state
+And no test state pollution occurs between tests
+
+#### Scenario: Certificate mocking utilities are tested
+Given the test helpers file is being tested
+When tests for certificate mocking utilities run
+Then `setupCertificateMocks()` is verified to configure channel correctly
+Then `clearCertificateMocks()` is verified to remove mock handlers
+Then utility functions themselves have >90% test coverage
+

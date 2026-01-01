@@ -188,8 +188,54 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
    | `notification_integration_test.dart` | Tests notification scheduling and display | 18+ tests |
    | `performance_integration_test.dart` | Tests app performance with large datasets | 12+ tests |
    | `responsive_layout_integration_test.dart` | Tests UI responsiveness across different screen sizes | 16+ tests |
-   | `sync_integration_test.dart` | Tests Git synchronization operations and flows | 28+ tests |
-   | `sync_settings_integration_test.dart` | Tests sync settings configuration | 10+ tests |
+    | `sync_integration_test.dart` | Tests Git synchronization operations and flows | 28+ tests |
+    | `sync_settings_integration_test.dart` | Tests sync settings configuration | 10+ tests |
+    |
+    | **Integration Test Runner Scripts**
+    | MCAL provides integration test runner scripts that work around Flutter desktop bug #101031 by executing each integration test file individually with clean app lifecycle management.
+    |
+    | **Note:** This is a workaround for a Flutter framework bug. See:
+    |   - Flutter Issue #101031: https://github.com/flutter/flutter/issues/101031
+    |   - Fix plan: INTEGRATION_TEST_FIX_PLAN.md
+    |
+    | **Linux Integration Tests**
+    | To run all integration tests on Linux:
+    |
+    | ```bash
+    | ./scripts/test-integration-linux.sh
+    | ```
+    |
+    | Or using Makefile:
+    | ```bash
+    | make test-integration-linux
+    | ```
+    |
+    | **Expected Behavior**
+    | - All 15 integration test files execute individually
+    | - Each test file has clean app start/shutdown cycle
+    | - No "log reader stopped unexpectedly" errors
+    | - Summary report displays pass/fail counts and timing
+    | - Script exits with code 0 if all tests pass, code 1 if any fail
+    |
+    | **Android Integration Tests**
+    | To run integration tests on Android:
+    |
+    | ```bash
+    | ./scripts/test-integration-android.sh
+    | ```
+    |
+    | Or using Makefile:
+    | ```bash
+    | make test-integration-android
+    | ```
+    |
+    | **Note:** APK caching is not supported by Flutter's integration test framework. APK is rebuilt for each test file, which is slower but reliable.
+    |
+    | **Expected Behavior**
+    | - All 15 integration test files execute individually
+    | - APK is rebuilt for each test file (slower than Linux but reliable)
+    | - Summary report displays pass/fail counts and timing
+    | - Script exits with code 0 if all tests pass, code 1 if any fail
 
     **Total Integration Tests**: 254+ test scenarios across 15 test files (calendar_integration_test.dart now has 33 passing tests, previously 21/23)
 

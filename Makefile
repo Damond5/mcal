@@ -23,3 +23,16 @@ android-verify:
 android-clean:
 	fvm flutter clean
 	cd native && cargo clean
+
+.PHONY: test-integration-linux test-integration-android test-integration-all
+test-integration-linux:
+	@echo "Running integration tests on Linux..."
+	./scripts/test-integration-linux.sh
+
+test-integration-android:
+	@echo "Running integration tests on Android..."
+	./scripts/test-integration-android.sh
+
+test-integration-all: test-integration-linux test-integration-android
+	@echo "Running integration tests on all platforms..."
+	@echo "Note: This will run tests on both Linux and Android sequentially"

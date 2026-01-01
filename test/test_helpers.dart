@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mcal/providers/event_provider.dart';
+import 'package:mcal/services/event_storage.dart';
+import 'package:path/path.dart' as path;
 
 /// Sets up test directory path (platform-independent)
 String getTestDirectoryPath() =>
     '${Directory.systemTemp.path}${Platform.pathSeparator}mcal_test_docs';
 
-/// Sets up the test environment with clean state and mocked dependencies.
+/// Sets up test environment with clean state and mocked dependencies.
 ///
 /// This function:
 /// - Mocks path_provider to use test directory (platform-independent)
@@ -22,8 +24,11 @@ Future<void> setupTestEnvironment() async {
       .setMockMethodCallHandler(
         const MethodChannel('plugins.flutter.io/path_provider'),
         (MethodCall methodCall) async {
+          debugPrint('path_provider mock: ${methodCall.method}');
           if (methodCall.method == 'getApplicationDocumentsDirectory') {
-            return getTestDirectoryPath();
+            final testPath = getTestDirectoryPath();
+            debugPrint('Returning test directory: $testPath');
+            return testPath;
           }
           return null;
         },
@@ -48,7 +53,7 @@ Future<void> setupTestEnvironment() async {
   SharedPreferences.setMockInitialValues({});
 }
 
-/// Cleans up the test environment by removing the test directory and all contents.
+/// Cleans up test environment by removing test directory and all contents.
 ///
 /// Uses MCAL_TEST_CLEANUP environment variable to allow disabling cleanup for debugging.
 /// If cleanup fails, errors are logged but do not cause test failures.
@@ -68,6 +73,9 @@ Future<void> cleanupTestEnvironment() async {
       debugPrint('Test cleanup disabled for debugging');
       return;
     }
+
+    // Clear test directory from EventStorage
+    EventStorage.clearTestDirectory();
 
     final testDir = Directory(getTestDirectoryPath());
 
@@ -89,7 +97,7 @@ Future<void> cleanupTestEnvironment() async {
 /// - Calls setupTestEnvironment() to ensure clean state
 /// - Creates a new EventProvider instance
 /// - Loads all events (should be empty in clean state)
-/// - Returns the configured EventProvider
+/// - Returns to configured EventProvider
 ///
 /// Useful for tests that need an EventProvider with event storage functionality.
 Future<EventProvider> setupTestEventProvider() async {
@@ -99,4 +107,197 @@ Future<EventProvider> setupTestEventProvider() async {
   await eventProvider.loadAllEvents();
 
   return eventProvider;
+}
+
+/// Combined setup for all integration test mocks.
+///
+/// This function sets up all required mocks in one call to prevent conflicts:
+/// - Mocks path_provider for test directory (platform-independent)
+/// - Mocks flutter_secure_storage for secure credential storage
+/// - Mocks Git operations (init, add, commit, pull, push, status, credentials)
+/// - Mocks notifications (initialize, permissions, schedule, cancel)
+/// - Mocks certificate loading
+/// - Cleans up any existing test directory
+/// - Initializes SharedPreferences with empty values
+Future<void> setupAllIntegrationMocks() async {
+  // Mock path_provider to use test directory
+  // Try multiple possible channel names
+  for (final channelName in [
+    'plugins.flutter.io/path_provider',
+    'plugins.flutter.io/path_provider_linux',
+    'dev.fluttercommunity.plus/path_provider',
+  ]) {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(MethodChannel(channelName), (
+          MethodCall methodCall,
+        ) async {
+          debugPrint('[$channelName] ${methodCall.method}');
+          if (methodCall.method == 'getApplicationDocumentsDirectory') {
+            final testPath = getTestDirectoryPath();
+            debugPrint('Returning test directory: $testPath');
+            return testPath;
+          }
+          return null;
+        });
+  }
+
+  // Mock flutter_secure_storage
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+        const MethodChannel('plugins.it_nomads.com/flutter_secure_storage'),
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'read') return null;
+          if (methodCall.method == 'write') return null;
+          if (methodCall.method == 'delete') return null;
+          return null;
+        },
+      );
+
+  // Mock all Git operations in single handler (prevents channel conflicts)
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(const MethodChannel('mcal_flutter/rust_lib'), (
+        MethodCall methodCall,
+      ) async {
+        if (methodCall.method == 'gitInit') {
+          return 'Initialized empty Git repository';
+        }
+        if (methodCall.method == 'gitAdd') {
+          return 'Staged files';
+        }
+        if (methodCall.method == 'gitAddRemote') {
+          return 'Remote added';
+        }
+        if (methodCall.method == 'gitCommit') {
+          return 'Committed changes';
+        }
+        if (methodCall.method == 'gitPull') {
+          return 'Pulled 0 changes';
+        }
+        if (methodCall.method == 'gitPush') {
+          return 'Pushed 1 commit';
+        }
+        if (methodCall.method == 'gitStatus') {
+          return 'Clean working directory';
+        }
+        if (methodCall.method == 'gitFetch') {
+          return 'Fetch completed';
+        }
+        if (methodCall.method == 'gitCheckout') {
+          return 'Checkout completed';
+        }
+        if (methodCall.method == 'getSystemCertificates') {
+          return '/etc/ssl/certs/ca-certificates.crt';
+        }
+        if (methodCall.method == 'loadCertificates') {
+          return true;
+        }
+        if (methodCall.method == 'setSslCaCerts') {
+          return 'Certificates configured';
+        }
+        if (methodCall.method == 'getCredentials') {
+          return null;
+        }
+        if (methodCall.method == 'setCredentials') {
+          return true;
+        }
+        if (methodCall.method == 'clearCredentials') {
+          return true;
+        }
+        return null;
+      });
+
+  // Mock notifications
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+        const MethodChannel('dexterous.com/flutter/local_notifications'),
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'initialize') {
+            return true;
+          }
+          if (methodCall.method == 'requestNotificationsPermission') {
+            return true;
+          }
+          if (methodCall.method == 'zonedSchedule') {
+            return null;
+          }
+          if (methodCall.method == 'cancel') {
+            return null;
+          }
+          if (methodCall.method == 'cancelAll') {
+            return null;
+          }
+          return null;
+        },
+      );
+
+  // Clear SharedPreferences
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  SharedPreferences.setMockInitialValues({});
+}
+
+/// Cleans up test events between tests.
+///
+/// This function:
+/// - Clears all events from EventProvider
+/// - Deletes all event files from storage
+/// - Ensures test isolation
+/// - Should be called in setUp() for each test
+///
+/// Usage example:
+/// ```dart
+/// setUp(() async {
+///   await cleanTestEvents();
+/// });
+/// ```
+Future<void> cleanTestEvents() async {
+  debugPrint('cleanTestEvents: Starting cleanup');
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.clear();
+  SharedPreferences.setMockInitialValues({});
+
+  final testDir = Directory(getTestDirectoryPath());
+  final calendarDir = Directory('${testDir.path}/calendar');
+
+  debugPrint('cleanTestEvents: testDir path is ${testDir.path}');
+
+  if (await calendarDir.exists()) {
+    try {
+      final files = await calendarDir.list().toList();
+      debugPrint(
+        'cleanTestEvents: Found ${files.length} files in calendar directory',
+      );
+
+      final mdFiles = files.whereType<File>().where(
+        (f) => f.path.endsWith('.md'),
+      );
+      debugPrint(
+        'cleanTestEvents: Found ${mdFiles.length} .md files to delete',
+      );
+
+      for (final file in mdFiles) {
+        try {
+          await file.delete();
+          debugPrint('cleanTestEvents: Deleted ${file.path}');
+        } catch (e) {
+          debugPrint('Warning: Failed to delete event file ${file.path}: $e');
+        }
+      }
+      debugPrint('cleanTestEvents: Cleanup complete');
+    } catch (e) {
+      debugPrint('Warning: Failed to clean calendar directory: $e');
+    }
+  } else {
+    debugPrint('cleanTestEvents: Calendar directory does not exist');
+    try {
+      await calendarDir.create(recursive: true);
+      debugPrint('cleanTestEvents: Created calendar directory');
+    } catch (e) {
+      debugPrint('Warning: Failed to create calendar directory: $e');
+    }
+  }
+
+  // Set test directory for EventStorage
+  EventStorage.setTestDirectory(getTestDirectoryPath());
+  debugPrint('cleanTestEvents: Set test directory in EventStorage');
 }

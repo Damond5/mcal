@@ -2,12 +2,36 @@ import 'dart:io';
 import 'dart:developer';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import '../models/event.dart';
 
 class EventStorage {
   static const String _calendarDir = 'calendar';
 
+  // Test mode: allows overriding directory for testing
+  static String? _testDirectory;
+
+  static void setTestDirectory(String directory) {
+    assert(
+      kDebugMode,
+      'setTestDirectory should only be used in debug/test mode',
+    );
+    _testDirectory = directory;
+  }
+
+  static void clearTestDirectory() {
+    _testDirectory = null;
+  }
+
   Future<String> _getCalendarDirectory() async {
+    if (_testDirectory != null) {
+      final calendarDir = Directory('$_testDirectory/$_calendarDir');
+      if (!await calendarDir.exists()) {
+        await calendarDir.create(recursive: true);
+      }
+      return calendarDir.path;
+    }
+
     final appDir = await getApplicationDocumentsDirectory();
     final calendarDir = Directory('${appDir.path}/$_calendarDir');
     if (!await calendarDir.exists()) {

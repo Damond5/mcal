@@ -129,18 +129,23 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         actions: const [SyncButton(), ThemeToggleButton()],
       ),
       body: const CalendarWidget(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final selectedDate = context.read<EventProvider>().selectedDate;
-          showDialog(
-            context: context,
-            builder: (context) => EventFormDialog(
-              defaultDate: selectedDate,
-              onSave: (event) => context.read<EventProvider>().addEvent(event),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        label: 'Add Event',
+        child: FloatingActionButton(
+          onPressed: () {
+            final selectedDate = context.read<EventProvider>().selectedDate;
+            showDialog(
+              context: context,
+              builder: (context) => EventFormDialog(
+                defaultDate: selectedDate,
+                onSave: (event) =>
+                    context.read<EventProvider>().addEvent(event),
+              ),
+            );
+          },
+          tooltip: 'Add Event',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

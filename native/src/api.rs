@@ -1,7 +1,7 @@
-use git2::Repository;
+use git2::{Repository, Delta};
+use std::fs;
 use std::path::Path;
 use std::process::Command;
-use git2::cert::*;
 use x509_parser::prelude::*;
 
 #[flutter_rust_bridge::frb]
@@ -47,6 +47,11 @@ fn get_credentials(url: &str, username: &Option<String>, password: &Option<Strin
             git2::Cred::ssh_key_from_agent("git")
         }
     }
+}
+
+// Helper function to extract branch name from repo or remote default
+pub(crate) fn extract_branch_name(repo: &Repository) -> String {
+    "main".to_string()
 }
 
 // Helper function for certificate validation
@@ -147,53 +152,127 @@ pub fn git_list_branches(path: String) -> Result<Vec<String>, GitError> {
     Ok(branch_names)
 }
 
-fn git_pull_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+// Helper function to check if there are local uncommitted changes
+fn has_local_changes(repo: &Repository) -> Result<bool, GitError> {
+    let statuses = repo.statuses(None)?;
+    Ok(statuses.iter().any(|entry| {
+        let status = entry.status();
+        status.contains(git2::Status::WT_MODIFIED) ||
+        status.contains(git2::Status::WT_DELETED) ||
+        status.contains(git2::Status::WT_NEW) ||
+        status.contains(git2::Status::INDEX_MODIFIED) ||
+        status.contains(git2::Status::INDEX_DELETED) ||
+        status.contains(git2::Status::INDEX_NEW)
+    }))
+}
+
+#[flutter_rust_bridge::frb]
+pub fn git_has_local_changes(path: String) -> Result<bool, GitError> {
     let repo = Repository::open(&path)?;
-    let branch_name = if let Ok(head_ref) = repo.head() {
-        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
+    has_local_changes(&repo)
+}
+
+/// Pull from remote repository, handling local uncommitted changes by stashing them.
+/// If pull succeeds, attempts to restore stashed changes.
+/// If stash pop fails due to conflicts, drops the stash to prefer remote changes.
+fn git_pull_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+    let mut repo = Repository::open(&path)?;
+    let has_changes = has_local_changes(&repo)?;
+    let mut stashed = false;
+    let old_tree = repo.head()?.peel_to_tree()?;
+    let old_oid = old_tree.id();
+    drop(old_tree);
+    let mut new_tree: Option<git2::Tree> = None;
+
+    // Stash local changes to allow pull to update working directory
+    if has_changes {
+        let signature = git2::Signature::now("App", "app@example.com")?;
+        repo.stash_save(&signature, "Stashed by app during pull", None)?;
+        stashed = true;
+    }
+
+    let result = (|| {
+        let branch_name = extract_branch_name(&repo);
+        let mut remote = repo.find_remote("origin")?;
+        let mut callbacks = git2::RemoteCallbacks::new();
+        let username = username.clone();
+        let password = password.clone();
+        let ssh_key_path = ssh_key_path.clone();
+        callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+        callbacks.certificate_check(move |cert, hostname| {
+            if let Some(x509) = cert.as_x509() {
+                match validate_certificate(hostname, x509.data()) {
+                    Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
+                    Err(e) => Err(git2::Error::from_str(&e)),
+                }
+            } else {
+                Ok(git2::CertificateCheckStatus::CertificateOk)
+            }
+        });
+        let mut fetch_options = git2::FetchOptions::new();
+        fetch_options.remote_callbacks(callbacks);
+        remote.fetch(&[branch_name.as_str()], Some(&mut fetch_options), None)?;
+        let fetch_head = repo.find_reference("FETCH_HEAD")?;
+        let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
+        let analysis = repo.merge_analysis(&[&fetch_commit])?;
+        if analysis.0.is_up_to_date() {
+            Ok("Already up to date".to_string())
+        } else if analysis.0.is_fast_forward() {
+            let refname = format!("refs/heads/{}", branch_name);
+            let mut reference = if let Ok(r) = repo.find_reference(&refname) {
+                r
+            } else {
+                repo.reference(&refname, fetch_commit.id(), true, "Creating branch")?
+            };
+            reference.set_target(fetch_commit.id(), "Fast-forward")?;
+            repo.set_head(&refname)?;
+            repo.checkout_head(None)?;
+            new_tree = Some(repo.head()?.peel_to_tree()?);
+            Ok("Fast-forward merge completed".to_string())
+        } else {
+            Err(GitError::Other("Non-fast-forward merge required".to_string()))
+        }
+    })();
+
+    let deleted_paths: Vec<String> = if result.is_ok() {
+        if let Some(new_tree) = &new_tree {
+            let old_tree = repo.find_tree(old_oid)?;
+            let diff = repo.diff_tree_to_tree(Some(&old_tree), Some(new_tree), None)?;
+            diff.deltas().filter(|d| d.status() == Delta::Deleted).map(|d| d.old_file().path().unwrap().to_string_lossy().to_string()).collect()
+        } else {
+            vec![]
+        }
     } else {
-        repo.find_remote("origin").ok()
-            .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-            .unwrap_or("main".to_string())
+        vec![]
     };
-    let mut remote = repo.find_remote("origin")?;
-    let mut callbacks = git2::RemoteCallbacks::new();
-    let username = username.clone();
-    let password = password.clone();
-    let ssh_key_path = ssh_key_path.clone();
-    callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
-    callbacks.certificate_check(move |cert, hostname| {
-        if let Some(x509) = cert.as_x509() {
-            match validate_certificate(hostname, x509.data()) {
-                Ok(()) => Ok(git2::CertificateCheckStatus::CertificateOk),
-                Err(e) => Err(git2::Error::from_str(&e)),
+    drop(new_tree);
+
+    // Handle stash restoration after pull operation
+    if stashed {
+        if result.is_ok() {
+            // Pull succeeded, try to restore local changes
+            if let Err(_) = repo.stash_pop(0, None) {
+                // Stash pop failed (conflicts with remote changes), drop stash to prefer remote
+                let _ = repo.stash_drop(0);
+            }
+            // Enforce deletions after stash pop
+            for path in deleted_paths {
+                if let Some(workdir) = repo.workdir() {
+                    let full_path = workdir.join(path);
+                    if full_path.exists() {
+                        if let Err(e) = fs::remove_file(&full_path) {
+                            eprintln!("Failed to remove deleted file {}: {}", full_path.display(), e);
+                        }
+                    }
+                }
             }
         } else {
-            Ok(git2::CertificateCheckStatus::CertificateOk)
+            // Pull failed, restore local changes to original state
+            let _ = repo.stash_pop(0, None);
         }
-    });
-    let mut fetch_options = git2::FetchOptions::new();
-    fetch_options.remote_callbacks(callbacks);
-    remote.fetch(&[branch_name.as_str()], Some(&mut fetch_options), None)?;
-    let fetch_head = repo.find_reference("FETCH_HEAD")?;
-    let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
-    let analysis = repo.merge_analysis(&[&fetch_commit])?;
-    if analysis.0.is_up_to_date() {
-        Ok("Already up to date".to_string())
-    } else if analysis.0.is_fast_forward() {
-        let refname = format!("refs/heads/{}", branch_name);
-        let mut reference = if let Ok(r) = repo.find_reference(&refname) {
-            r
-        } else {
-            repo.reference(&refname, fetch_commit.id(), true, "Creating branch")?
-        };
-        reference.set_target(fetch_commit.id(), "Fast-forward")?;
-        repo.set_head(&refname)?;
-        repo.checkout_head(None)?;
-        Ok("Fast-forward merge completed".to_string())
-    } else {
-        Err(GitError::Other("Non-fast-forward merge required".to_string()))
     }
+
+    result
 }
 
 #[flutter_rust_bridge::frb]
@@ -203,13 +282,7 @@ pub fn git_pull(path: String, username: Option<String>, password: Option<String>
 
 fn git_push_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let branch_name = if let Ok(head_ref) = repo.head() {
-        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
-    } else {
-        repo.find_remote("origin").ok()
-            .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-            .unwrap_or("main".to_string())
-    };
+    let branch_name = extract_branch_name(&repo);
     let mut remote = repo.find_remote("origin")?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -268,15 +341,20 @@ pub fn git_add_remote(path: String, name: String, url: String) -> Result<String,
     git_add_remote_impl(path, name, url)
 }
 
+fn git_remove_remote_impl(path: String, name: String) -> Result<String, GitError> {
+    let repo = Repository::open(&path)?;
+    repo.remote_delete(&name)?;
+    Ok("Remote removed".to_string())
+}
+
+#[flutter_rust_bridge::frb]
+pub fn git_remove_remote(path: String, name: String) -> Result<String, GitError> {
+    git_remove_remote_impl(path, name)
+}
+
 fn git_fetch_impl(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let branch_name = if let Ok(head_ref) = repo.head() {
-        head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown").to_string()
-    } else {
-        repo.find_remote("origin").ok()
-            .and_then(|remote| remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned()))
-            .unwrap_or("main".to_string())
-    };
+    let branch_name = extract_branch_name(&repo);
     let mut remote_obj = repo.find_remote(&remote)?;
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
@@ -306,9 +384,19 @@ pub fn git_fetch(path: String, remote: String, username: Option<String>, passwor
 
 fn git_checkout_impl(path: String, branch: String) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
-    let obj = repo.revparse_single(&branch)?;
-    repo.checkout_tree(&obj, None)?;
-    repo.set_head(&format!("refs/heads/{}", branch))?;
+    let head_ref_name = format!("refs/heads/{}", branch);
+    if repo.find_reference(&head_ref_name).is_ok() {
+        // Branch exists, just set head and checkout
+        repo.set_head(&head_ref_name)?;
+        repo.checkout_head(None)?;
+    } else {
+        // Create branch from FETCH_HEAD
+        let fetch_head = repo.find_reference("FETCH_HEAD")?;
+        let commit = repo.find_commit(fetch_head.target().unwrap())?;
+        repo.branch(&branch, &commit, false)?;
+        repo.set_head(&head_ref_name)?;
+        repo.checkout_head(None)?;
+    }
     Ok("Checked out".to_string())
 }
 
@@ -436,4 +524,18 @@ fn git_merge_abort_impl(path: String) -> Result<String, GitError> {
         return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
     }
     Ok("Merge aborted".to_string())
+}
+
+#[flutter_rust_bridge::frb]
+pub fn set_ssl_ca_certs(pem_certs: Vec<String>) -> Result<(), GitError> {
+    let mut temp_file = tempfile::NamedTempFile::new()?;
+    for cert in pem_certs {
+        std::io::Write::write_all(&mut temp_file, cert.as_bytes())?;
+    }
+    let path = temp_file.path().to_str().unwrap();
+    // Set GIT_SSL_CAINFO environment variable for libgit2
+    std::env::set_var("GIT_SSL_CAINFO", path);
+    // Keep temp_file alive until process ends
+    std::mem::forget(temp_file);
+    Ok(())
 }

@@ -8,3 +8,6 @@ build
 native/target
 android/app/src/main/cpp/libs
 logs
+.flutter-plugins-dependencies
+.flutter-plugins-dependencies
+.flutter-plugins-dependencies

@@ -1,113 +1,47 @@
-# Agents.md - Development Guidelines
+<!-- OPENSPEC:START -->
+# OpenSpec Instructions
 
-## Prerequisites
-- **Java**: OpenJDK 17 (or 11) required for Android builds. Avoid development versions like 25.
-- **Flutter Rust Bridge**: Migrated to v2. Removed invalid `flutter_rust_bridge_build` dependency from dev_dependencies. Use `flutter_rust_bridge_codegen generate --config-file frb.yaml` to generate bridge code.
+These instructions are for AI assistants working in this project.
 
-## Build/Lint/Test Commands
-- **Check environment**: `fvm flutter doctor`
-- **Install dependencies**: `fvm flutter pub get`
-- **Generate Rust bridge code**: `flutter_rust_bridge_codegen generate --config-file frb.yaml`
-- **Build Rust libraries for Android**: `cd native && cargo ndk -o ../android/app/src/main/cpp/libs build --release`
-- **Build debug**: `fvm flutter run`
-- **Build release APK**: `fvm flutter build apk`
-- **Build web**: `fvm flutter build web`
-- **Build Linux**: `fvm flutter build linux`
-- **Lint**: `fvm flutter analyze`
-- **Run all tests**: `fvm flutter test`
-- **Run single test**: `fvm flutter test test/widget_test.dart`
+Always open `@/openspec/AGENTS.md` when the request:
+- Mentions planning or proposals (words like proposal, spec, change, plan)
+- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
+- Sounds ambiguous and you need the authoritative spec before coding
 
-## Code Style Guidelines
-- **Imports**: Group flutter/material first, then third-party packages, then local imports
-- **Quotes**: Use double quotes for strings
-- **Naming**: camelCase for variables/methods, PascalCase for classes/widgets
-- **Constructors**: Use `const` for stateless widgets and immutable objects
-- **Null safety**: Use `!` operator for non-null assertions, `?` for nullable types
-- **Error handling**: Add null checks to prevent crashes, display user-friendly messages
-- **Formatting**: Follow flutter_lints rules, 2-space indentation
-- **Types**: Explicitly type variables when not obvious from context
-- **State management**: Use StatefulWidget for simple state, consider providers for complex apps
+Use `@/openspec/AGENTS.md` to learn:
+- How to create and apply change proposals
+- Spec format and conventions
+- Project structure and guidelines
 
-## Design Choices for Simple Calendar App
+Keep this managed block so 'openspec update' can refresh the instructions.
 
-- **Error Logging**: Implemented debug logging for GUI errors using a utility function that logs to console in debug mode, allowing developers to capture detailed error information from device output for troubleshooting without relying solely on UI messages.
-- **Calendar Library**: Chose `table_calendar` (v3.2.0) for its
-highly customizable and feature-packed calendar widget, supporting
-month/week views, selection, and formatting.
-- **Calendar Weeks**: Calendar weeks start on Monday for consistency with international standards and rcal.
-- **Week Numbers**: Display week numbers on the left side of the calendar for improved navigation and consistency with calendar applications.
-- **State Management**: Used Flutter's built-in `StatefulWidget`
-for managing calendar state (focused day, selected day) to keep it
-simple and avoid over-engineering. For app-level state like themes,
-implemented `ChangeNotifier` with `Provider` pattern.
-- **Theme System**: Implemented comprehensive dark mode support with
-`ThemeProvider` for state management, `shared_preferences` for persistence,
-and theme-aware styling throughout the app including calendar theming.
-- **Modularity**: Created separate `CalendarWidget` class to
-encapsulate calendar logic, making the main app cleaner and
-reusable. Organized code into logical directories (providers, themes, widgets).
-- **Date Formatting**: Integrated `intl` package for proper date
-formatting (e.g., `DateFormat.yMd()`) instead of string
-manipulation, ensuring localization support.
-- **UI Layout**: Used a `Column` with `TableCalendar` and a `Text`
-widget to display selected day, providing immediate feedback on
-user interactions. Added responsive constraints to prevent overflow.
-- **Error Handling**: Added null checks for selected day to
-prevent crashes and display user-friendly messages.
-- **Performance**: Kept the app lightweight with no unnecessary
-rebuilds; state updates only trigger when needed. Used efficient
-theme rebuilding with `Consumer` widgets.
-- **Code Quality**: Fixed all lints (e.g., added `key` parameters,
-made state class public, ensured dependencies are explicit in
-pubspec.yaml). Followed Material Design 3 guidelines.
-  - **Testing**: Comprehensive test suite with widget tests for GUI
-  functionality (app loading, calendar display, day selection, theme toggle
-  interactions) and unit tests for business logic (ThemeProvider, EventProvider, NotificationService, SyncService, and SyncSettings state
-  management, persistence). Used Flutter's testing framework with mockito
-  for SharedPreferences mocking. All tests run via `fvm flutter test` to
-  ensure reliability and prevent regressions.
-    - Hybrid testing approach: Unit tests for isolated logic (models, services), integration tests for end-to-end workflows (UI interactions, real plugins). Run units with `fvm flutter test`, integrations with `fvm flutter test integration_test/` (desktop) or `--device-id <id>` (device).
-   - **Event System**: Implemented event management fully aligned with rcal's event specification,
-   using individual Markdown files per event (one file per event with sanitized title as filename) in the app's calendar subdirectory within the documents directory. Each file contains event details in Markdown format: Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly). Supports add/view/edit/delete
-   events with title, start/end dates, start/end times, description, and recurrence. All-day events supported. Events displayed as markers on calendar days,
-   with list view for selected day showing expanded recurring instances. CRUD operations via dialogs with full field editing. Extensible for
-   notifications and Git sync.
-   - **Filename Storage**: Added `filename` field to `Event` model to store the actual filename used for persistence, ensuring correct file deletion and updates even when multiple events have similar titles and counters are appended.
-  - **Recurrence Handling**: Recurring events are expanded into individual instances for display and interaction.
-   - **Sync System**: Implemented Git-based synchronization using `SyncService`
-   class with Rust + git2 + flutter_rust_bridge for executing Git operations in the app's calendar subdirectory within the documents directory.
-  Remote URL stored in `shared_preferences`. Supports comprehensive Git operations
-  with user-friendly error handling. Integrated into `EventProvider`
-  for seamless sync functionality. Added automatic syncing: pulls changes on app start if initialized, pushes changes after event add/update/delete operations. Manual sync available via `SyncButton` in app bar
-  opening a dialog with buttons for Init Sync (with URL text field), Pull, Push, Status.
-  Uses async/await with loading indicators and displays results/errors via SnackBar.
-  GUI automatically updates after sync operations by reloading events and using a refresh counter to force calendar rebuilds, ensuring markers and event lists reflect changes without manual refresh.
-     - **Git Functions**: The following Git operations are implemented in Rust for synchronization: `git_init` (initializes a new Git repository in the specified path), `git_clone` (clones a remote repository to the local path with authentication support for HTTPS and SSH), `git_current_branch` (retrieves the name of the current branch), `git_list_branches` (lists all branches in the repository), `git_pull` (fetches and merges changes from the remote repository, handling fast-forward merges), `git_push` (pushes local commits to the remote repository), `git_status` (returns a list of files with their status changes), `git_add_remote` (adds a remote repository URL), `git_fetch` (fetches changes from the remote without merging), `git_checkout` (switches to the specified branch), `git_add_all` (stages all modified and new files), `git_commit` (commits staged changes with a message), `git_merge_prefer_remote` (resolves merge conflicts by preferring remote changes and committing), `git_merge_abort` (aborts an ongoing merge operation), `git_stash` (stashes current working directory changes), `git_diff` (shows differences between the working directory and the last commit). These functions enable the Flutter app to initialize repositories, synchronize event data across devices via Git, handle authentication for private repos, resolve conflicts, and manage repository state efficiently.
-   - **Auto Sync Enhancements**: Added configurable auto sync settings (`SyncSettings` model) stored in `shared_preferences`, including enable/disable auto sync, sync frequency (5-60 minutes), and sync on app resume. Implemented periodic background sync using `workmanager` on Android/iOS (minimum 15 minutes) and `Timer` on Linux. Added conflict resolution UI for merge conflicts during pull, with options to prefer remote, keep local, or cancel. Auto sync on resume pulls if >5 minutes since last sync. Settings accessible via "Settings" in sync menu.
-   - **Authentication for Sync**: For private repositories, the app supports separate username and password/token input during sync initialization, as well as SSH key paths. Credentials are stored separately from URLs using flutter_secure_storage for enhanced security, with dynamic injection only during Git operations. For HTTPS URLs, credentials are encoded and embedded temporarily for Git authentication. For SSH, key-based auth is supported with configurable key paths. Input validation includes length limits (100 chars), printable character checks, and regex-based URL validation. All logs, errors, and UI messages are sanitized to prevent credential leakage. No permanent embedding in stored URLs to facilitate rotation and reduce exposure.
-- **Mobile Git Sync**: Git sync on Android is now supported using a custom-built Rust library with vendored OpenSSL for compatibility. No additional setup required.
-- **SSL Certificate Handling on Android**: Implemented secure SSL validation for Git operations using webpki, leveraging Mozilla's root certificate store for certificate verification. Custom certificate_check callbacks ensure HTTPS connections are validated against trusted Certificate Authorities, replacing previous insecure bypasses and enhancing security for sync functionality.
-- **Branch Handling**: Git operations dynamically detect and use the current branch instead of hardcoding "master", supporting modern Git workflows with "main" or other branch names.
-     - **Conflict Resolution**: Implemented programmatic conflict resolution in Rust using Git commands for reliability. `gitMergePreferRemote` resolves conflicts by preferring remote changes and committing, while `gitMergeAbort` cleans up failed merges. Replaces placeholder implementations for full sync conflict handling.
-     - **Git Error Handling**: Introduced custom `GitError` enum for type-safe error handling in Git operations, improving error reporting and debugging.
-     - **Status Output Structuring**: Added `StatusEntry` struct for structured Git status output, enabling better parsing and display of repository status information.
-     - **Dynamic Branch Detection**: Implemented dynamic branch detection using `remote.default_branch()` to support modern Git workflows with default branches like "main" or custom names.
-      - **Additional Git Functions**: Added `git_stash` and `git_diff` functions to the Rust Git implementation for enhanced repository management capabilities.
-      - **Git Functions Robustness**: Updated `git_pull_impl`, `git_push_impl`, and `git_fetch_impl` in the Rust Git implementation to handle repositories without a HEAD by using the remote default branch instead of requiring `repo.head()`. This prevents GUI crashes on app start when sync pull is attempted on uninitialized or empty repositories, improving robustness for partial sync initialization scenarios.
-  - **Notification System**: Implemented local notifications using `flutter_local_notifications` (v17.2.2) for cross-platform support (Android, iOS, Linux). Consistent with rcal's daemon mode: notifications 30 minutes before timed events, midday the day before for all-day events. Singleton `NotificationService` handles scheduling/unscheduling, prevents duplicates by tracking IDs, and requests permissions on app start. Integrated into `EventProvider` for automatic scheduling on event CRUD operations and loading existing events. Added LinuxNotificationDetails for proper Linux support with notification daemons like Dunst, and initialized timezone database for zoned scheduling. On Linux, uses a periodic timer to check for upcoming events and show immediate notifications, as scheduled notifications may not persist when the app is closed.
-- **Workmanager Update**: Updated `workmanager` to version 0.9.0 for better compatibility with newer Flutter versions. Added platform check to only initialize workmanager on Android/iOS; uses Timer for periodic sync on Linux.
-- **Android Build Enhancements**: Enabled core library desugaring in Android build to support `flutter_local_notifications` v17.2.2 requirements.
-- **CMake Fixes**: Renamed custom targets in Android CMakeLists.txt to avoid duplicate target names, ensuring successful APK builds.
-- **Generated Code Warnings**: Suppressed lint warnings in auto-generated bridge code using ignore comments to maintain clean lint output.
-- **Future Extensibility**: Designed with room for features like
-event lists, custom themes, or data persistence by making dates
-configurable. Theme system is extensible for additional themes.
-   - **Event Date Caching**: Added caching for event dates in EventProvider to improve performance by precomputing Set<DateTime> of all event dates instead of expanding recurring events on every calendar day query.
-   - **Notification Constants Extraction**: Extracted notification constants (notificationOffsetMinutes = 30, allDayNotificationHour = 12) to the Event model for better maintainability and consistency.
-   - **Sync GUI Update Enhancements**: Added logging in syncPull and EventList build for debugging GUI updates, wrapped EventList in Consumer with refreshCounter key to force rebuilds, and updated pull snackbar to show loaded events count for better user feedback.
-   - **Push Sync Behavior**: Modified pushSync to skip silently if no changes to push, preventing unnecessary error messages when auto-push is triggered without modifications.
-   - **Event Loading on Launch**: Ensured events load from filesystem on app launch via loadAllEvents in main.dart, with detailed logging for debugging. Removed early return in loadAllEvents to always reload after sync. Added loading indicator in CalendarWidget while events load.
-- **Consistency with rcal**: All features should be consistent with https://github.com/Damond5/rcal, adapted for a Flutter GUI app.
-- **Android Rust Library Build**: To integrate Rust code for performance-critical features like Git synchronization, the app uses `cargo ndk` to build Rust libraries into shared object (.so) files for Android ABIs (arm64-v8a, armeabi-v7a, x86_64, x86). These pre-built libraries are stored in `android/app/src/main/cpp/libs/` and imported via CMake in `android/app/src/main/cpp/CMakeLists.txt`, allowing seamless linking into the APK without runtime compilation, ensuring compatibility and efficiency in the Android build process.
-- **Linux Build Warnings Suppression**: Added -Wno-deprecated-literal-operator to Linux CMakeLists.txt to suppress json.hpp warnings treated as errors, ensuring successful builds without altering plugin dependencies.
-- **Flutter Rust Bridge v2 Migration**: Migrated from FRB v1 to v2 to leverage improved performance, better error handling, and enhanced cross-platform compatibility. Updated API naming conventions to align with v2 standards, modified configuration in frb.yaml for v2 compatibility, and adopted the new codegen process using `flutter_rust_bridge_codegen generate` command. This migration ensures future-proofing and access to latest features while maintaining existing functionality.
+<!-- OPENSPEC:END -->
+
+# Platform-Specific Instructions
+
+The MCAL project supports multiple platforms (Android, iOS, Linux, macOS, Web, Windows). Platform-specific development workflows are organized in separate files under the `docs/platforms/` directory for better maintainability.
+
+## Platform Instruction Access for AI Agents
+
+AI agents working on platform-specific tasks MUST first identify the current platform and read the corresponding workflow file. Use the following mapping to locate instructions:
+
+| Platform | Workflow File Path | Status |
+|----------|-------------------|--------|
+| Android | @docs/platforms/android-workflow.md | Available |
+| iOS | @docs/platforms/ios-workflow.md | Coming soon |
+| Linux | @docs/platforms/linux-workflow.md | Coming soon |
+| macOS | @docs/platforms/macos-workflow.md | Coming soon |
+| Web | @docs/platforms/web-workflow.md | Coming soon |
+| Windows | @docs/platforms/windows-workflow.md | Coming soon |
+
+**Navigation Guide:**
+- @README.md
+- @docs/platforms/README.md
+
+**AI Agent Instructions:**
+- Detect platform from environment context (e.g., `platform: linux` in env info).
+- Read the linked workflow file before executing platform-specific commands.
+- Use @-prefixed paths for AI-friendly documentation access.
+
+**@ Notation Explanation:**
+The @ notation is used for AI-friendly linking to project documentation paths. For example, @docs/ refers to the docs/ directory, and @/ refers to the openspec/ directory.

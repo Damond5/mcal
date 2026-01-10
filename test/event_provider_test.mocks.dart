@@ -211,6 +211,14 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<String>);
 
   @override
+  _i3.Future<bool> crateApiGitHasLocalChanges({required String? path}) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGitHasLocalChanges, [], {#path: path}),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
   _i3.Future<String> crateApiGitInit({required String? path}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiGitInit, [], {#path: path}),
@@ -316,6 +324,28 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<String>);
 
   @override
+  _i3.Future<String> crateApiGitRemoveRemote({
+    required String? path,
+    required String? name,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGitRemoveRemote, [], {
+              #path: path,
+              #name: name,
+            }),
+            returnValue: _i3.Future<String>.value(
+              _i4.dummyValue<String>(
+                this,
+                Invocation.method(#crateApiGitRemoveRemote, [], {
+                  #path: path,
+                  #name: name,
+                }),
+              ),
+            ),
+          )
+          as _i3.Future<String>);
+
+  @override
   _i3.Future<String> crateApiGitStash({required String? path}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiGitStash, [], {#path: path}),
@@ -344,6 +374,17 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
   _i3.Future<void> crateApiInitApp() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiInitApp, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> crateApiSetSslCaCerts({required List<String>? pemCerts}) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiSetSslCaCerts, [], {
+              #pemCerts: pemCerts,
+            }),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),
           )

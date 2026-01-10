@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1729671013;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 428931967;
 
 // Section: executor
 
@@ -367,6 +367,39 @@ fn wire__crate__api__git_fetch_impl(
         },
     )
 }
+fn wire__crate__api__git_has_local_changes_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "git_has_local_changes",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::GitError>((move || {
+                    let output_ok = crate::api::git_has_local_changes(api_path)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__git_init_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -581,6 +614,40 @@ fn wire__crate__api__git_push_impl(
         },
     )
 }
+fn wire__crate__api__git_remove_remote_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "git_remove_remote",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_path = <String>::sse_decode(&mut deserializer);
+            let api_name = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::GitError>((move || {
+                    let output_ok = crate::api::git_remove_remote(api_path, api_name)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__git_stash_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -681,6 +748,39 @@ fn wire__crate__api__init_app_impl(
         },
     )
 }
+fn wire__crate__api__set_ssl_ca_certs_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_ssl_ca_certs",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_pem_certs = <Vec<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::api::GitError>((move || {
+                    let output_ok = crate::api::set_ssl_ca_certs(api_pem_certs)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 
 // Section: dart2rust
 
@@ -689,6 +789,13 @@ impl SseDecode for String {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <Vec<u8>>::sse_decode(deserializer);
         return String::from_utf8(inner).unwrap();
+    }
+}
+
+impl SseDecode for bool {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        deserializer.cursor.read_u8().unwrap() != 0
     }
 }
 
@@ -798,13 +905,6 @@ impl SseDecode for () {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
 }
 
-impl SseDecode for bool {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        deserializer.cursor.read_u8().unwrap() != 0
-    }
-}
-
 fn pde_ffi_dispatcher_primary_impl(
     func_id: i32,
     port: flutter_rust_bridge::for_generated::MessagePort,
@@ -823,15 +923,18 @@ fn pde_ffi_dispatcher_primary_impl(
         7 => wire__crate__api__git_current_branch_impl(port, ptr, rust_vec_len, data_len),
         8 => wire__crate__api__git_diff_impl(port, ptr, rust_vec_len, data_len),
         9 => wire__crate__api__git_fetch_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__git_init_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__git_list_branches_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__git_merge_abort_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__git_merge_prefer_remote_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__git_pull_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__git_push_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__git_stash_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__git_status_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__git_has_local_changes_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__git_init_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__git_list_branches_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__git_merge_abort_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__git_merge_prefer_remote_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__git_pull_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__git_push_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__git_remove_remote_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__git_stash_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__git_status_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__set_ssl_ca_certs_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -899,6 +1002,13 @@ impl SseEncode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<u8>>::sse_encode(self.into_bytes(), serializer);
+    }
+}
+
+impl SseEncode for bool {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        serializer.cursor.write_u8(self as _).unwrap();
     }
 }
 
@@ -994,13 +1104,6 @@ impl SseEncode for u8 {
 impl SseEncode for () {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
-}
-
-impl SseEncode for bool {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        serializer.cursor.write_u8(self as _).unwrap();
-    }
 }
 
 #[cfg(not(target_family = "wasm"))]

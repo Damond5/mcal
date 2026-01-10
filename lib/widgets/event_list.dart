@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/event.dart';
@@ -15,9 +14,6 @@ class EventList extends StatelessWidget {
     return Consumer<EventProvider>(
       builder: (context, eventProvider, child) {
         final events = eventProvider.getEventsForDate(selectedDate);
-        log(
-          'Building EventList for $selectedDate with ${events.length} events',
-        );
 
         if (events.isEmpty) {
           return const Padding(
@@ -32,25 +28,28 @@ class EventList extends StatelessWidget {
           itemCount: events.length,
           itemBuilder: (context, index) {
             final event = events[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 4.0,
-              ),
-              child: ListTile(
-                title: Text(event.title),
-                subtitle: Text(
-                  _formatEventTime(event) +
-                      (event.description.isNotEmpty
-                          ? ' - ${event.description}'
-                          : ''),
+            return Semantics(
+              label: 'Event: ${event.title}',
+              child: Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () =>
-                      _showDeleteDialog(context, eventProvider, event),
+                child: ListTile(
+                  title: Text(event.title),
+                  subtitle: Text(
+                    _formatEventTime(event) +
+                        (event.description.isNotEmpty
+                            ? ' - ${event.description}'
+                            : ''),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () =>
+                        _showDeleteDialog(context, eventProvider, event),
+                  ),
+                  onTap: () => _showEventDetails(context, event, eventProvider),
                 ),
-                onTap: () => _showEventDetails(context, event, eventProvider),
               ),
             );
           },

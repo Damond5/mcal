@@ -21,12 +21,20 @@ import 'utils/error_logger.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) {
-    return BackgroundSyncService.executePeriodicSync();
+  Workmanager().executeTask((task, inputData) async {
+    switch (task) {
+      case 'sync':
+        return await BackgroundSyncService.executePeriodicSync();
+      case 'showNotification':
+        return await NotificationService.showNotificationFromWork(inputData);
+      default:
+        return Future.value(false);
+    }
   });
 }
 
 void main() async {
+  print('MCAL main() started - VERY EARLY LOG');
   WidgetsFlutterBinding.ensureInitialized();
   await RustLib.init();
   if (!Platform.isLinux) {
@@ -77,8 +85,15 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    log('initState() - Adding post-frame callback...');
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initNotifications();
+      try {
+        log('Post-frame callback executing');
+        _initNotifications();
+      } catch (e, stack) {
+        log('Post-frame callback failed: $e');
+        log('Stack trace: $stack');
+      }
     });
   }
 
@@ -96,28 +111,55 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _initNotifications() async {
-    tz_data.initializeTimeZones();
-    await NotificationService().initialize();
-    final granted = await NotificationService().requestPermissions();
-    if (!granted && mounted) {
-      logGuiError(
-        'Notification permissions denied',
-        context: 'notification_permissions',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Notification permissions denied. Events will not notify.',
-          ),
-        ),
-      );
-    }
-    if (mounted) {
-      log('Loading events on launch');
-      await context.read<EventProvider>().loadAllEvents();
-      if (mounted) {
-        await context.read<EventProvider>().autoSyncOnStart();
+    try {
+      log('=== _initNotifications() STARTED ===');
+
+      log('Step 1: Calling NotificationService.initialize()');
+      await NotificationService().initialize();
+      log('Step 1: ✓ NotificationService initialized');
+
+      log('Step 2: Requesting permissions');
+      final granted = await NotificationService().requestPermissions();
+      if (!granted) {
+        logGuiError(
+          'Notification permissions denied',
+          context: 'notification_permissions',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Notification permissions denied. Events will not notify. '
+                'You can enable notifications later in Settings > Apps > MCAL > Notifications.',
+              ),
+              duration: Duration(seconds: 8),
+            ),
+          );
+        }
       }
+      log('Step 2: ✓ Permissions requested (granted: $granted)');
+
+      log('Step 3: Loading events on launch');
+      await context.read<EventProvider>().loadAllEvents();
+      log('Step 3: ✓ Events loaded');
+
+      if (mounted) {
+        log('Step 4: Running auto sync on start');
+        await context.read<EventProvider>().autoSyncOnStart();
+        log('Step 4: ✓ Auto sync completed');
+      }
+
+      log('=== _initNotifications() COMPLETED SUCCESSFULLY ===');
+    } catch (e, stack) {
+      log('=== _initNotifications() FAILED ===');
+      log('Error: $e');
+      log('Stack trace: $stack');
+      logGuiError(
+        'Failed to initialize notifications',
+        error: e,
+        stackTrace: stack,
+        context: 'notification_initialization',
+      );
     }
   }
 
@@ -129,18 +171,23 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
         actions: const [SyncButton(), ThemeToggleButton()],
       ),
       body: const CalendarWidget(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final selectedDate = context.read<EventProvider>().selectedDate;
-          showDialog(
-            context: context,
-            builder: (context) => EventFormDialog(
-              defaultDate: selectedDate,
-              onSave: (event) => context.read<EventProvider>().addEvent(event),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Semantics(
+        label: 'Add Event',
+        child: FloatingActionButton(
+          onPressed: () {
+            final selectedDate = context.read<EventProvider>().selectedDate;
+            showDialog(
+              context: context,
+              builder: (context) => EventFormDialog(
+                defaultDate: selectedDate,
+                onSave: (event) =>
+                    context.read<EventProvider>().addEvent(event),
+              ),
+            );
+          },
+          tooltip: 'Add Event',
+          child: const Icon(Icons.add),
+        ),
       ),
     );
   }

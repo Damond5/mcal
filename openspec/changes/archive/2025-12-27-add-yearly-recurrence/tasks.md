@@ -1,0 +1,23 @@
+## 1. Implementation
+- [x] 1.1 Add 'yearly' to validRecurrences list in Event model
+- [x] 1.2 Update recurrence field comment to include 'yearly'
+- [x] 1.3 Implement _isLeapYear() helper method using Dart's built-in DateTime
+- [x] 1.4 Implement _advanceYearWithFeb29Fallback() helper method
+- [x] 1.5 Add yearly expansion case in expandRecurring() method
+- [x] 1.6 Add 'yearly' option to event form recurrence dropdown
+- [x] 1.7 Write test: basic yearly recurrence expansion
+- [x] 1.8 Write test: Feb 29th on leap year (keeps Feb 29)
+- [x] 1.9 Write test: Feb 29th on non-leap year (falls back to Feb 28)
+- [x] 1.10 Write test: yearly recurrence preserves time component across year boundaries
+- [x] 1.11 Write test: yearly recurrence with endDate boundary
+- [x] 1.12 Update event-management spec with yearly recurrence support
+- [x] 1.13 Update openspec/project.md domain context
+- [x] 1.14 Update README.md feature lists (line 17 and line 120)
+- [x] 1.15 Update CHANGELOG.md with yearly event support entry
+- [x] 1.16 Remove yearly events item from TODO.md
+- [x] 1.17 Run all tests and verify they pass
+- [x] 1.18 Code review implementation using @review subagent
+- [x] 1.19 Implement all code review suggestions
+- [x] 1.20 Run openspec validate to confirm proposal completeness
+- [x] 1.21 Write integration tests for yearly recurrence
+

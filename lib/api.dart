@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_stash_impl`, `git_status_impl`
+// These functions are ignored because they are not marked as `pub`: `extract_branch_name`, `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_remove_remote_impl`, `git_stash_impl`, `git_status_impl`, `has_local_changes`, `validate_certificate`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `fmt`, `fmt`, `from`, `from`
 
 Future<int> add({required int left, required int right}) =>
@@ -36,6 +36,9 @@ Future<String> gitCurrentBranch({required String path}) =>
 
 Future<List<String>> gitListBranches({required String path}) =>
     RustLib.instance.api.crateApiGitListBranches(path: path);
+
+Future<bool> gitHasLocalChanges({required String path}) =>
+    RustLib.instance.api.crateApiGitHasLocalChanges(path: path);
 
 Future<String> gitPull({
   required String path,
@@ -71,6 +74,9 @@ Future<String> gitAddRemote({
 }) =>
     RustLib.instance.api.crateApiGitAddRemote(path: path, name: name, url: url);
 
+Future<String> gitRemoveRemote({required String path, required String name}) =>
+    RustLib.instance.api.crateApiGitRemoveRemote(path: path, name: name);
+
 Future<String> gitFetch({
   required String path,
   required String remote,
@@ -105,6 +111,9 @@ Future<String> gitStash({required String path}) =>
 
 Future<String> gitDiff({required String path}) =>
     RustLib.instance.api.crateApiGitDiff(path: path);
+
+Future<void> setSslCaCerts({required List<String> pemCerts}) =>
+    RustLib.instance.api.crateApiSetSslCaCerts(pemCerts: pemCerts);
 
 @freezed
 sealed class GitError with _$GitError implements FrbException {

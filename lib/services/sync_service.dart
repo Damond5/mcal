@@ -3,6 +3,7 @@ import "dart:developer";
 import "package:flutter_secure_storage/flutter_secure_storage.dart";
 import "package:path_provider/path_provider.dart";
 import "../frb_generated.dart";
+import "certificate_service.dart";
 
 class SyncConflictException implements Exception {
   final String message;
@@ -16,6 +17,7 @@ class SyncService {
   static const String _sshKeyKey = "git_ssh_key_path";
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final RustLibApi _api;
+  final CertificateService _certificateService = CertificateService();
 
   // ignore: invalid_use_of_internal_member
   SyncService([RustLibApi? api]) : _api = api ?? RustLib.instance.api;
@@ -113,31 +115,47 @@ class SyncService {
     // Store base URL without credentials
     await _setRemoteUrl(url);
     final path = await _getAppDocDir();
+
+    // Configure SSL CA certificates for git operations
+    try {
+      final caCerts = await _certificateService.getSystemCACertificates();
+      if (caCerts.isNotEmpty) {
+        await _api.crateApiSetSslCaCerts(pemCerts: caCerts);
+        log('Configured ${caCerts.length} CA certificates for SSL validation');
+      } else {
+        log('No CA certificates available, using default SSL behavior');
+      }
+    } catch (e) {
+      log('Failed to configure CA certificates: $e, falling back to default');
+    }
+
     try {
       await _api.crateApiGitInit(path: path);
-      await _api.crateApiGitAddRemote(path: path, name: 'origin', url: url);
       try {
-        await _api.crateApiGitFetch(
-          path: path,
-          remote: 'origin',
-          username: username,
-          password: password,
-        );
+        await _api.crateApiGitRemoveRemote(path: path, name: 'origin');
+      } catch (_) {
+        // Ignore if remote doesn't exist
+      }
+      await _api.crateApiGitAddRemote(path: path, name: 'origin', url: url);
+      await _api.crateApiGitFetch(
+        path: path,
+        remote: 'origin',
+        username: username,
+        password: password,
+        sshKeyPath: sshKeyPath,
+      );
+      try {
+        await _api.crateApiGitCheckout(path: path, branch: 'main');
+      } catch (e) {
         try {
-          await _api.crateApiGitCheckout(path: path, branch: 'main');
+          await _api.crateApiGitCheckout(path: path, branch: 'master');
         } catch (e) {
           try {
-            await _api.crateApiGitCheckout(path: path, branch: 'master');
+            await _api.crateApiGitCheckout(path: path, branch: 'develop');
           } catch (e) {
-            try {
-              await _api.crateApiGitCheckout(path: path, branch: 'develop');
-            } catch (e) {
-              await _api.crateApiGitCheckout(path: path, branch: 'trunk');
-            }
+            await _api.crateApiGitCheckout(path: path, branch: 'trunk');
           }
         }
-      } catch (e) {
-        // Ignore if remote is empty
       }
     } catch (e) {
       log('Sync initialization failed: $e');

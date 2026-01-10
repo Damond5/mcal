@@ -1,0 +1,11 @@
+- [x] In git_pull_impl, modify the remote default branch fallback to strip "refs/heads/" prefix: change `remote.default_branch().ok().map(|buf| String::from_utf8_lossy(&buf).into_owned())` to `remote.default_branch().ok().map(|buf| { let full_ref = String::from_utf8_lossy(&buf).into_owned(); full_ref.strip_prefix("refs/heads/").unwrap_or(&full_ref).to_string() })`.
+- [x] In git_push_impl, apply the same change for consistency.
+- [x] Regenerate Flutter Rust Bridge bindings with `flutter_rust_bridge_codegen generate --config-file frb.yaml`.
+- [x] Rebuild Android native libraries with `cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 build --release`.
+- [x] Copy updated libraries to Android project directories.
+- [x] Clean and rebuild Flutter APK with `fvm flutter clean && fvm flutter build apk --debug`.
+- [x] Run unit tests with `fvm flutter test` to ensure no regressions.
+- [x] Add unit tests for branch name extraction with various ref formats (e.g., "refs/heads/main", "refs/remotes/origin/feature", "main").
+- [x] Run integration tests with `fvm flutter test integration_test/app_integration_test.dart` on connected Android device.
+- [x] Manually test sync operations on repos with non-"main" defaults (e.g., "develop") to verify branch name resolution works without errors.</content>
+<parameter name="filePath">openspec/changes/correct-git-branch-name-handling/tasks.md

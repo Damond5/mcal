@@ -44,6 +44,10 @@ class EventFormDialogState extends State<EventFormDialog> {
     selectedEndTime = event?.endTime;
     selectedRecurrence = event?.recurrence ?? 'none';
     isAllDay = event?.isAllDay ?? false;
+    // Set default start time for new timed events
+    if (event == null && !isAllDay && selectedStartTime == null) {
+      selectedStartTime = '09:00';
+    }
   }
 
   @override
@@ -200,6 +204,7 @@ class EventFormDialogState extends State<EventFormDialog> {
             if (errorMessage != null)
               Text(errorMessage!, style: const TextStyle(color: Colors.red)),
             TextField(
+              key: const Key('event_title_field'),
               controller: titleController,
               decoration: const InputDecoration(labelText: 'Title *'),
             ),
@@ -269,11 +274,13 @@ class EventFormDialogState extends State<EventFormDialog> {
                 'daily',
                 'weekly',
                 'monthly',
+                'yearly',
               ].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
               onChanged: (value) =>
                   setState(() => selectedRecurrence = value ?? 'none'),
             ),
             TextField(
+              key: const Key('event_description_field'),
               controller: descriptionController,
               decoration: const InputDecoration(labelText: 'Description'),
               maxLines: 3,

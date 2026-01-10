@@ -1,4 +1,4 @@
- // This is a basic Flutter widget test.
+// This is a basic Flutter widget test.
 //
 // To perform an interaction with a widget in your test, use the WidgetTester
 // utility in the flutter_test package. For example, you can send tap and scroll
@@ -19,6 +19,7 @@ import 'package:mcal/frb_generated.dart';
 
 @GenerateMocks([RustLibApi])
 import 'widget_test.mocks.dart';
+import 'test_helpers.dart';
 
 // Helper to pump the app
 Future<void> pumpApp(WidgetTester tester) async {
@@ -39,19 +40,34 @@ void main() {
 
   late MockRustLibApi mockApi;
 
-  setUpAll(() {
+  setUpAll(() async {
     mockApi = MockRustLibApi();
     RustLib.initMock(api: mockApi);
+    await setupTestEnvironment();
   });
 
-  testWidgets('Calendar app loads and displays initial state', (WidgetTester tester) async {
+  tearDownAll(() async {
+    await cleanupTestEnvironment();
+  });
+
+  testWidgets('Calendar app loads and displays initial state', (
+    WidgetTester tester,
+  ) async {
     await pumpApp(tester);
 
     // Verify that the app title is displayed
-    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App bar should display the title');
+    expect(
+      find.text('MCal: Mobile Calendar'),
+      findsOneWidget,
+      reason: 'App bar should display the title',
+    );
 
     // Verify that the calendar widget is present
-    expect(find.byType(TableCalendar), findsOneWidget, reason: 'Calendar should be rendered');
+    expect(
+      find.byType(TableCalendar),
+      findsOneWidget,
+      reason: 'Calendar should be rendered',
+    );
   });
 
   testWidgets('Calendar allows day selection', (WidgetTester tester) async {
@@ -71,51 +87,83 @@ void main() {
     // This test ensures the calendar is interactive and present
   });
 
-  testWidgets('Theme toggle button is present and tappable', (WidgetTester tester) async {
+  testWidgets('Theme toggle button is present and tappable', (
+    WidgetTester tester,
+  ) async {
     await pumpApp(tester);
 
     // Verify theme toggle button is present
-    expect(find.byTooltip('Toggle theme'), findsOneWidget, reason: 'Theme toggle button should be in the app bar');
+    expect(
+      find.byTooltip('Toggle theme'),
+      findsOneWidget,
+      reason: 'Theme toggle button should be in the app bar',
+    );
 
     // Verify it has an appropriate icon
     final hasSystemIcon = find.byIcon(Icons.brightness_6).evaluate().isNotEmpty;
     final hasLightIcon = find.byIcon(Icons.light_mode).evaluate().isNotEmpty;
     final hasDarkIcon = find.byIcon(Icons.dark_mode).evaluate().isNotEmpty;
-    expect(hasSystemIcon || hasLightIcon || hasDarkIcon, isTrue, reason: 'Button should show a theme-related icon');
+    expect(
+      hasSystemIcon || hasLightIcon || hasDarkIcon,
+      isTrue,
+      reason: 'Button should show a theme-related icon',
+    );
 
     // Tap the button (should not crash)
     await tester.tap(find.byTooltip('Toggle theme'));
     await tester.pumpAndSettle();
 
     // App should still be functional
-    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App should remain functional after theme toggle');
+    expect(
+      find.text('MCal: Mobile Calendar'),
+      findsOneWidget,
+      reason: 'App should remain functional after theme toggle',
+    );
   });
 
-  testWidgets('Theme toggle changes icon appropriately', (WidgetTester tester) async {
+  testWidgets('Theme toggle changes icon appropriately', (
+    WidgetTester tester,
+  ) async {
     // Set initial theme to light for predictable testing
     SharedPreferences.setMockInitialValues({'theme_mode': 1}); // Light mode
     await pumpApp(tester);
 
     // Should show dark_mode icon (since current is light, toggle shows dark)
-    expect(find.byIcon(Icons.dark_mode), findsOneWidget, reason: 'Light mode should show dark toggle icon');
+    expect(
+      find.byIcon(Icons.dark_mode),
+      findsOneWidget,
+      reason: 'Light mode should show dark toggle icon',
+    );
 
     // Tap to toggle to dark
     await tester.tap(find.byTooltip('Toggle theme'));
     await tester.pumpAndSettle();
 
     // Should now show light_mode icon
-    expect(find.byIcon(Icons.light_mode), findsOneWidget, reason: 'Dark mode should show light toggle icon');
+    expect(
+      find.byIcon(Icons.light_mode),
+      findsOneWidget,
+      reason: 'Dark mode should show light toggle icon',
+    );
   });
 
-  testWidgets('Notification permissions are requested on app start', (WidgetTester tester) async {
+  testWidgets('Notification permissions are requested on app start', (
+    WidgetTester tester,
+  ) async {
     // This test ensures that the app initializes without crashing when notifications are requested
     await pumpApp(tester);
 
     // If the app loads successfully, notification initialization didn't crash
-    expect(find.text('MCal: Mobile Calendar'), findsOneWidget, reason: 'App should load successfully with notification initialization');
+    expect(
+      find.text('MCal: Mobile Calendar'),
+      findsOneWidget,
+      reason: 'App should load successfully with notification initialization',
+    );
   });
 
-  testWidgets('Sync settings dialog displays correctly', (WidgetTester tester) async {
+  testWidgets('Sync settings dialog displays correctly', (
+    WidgetTester tester,
+  ) async {
     await pumpApp(tester);
 
     // Open sync menu

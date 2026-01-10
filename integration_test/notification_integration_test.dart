@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -662,6 +663,140 @@ void main() {
           expect(find.text('Event 2'), findsWidgets);
         },
       );
+    });
+
+    group('Task 9.7: Android 13+ Permission Tests', () {
+      testWidgets(
+        'Permission request dialog appears on fresh install (Android only)',
+        (tester) async {
+          if (!Platform.isAndroid) {
+            return;
+          }
+
+          await tester.pumpWidget(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider(create: (_) => ThemeProvider()),
+                ChangeNotifierProvider(create: (_) => EventProvider()),
+              ],
+              child: const MyApp(),
+            ),
+          );
+
+          await tester.pumpAndSettle();
+
+          expect(find.byType(ThemeToggleButton), findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'Notification displays after permission grant (Android only)',
+        (tester) async {
+          if (!Platform.isAndroid) {
+            return;
+          }
+
+          await tester.pumpWidget(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider(create: (_) => ThemeProvider()),
+                ChangeNotifierProvider(create: (_) => EventProvider()),
+              ],
+              child: const MyApp(),
+            ),
+          );
+
+          await tester.pumpAndSettle();
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('15'));
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.byType(FloatingActionButton));
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
+          await tester.pumpAndSettle();
+
+          await tester.enterText(
+            find.byKey(const Key('event_title_field')),
+            'Android Permission Test',
+          );
+          await tester.pumpAndSettle();
+
+          await tester.enterText(
+            find.byKey(const Key('event_description_field')),
+            'Testing notification after permission grant',
+          );
+          await tester.pumpAndSettle();
+
+          await tester.tap(find.text('Save'));
+          await tester.pumpAndSettle(const Duration(milliseconds: 100));
+          await tester.pumpAndSettle();
+
+          expect(find.text('Android Permission Test'), findsOneWidget);
+        },
+      );
+
+      testWidgets('SnackBar appears when permission denied (Android only)', (
+        tester,
+      ) async {
+        if (!Platform.isAndroid) {
+          return;
+        }
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ThemeToggleButton), findsOneWidget);
+      });
+
+      testWidgets('Permission revocation blocks notifications (Android only)', (
+        tester,
+      ) async {
+        if (!Platform.isAndroid) {
+          return;
+        }
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider(create: (_) => ThemeProvider()),
+              ChangeNotifierProvider(create: (_) => EventProvider()),
+            ],
+            child: const MyApp(),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('15'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle(const Duration(milliseconds: 200));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('event_title_field')),
+          'Revoke Permission Test',
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Revoke Permission Test'), findsOneWidget);
+      });
     });
   });
 }

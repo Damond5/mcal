@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrated Flutter Rust Bridge from v1 to v2, updating dependencies, configuration, and codegen process for improved performance and compatibility.
 
 ### Fixed
+- Android notifications not displaying on devices running Android 13+ (API 33+) by adding the `POST_NOTIFICATIONS` permission to `android/app/src/main/AndroidManifest.xml`. This permission is required for Android 13+ when targeting SDK 34+. Without this declaration, notifications fail silently even when users grant permission in the app. (See: openspec/changes/add-android-post-notifications-permission/)
 - Removed invalid `flutter_rust_bridge_build` dependency from pubspec.yaml dev_dependencies.
 - Added platform check to only initialize workmanager on Android/iOS, preventing UnimplementedError on Linux where Timer is used for periodic sync.
 - Fixed GUI crash on app start due to sync pull failing on repositories without HEAD by updating Rust git functions (git_pull_impl, git_push_impl, git_fetch_impl) to use remote default branch instead of requiring repo.head(), resolving issues with uninitialized git repos.
@@ -89,6 +90,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused imports (openssl_probe, rustls, std::io::Cursor, webpki_roots) from native/src/api.rs to fix compilation warnings.
 - Implemented secure SSL certificate validation using webpki for Git synchronization operations on Android.
 - Fixed test pollution issue by implementing comprehensive test cleanup utilities. Added `test/test_helpers.dart` with `setupTestEnvironment`, `cleanupTestEnvironment`, and `setupTestEventProvider` functions. All test suites now properly clean up test artifacts in a platform-independent directory using `Directory.systemTemp`. Tests can optionally preserve artifacts for debugging by setting `MCAL_TEST_CLEANUP=false` environment variable.
+- Improved error handling and constraints for Android notifications, maintaining cross-platform compatibility
+
+### Changed
+- Switched from AlarmManager to WorkManager for Android notification scheduling to improve reliability on Android 12+ devices
+- Changed package name from com.example.mcal to com.mcal
+
+### Added
+- Added SCHEDULE_EXACT_ALARM permission and calendar app qualification for Android notification scheduling
+- Added user feedback for denied permissions on Android
 
 ## [1.0.1] - 2025-11-02
 

@@ -1,4 +1,4 @@
-package com.example.mcal
+package com.mcal
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,7 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 class MainActivity : FlutterActivity() {
-    private val CHANNEL = "com.example.mcal/certificates"
+    private val CHANNEL = "com.mcal/certificates"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

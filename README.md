@@ -145,11 +145,37 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
           - SSL Certificates: For HTTPS repositories, the app automatically reads system CA certificates to validate server certificates, supporting custom CA setups in corporate environments. Falls back to default SSL behavior if certificate reading fails.
           - Troubleshooting: If sync fails, check URL format, credentials, and network. For SSH, ensure the key path is correct and the key is in OpenSSH format. Conflicts during pull can be resolved via the UI options. SSL certificate issues may occur in custom CA environments; the app logs certificate configuration status for debugging.
 
-  The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
+   The app is designed for simplicity, making it easy to integrate into larger projects or use as a standalone date picker with event management.
 
-## Troubleshooting
+## Platform-Specific Notes
 
-- **GUI Launch Issues**: If the app crashes on sync pull during launch, ensure the Git repository is properly initialized. The app handles empty repositories without a HEAD by using the remote default branch, preventing crashes in partial sync initialization scenarios.
+### Android 13+ Notifications Permission
+
+This app targets Android SDK 36 (Android 14) and is qualified as a calendar application. It requires the `POST_NOTIFICATIONS` permission on Android 13+ (API 33+) and uses the `SCHEDULE_EXACT_ALARM` permission for precise event reminders.
+
+**Background Delivery (Android 12+):**
+- Uses WorkManager for reliable background notification scheduling and delivery when the app is not actively running
+- Ensures notifications are delivered even if the app is swiped from recent apps or the device is in battery optimization mode
+- WorkManager handles scheduling constraints and retries automatically for improved reliability
+
+**User Experience:**
+- On first app launch, Android 13+ users will see a permission request dialog asking to allow notifications
+- If permission is granted, the app can display event reminders as expected
+- If permission is denied, a SnackBar warning appears, and users can enable notifications later through device settings (Settings > Apps > mcal > Notifications)
+
+**For Developers:**
+- Permissions are declared in `android/app/src/main/AndroidManifest.xml`
+- The app is registered as a calendar app via intent filters for event MIME types, allowing `SCHEDULE_EXACT_ALARM` without restrictions
+- Permission requests are handled automatically by the `flutter_local_notifications` plugin
+- WorkManager integration provides cross-platform background task management for Android
+- No additional configuration is required beyond ensuring the permissions are included in the manifest
+
+ ## Troubleshooting
+
+    - **GUI Launch Issues**: If the app crashes on sync pull during launch, ensure the Git repository is properly initialized. The app handles empty repositories without a HEAD by using the remote default branch, preventing crashes in partial sync initialization scenarios.
+    - **Android Notification Test Timeouts**: When running individual Android notification integration tests, they may timeout due to real device timing requirements. Use the `timeout` command with longer durations or run via the test runner scripts. See "Handling Integration Test Timeouts" section above.
+
+- **Android Notification Issues**: If notifications are not appearing on Android devices, ensure the app has notification permissions granted in device settings (Settings > Apps > mcal > Notifications). On Android 12+, WorkManager handles background delivery - if issues persist, try clearing app data and reinstalling to reset WorkManager tasks.
 
   The app includes a comprehensive test suite to ensure functionality and reliability. Tests cover widget interactions, theme management, event management, sync operations, notifications, and core app behavior.
 
@@ -237,7 +263,7 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
     | - Summary report displays pass/fail counts and timing
     | - Script exits with code 0 if all tests pass, code 1 if any fail
 
-    **Total Integration Tests**: 254+ test scenarios across 15 test files (calendar_integration_test.dart now has 33 passing tests, previously 21/23)
+    **Total Integration Tests**: 260+ test scenarios across 16 test files (calendar_integration_test.dart has 33 passing tests, notification_integration_test.dart has 18 passing tests, android_notification_delivery_integration_test.dart has 6 passing tests)
 
    ### Test Fixtures and Helpers
 
@@ -269,14 +295,46 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
    flutter test integration_test/event_crud_integration_test.dart
    ```
 
-    To run integration tests with verbose output:
-    ```bash
-    flutter test integration_test/ --verbose
-    ```
+     To run integration tests with verbose output:
+     ```bash
+     flutter test integration_test/ --verbose
+     ```
+
+     ### Handling Integration Test Timeouts
+
+     Some integration tests (especially Android notification tests) involve real device timing and can exceed default timeouts. Here are strategies to run them successfully:
+
+     **For Individual Long-Running Tests:**
+     ```bash
+     # Use timeout command for longer execution (10+ minutes)
+     timeout 1200 fvm flutter test integration_test/android_notification_delivery_integration_test.dart -d <device-id>
+     ```
+
+     **For Android Integration Tests (Recommended):**
+     Use the provided test runner script which handles timeouts automatically:
+     ```bash
+     ./scripts/test-integration-android.sh
+     ```
+
+     **For Linux Integration Tests (Fastest):**
+     ```bash
+     ./scripts/test-integration-linux.sh
+     ```
+
+     **Troubleshooting Timeout Issues:**
+     - Android tests require real device interaction and notification scheduling delays
+     - Tests may take 5-15 minutes to complete depending on device and network conditions
+     - Use the script runners which execute tests individually with proper cleanup
+     - For debugging, temporarily reduce notification timing in test files (change minutes to seconds) but restore before committing
+
+     **Expected Test Durations:**
+     - Linux tests: 5-8 minutes total
+     - Android tests: 15-30 minutes total (due to APK rebuilding and device interaction)
+     - Individual notification tests: 1-3 minutes each
 
      ### Current Test Status
 
-     **Pass Rate**: ~69% (173/254 tests as of January 1, 2026)
+      **Pass Rate**: ~75% (195/260 tests as of January 10, 2026)
 
      **Passing Test Files**:
      - `app_integration_test.dart`: 4/4 (100%) - App loading and yearly recurrence
@@ -287,56 +345,59 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
      - `conflict_resolution_integration_test.dart`: 12/13 (92%) - Conflict resolution
      - `accessibility_integration_test.dart`: 8/11 (73%) - Accessibility features
 
-     **Partial Pass Test Files**:
-     - `event_crud_integration_test.dart`: 6/13 (46%) - Event CRUD operations
-     - `edge_cases_integration_test.dart`: 10/16 (63%) - Error handling
-     - `notification_integration_test.dart`: 9/17 (53%) - Notifications
+      **Partial Pass Test Files**:
+      - `event_crud_integration_test.dart`: 6/13 (46%) - Event CRUD operations
+      - `edge_cases_integration_test.dart`: 10/16 (63%) - Error handling
 
-     **Skipped Test Files**:
-     - `certificate_integration_test.dart`: 0/8 (0%) - All tests skipped (tests wrong functionality - check sync UI not certificate service)
+      **Fully Passing Test Files**:
+      - `notification_integration_test.dart`: 18/18 (100%) - General notifications
+      - `android_notification_delivery_integration_test.dart`: 6/6 (100%) - Android-specific notifications
 
-      **Test Window Size Configuration**:
+      **Skipped Test Files**:
+      - `certificate_integration_test.dart`: 0/8 (0%) - All tests skipped (tests wrong functionality - check sync UI not certificate service)
 
-      Integration tests configure a custom test window size (1920x1080 pixels) to ensure all UI elements, particularly AppBar action buttons, are visible and tappable during tests. This is done using:
+       **Test Window Size Configuration**:
 
-      ```dart
-      testWidgets('My test', (tester) async {
-        setupTestWindowSize(tester);
-        addTearDown(() => resetTestWindowSize(tester));
+       Integration tests configure a custom test window size (1920x1080 pixels) to ensure all UI elements, particularly AppBar action buttons, are visible and tappable during tests. This is done using:
 
-        // Test code here...
-      });
-      ```
+       ```dart
+       testWidgets('My test', (tester) async {
+         setupTestWindowSize(tester);
+         addTearDown(() => resetTestWindowSize(tester));
 
-      The window size configuration:
-      - Is platform-agnostic (works on Linux, Android, iOS, macOS, Windows, and Web)
-      - Is independent of actual device screen size - simulated test environment for consistency
-      - Ensures ThemeToggleButton and other AppBar buttons are within viewport
-      - Has minimal execution time impact (~1-2ms per test)
+         // Test code here...
+       });
+       ```
 
-      Tests that interact with AppBar buttons must include window size setup to prevent "off-screen" errors where widgets are positioned beyond the default 800x600 test viewport.
+       The window size configuration:
+       - Is platform-agnostic (works on Linux, Android, iOS, macOS, Windows, and Web)
+       - Is independent of actual device screen size - simulated test environment for consistency
+       - Ensures ThemeToggleButton and other AppBar buttons are within viewport
+       - Has minimal execution time impact (~1-2ms per test)
 
-      **Known Test Limitations**:
-    - **Calendar Theme Tests**: 10 tests skipped - Theme toggle button located at offset (835.0, 28.0) is not accessible in test environment
-    - **Certificate Tests**: 8 tests skipped - Tests check sync dialog UI elements instead of actual certificate service API (`getSystemCACertificates()`)
-    - **Event Form Tests**: 19/25 (76%) failures due to widget accumulation and event naming conflicts (multiple tests create events named "Test Event")
-    - **Event List Tests**: Timeout issues due to complex operations taking longer than default timeout allows
-    - **Performance Tests**: Slow operations creating large numbers of events (e.g., 100 events test takes several minutes)
+       Tests that interact with AppBar buttons must include window size setup to prevent "off-screen" errors where widgets are positioned beyond the default 800x600 test viewport.
 
-    **Test Infrastructure**:
-    - All integration tests use `flutter clean` between file runs to prevent state accumulation
-    - Mock handlers consolidated in `test/test_helpers.dart` to prevent MethodChannel conflicts
-    - Widget keys added to `lib/widgets/event_form_dialog.dart` for stable test selectors
-    - Proven test patterns documented: day selection, "All Day" checkbox, dialog waits, save waits
+       **Known Test Limitations**:
+     - **Calendar Theme Tests**: 10 tests skipped - Theme toggle button located at offset (835.0, 28.0) is not accessible in test environment
+     - **Certificate Tests**: 8 tests skipped - Tests check sync dialog UI elements instead of actual certificate service API
+     - **Event Form Tests**: 19/25 (76%) failures due to widget accumulation and event naming conflicts (multiple tests create events named "Test Event")
+     - **Event List Tests**: Timeout issues due to complex operations taking longer than default timeout allows
+     - **Performance Tests**: Slow operations creating large numbers of events (e.g., 100 events test takes several minutes)
 
-    ### Test Improvement Roadmap
+     **Test Infrastructure**:
+     - All integration tests use `flutter clean` between file runs to prevent state accumulation
+     - Mock handlers consolidated in `test/test_helpers.dart` to prevent MethodChannel conflicts
+     - Widget keys added to `lib/widgets/event_form_dialog.dart` for stable test selectors
+     - Proven test patterns documented: day selection, "All Day" checkbox, dialog waits, save waits
 
-    Planned improvements to reach 75-80% pass rate:
-    1. Fix event_form test widget accumulation issues (event naming conflicts)
-    2. Increase timeouts for event_list and performance tests
-    3. Apply missing test patterns to remaining failing tests
-    4. Optimize test fixtures to reduce test execution time
-    5. Address flaky tests with retry logic or improved test isolation
+     ### Test Improvement Roadmap
+
+     Planned improvements to reach 80-85% pass rate:
+     1. Fix event_form test widget accumulation issues (event naming conflicts)
+     2. Increase timeouts for event_list and performance tests
+     3. Apply missing test patterns to remaining failing tests
+     4. Optimize test fixtures to reduce test execution time
+     5. Address flaky tests with retry logic or improved test isolation
 
 
 

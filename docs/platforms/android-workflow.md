@@ -46,6 +46,21 @@ flutter_rust_bridge_codegen --version
 adb devices
 ```
 
+#### Android 13+ Notification Permissions
+
+**Important**: Android 13 (API 33) and later requires the `POST_NOTIFICATIONS` permission to display notifications. This permission is already declared in `android/app/src/main/AndroidManifest.xml`.
+
+**Permission Request Flow**:
+- On first app launch, users will see a system permission dialog
+- Users can grant or deny notification permission
+- If denied, the app will display a SnackBar warning
+- Users can enable notifications later in device Settings
+
+**For Developers**:
+- The permission is automatically requested when the app initializes
+- No additional code changes are required for permission handling
+- The permission is safely ignored on Android 12 and earlier versions
+
 ### Complete Development Cycle
 
 When making changes to Rust code (`native/src/api.rs`) or Flutter-Rust Bridge interfaces, follow this complete workflow to prevent hash mismatches and build failures:
@@ -289,16 +304,77 @@ echo "✅ Build synchronization verified"
 
 ### Additional Troubleshooting
 
-- **Certificate Reading Functionality**: When testing certificate-related features, ensure the app has proper permissions in the Android manifest. Test on physical devices for accurate results, as emulators may not fully simulate certificate stores. Never hardcode private keys or sensitive certificate data in the code; use Android's KeyStore for secure storage.
+#### Notification Permission Issues
 
-- **FRB Bindings Regeneration**: Always regenerate FRB bindings after modifying Rust API definitions in `native/src/api.rs` or related files. On success, you'll see updated files in `frb_generated/` directories. If regeneration fails, check for syntax errors in Rust code.
+**Notifications Not Appearing on Android 13+**
 
-- **Version Management**: Use `fvm` consistently to avoid version conflicts. Check the project's Flutter version with `fvm flutter --version`. If fvm commands fail, ensure it's installed globally.
+If notifications are not displaying on Android 13 (API 33) or later devices:
 
-- **Build Failures**: If builds fail due to Rust compilation, verify that `cargo ndk` is installed (`cargo install cargo-ndk`) and that Android SDK/NDK paths are correctly set in your environment variables.
+1. **Check Permission Status**:
+   ```bash
+   # Check if permission is declared in manifest
+   grep POST_NOTIFICATIONS android/app/src/main/AndroidManifest.xml
+   # Should return: <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+   ```
 
-- **Network Issues**: If `fvm flutter pub get` fails, check your internet connection, firewall settings, and proxy configuration.
+2. **Verify User Granted Permission**:
+   - Go to device Settings → Apps → MCAL → Notifications
+   - Ensure "Notifications" is enabled
+   - If disabled, toggle it to enable
 
-- **Device Connection Problems**: For physical devices, enable USB debugging in developer options. For emulators, ensure Android Studio/AVD Manager is running and the emulator is started. If `flutter devices` shows no devices, restart the device/emulator or check USB cables.
+3. **Check App Logs**:
+   ```bash
+   # Filter for notification-related errors
+   adb logcat | grep -i "notification\|permission"
+   ```
 
-- **Emulator Performance**: Emulators can be slow; consider using physical devices for testing certificate and performance-critical features.
+4. **Reinstall App**:
+   ```bash
+   adb uninstall com.example.mcal
+   fvm flutter install
+   ```
+   - This will trigger the permission request dialog again
+
+**Permission Denied Scenario**:
+- If user denies notification permission, app displays: "Notification permissions denied. Events will not notify."
+- User can enable notifications later in Settings → Apps → MCAL → Notifications
+- No app restart is required after enabling in settings
+
+**For Developers Testing Permission Flow**:
+```bash
+# Reset app data to trigger fresh permission request
+adb shell pm clear com.example.mcal
+
+# Reinstall app
+fvm flutter install
+
+# App will show permission dialog on first launch
+```
+
+#### Certificate Reading Functionality
+
+When testing certificate-related features, ensure app has proper permissions in Android manifest. Test on physical devices for accurate results, as emulators may not fully simulate certificate stores. Never hardcode private keys or sensitive certificate data in code; use Android's KeyStore for secure storage.
+
+#### FRB Bindings Regeneration
+
+Always regenerate FRB bindings after modifying Rust API definitions in `native/src/api.rs` or related files. On success, you'll see updated files in `frb_generated/` directories. If regeneration fails, check for syntax errors in Rust code.
+
+#### Version Management
+
+Use `fvm` consistently to avoid version conflicts. Check the project's Flutter version with `fvm flutter --version`. If fvm commands fail, ensure it's installed globally.
+
+#### Build Failures
+
+If builds fail due to Rust compilation, verify that `cargo ndk` is installed (`cargo install cargo-ndk`) and that Android SDK/NDK paths are correctly set in your environment variables.
+
+#### Network Issues
+
+If `fvm flutter pub get` fails, check your internet connection, firewall settings, and proxy configuration.
+
+#### Device Connection Problems
+
+For physical devices, enable USB debugging in developer options. For emulators, ensure Android Studio/AVD Manager is running and emulator is started. If `flutter devices` shows no devices, restart device/emulator or check USB cables.
+
+#### Emulator Performance
+
+Emulators can be slow; consider using physical devices for testing certificate and performance-critical features.

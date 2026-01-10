@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:workmanager/workmanager.dart';
 import 'dart:developer';
 import 'dart:io';
 import '../models/event.dart';
@@ -14,6 +15,7 @@ class NotificationService {
   final Set<String> _scheduledNotificationIds = {};
 
   Future<void> initialize() async {
+    log('NotificationService.initialize() called');
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
@@ -27,14 +29,20 @@ class NotificationService {
       linux: linuxSettings,
     );
 
-    await _notifications.initialize(
-      settings,
-      onDidReceiveNotificationResponse: (response) {
-        // Handle notification tap - could navigate to event, but for now just log
-        log('Notification tapped: ${response.payload}');
-      },
-    );
-    log('NotificationService initialized');
+    try {
+      await _notifications.initialize(
+        settings,
+        onDidReceiveNotificationResponse: (response) {
+          // Handle notification tap - could navigate to event, but for now just log
+          log('Notification tapped: ${response.payload}');
+        },
+      );
+      log('NotificationService initialized');
+    } catch (e, stack) {
+      log('Failed to initialize NotificationService: $e');
+      log('Stack trace: $stack');
+      rethrow;
+    }
   }
 
   Future<bool> requestPermissions() async {
@@ -66,56 +74,87 @@ class NotificationService {
     // Cancel existing notifications for this event
     await cancelNotificationsForEvent(event);
 
-    // Expand recurring events up to 30 days ahead for performance
+    // Expand recurring events up to 30 days ahead for performance, limit to 100 instances max
     final maxDate = DateTime.now().add(const Duration(days: 30));
     final instances = Event.expandRecurring(event, maxDate, maxDate: maxDate);
+    final limitedInstances = instances.take(
+      100,
+    ); // Prevent excessive notifications
 
-    for (final instance in instances) {
-      await _scheduleNotificationForInstance(instance);
+    for (final instance in limitedInstances) {
+      final success = await _scheduleNotificationForInstance(instance);
+      if (!success) {
+        log(
+          'Failed to schedule notification for instance: ${instance.title} at ${instance.startDate}',
+        );
+      }
     }
   }
 
-  Future<void> _scheduleNotificationForInstance(Event event) async {
-    final notificationId = _getNotificationId(event);
-    if (_scheduledNotificationIds.contains(notificationId)) {
-      return; // Already scheduled
-    }
-
-    DateTime? notificationTime;
-    String title;
-    String body;
-
-    if (event.isAllDay) {
-      // All-day event: notify at midday the day before
+  /// Calculate the notification time for an event instance
+  DateTime _calculateNotificationTime(Event event) {
+    // For all-day events, notify at midday the day before
+    if (event.startTime == null) {
       final dayBefore = event.startDate.subtract(const Duration(days: 1));
-      notificationTime = DateTime(
+      return DateTime(
         dayBefore.year,
         dayBefore.month,
         dayBefore.day,
         Event.allDayNotificationHour,
-        0,
       );
-      title = 'Upcoming All-Day Event';
-      body = '${event.title} starts tomorrow';
-    } else {
-      // Timed event: notify 30 minutes before
-      final eventStart = event.startDateTime;
-      notificationTime = eventStart.subtract(
-        const Duration(minutes: Event.notificationOffsetMinutes),
-      );
-      title = 'Upcoming Event';
-      body = '${event.title} starts at ${event.startTime}';
     }
+
+    // For timed events, notify 30 minutes before start time
+    final startTimeParts = event.startTime!.split(':');
+    final startHour = int.parse(startTimeParts[0]);
+    final startMinute = int.parse(startTimeParts[1]);
+
+    var notificationTime = DateTime(
+      event.startDate.year,
+      event.startDate.month,
+      event.startDate.day,
+      startHour,
+      startMinute,
+    ).subtract(const Duration(minutes: Event.notificationOffsetMinutes));
+
+    // If notification time is in the past, don't schedule
+    if (notificationTime.isBefore(DateTime.now())) {
+      return notificationTime; // Will be filtered out later
+    }
+
+    return notificationTime;
+  }
+
+  /// Create WorkManager input data for notification task
+  Map<String, dynamic> _createWorkManagerInputData(Event event) {
+    return {
+      'title': event.title,
+      'startDate': event.startDate.toIso8601String(),
+      'startTime': event.startTime,
+      'description': event.description,
+      'recurrence': event.recurrence,
+    };
+  }
+
+  Future<bool> _scheduleNotificationForInstance(Event event) async {
+    final notificationTime = _calculateNotificationTime(event);
 
     // Only schedule if notification time is in the future
     if (notificationTime.isBefore(DateTime.now())) {
-      return;
+      return false;
     }
 
-    final androidDetails = AndroidNotificationDetails(
+    // Create notification content
+    final title = 'Upcoming Event';
+    final body = event.startTime == null
+        ? '${event.title} starts today'
+        : '${event.title} starts at ${event.startTime}';
+
+    // Create notification details
+    const androidDetails = AndroidNotificationDetails(
       'event_channel',
       'Event Notifications',
-      channelDescription: 'Notifications for upcoming events',
+      channelDescription: 'Notifications for upcoming calendar events',
       importance: Importance.high,
       priority: Priority.high,
     );
@@ -130,23 +169,45 @@ class NotificationService {
       linux: linuxDetails,
     );
 
+    final notificationId = _getNotificationId(event);
+
     try {
-      await _notifications.zonedSchedule(
-        notificationId.hashCode,
-        title,
-        body,
-        tz.TZDateTime.from(notificationTime, tz.local),
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
+      if (Platform.isAndroid) {
+        final delay = notificationTime.difference(DateTime.now());
+        final inputData = _createWorkManagerInputData(event);
+
+        await Workmanager().registerOneOffTask(
+          notificationId,
+          'showNotification',
+          inputData: inputData,
+          initialDelay: delay,
+          existingWorkPolicy: ExistingWorkPolicy.replace,
+          constraints: Constraints(
+            requiresBatteryNotLow: false,
+            requiresCharging: false,
+            requiresDeviceIdle: false,
+            requiresStorageNotLow: false,
+          ),
+          backoffPolicy: BackoffPolicy.exponential,
+          backoffPolicyDelay: const Duration(seconds: 30),
+        );
+      } else {
+        // Fallback for other platforms
+        await _notifications.zonedSchedule(
+          notificationId.hashCode,
+          title,
+          body,
+          tz.TZDateTime.from(notificationTime, tz.local),
+          details,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
       _scheduledNotificationIds.add(notificationId);
-      log(
-        'Scheduled notification for event ${event.title} at $notificationTime',
-      );
+      return true;
     } catch (e) {
       log('Failed to schedule notification for event ${event.title}: $e');
+      return false;
     }
   }
 
@@ -158,16 +219,22 @@ class NotificationService {
         .where((id) => id.startsWith(baseId))
         .toList();
     for (final id in idsToRemove) {
-      await _notifications.cancel(id.hashCode);
+      if (Platform.isAndroid) {
+        await Workmanager().cancelByUniqueName(id);
+      } else {
+        await _notifications.cancel(id.hashCode);
+      }
       _scheduledNotificationIds.remove(id);
     }
-    log('Cancelled notifications for event ${event.title}');
   }
 
   Future<void> cancelAllNotifications() async {
-    await _notifications.cancelAll();
+    if (Platform.isAndroid) {
+      await Workmanager().cancelAll();
+    } else {
+      await _notifications.cancelAll();
+    }
     _scheduledNotificationIds.clear();
-    log('Cancelled all notifications');
   }
 
   Future<void> showNotification(Event event) async {
@@ -209,6 +276,68 @@ class NotificationService {
   }
 
   String _getNotificationId(Event event) {
-    return '${event.title}_${event.startDate.millisecondsSinceEpoch}';
+    // Use hash of title + start date + time to avoid collisions
+    final idString =
+        '${event.title}_${event.startDate.toIso8601String()}_${event.startTime ?? ''}';
+    return idString.hashCode.toString();
+  }
+
+  static Future<bool> showNotificationFromWork(
+    Map<String, dynamic>? inputData,
+  ) async {
+    if (inputData == null) {
+      log('WorkManager notification task failed: inputData is null');
+      return false;
+    }
+
+    try {
+      // Validate required fields
+      final title = inputData['title'] as String?;
+      final startDateStr = inputData['startDate'] as String?;
+      final startTime = inputData['startTime'] as String?;
+      final description = inputData['description'] as String?;
+      final recurrence = inputData['recurrence'] as String?;
+
+      if (title == null || title.isEmpty) {
+        log('WorkManager notification task failed: missing or empty title');
+        return false;
+      }
+
+      if (startDateStr == null || startDateStr.isEmpty) {
+        log('WorkManager notification task failed: missing startDate');
+        return false;
+      }
+
+      DateTime startDate;
+      try {
+        startDate = DateTime.parse(startDateStr);
+      } catch (e) {
+        log(
+          'WorkManager notification task failed: invalid startDate format: $startDateStr, error: $e',
+        );
+        return false;
+      }
+
+      final event = Event(
+        title: title,
+        startDate: startDate,
+        startTime: startTime,
+        description: description ?? '',
+        recurrence: recurrence ?? 'none',
+      );
+
+      final notificationService = NotificationService();
+      await notificationService.initialize();
+      await notificationService.showNotification(event);
+      log(
+        'WorkManager notification task completed successfully for event: ${event.title}',
+      );
+      return true;
+    } catch (e, stackTrace) {
+      log(
+        'WorkManager notification task failed with error: $e\nStack trace: $stackTrace',
+      );
+      return false;
+    }
   }
 }

@@ -18,7 +18,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 - **Calendar Integration**: Events are visually marked on calendar days and listed for the selected date, with recurring events expanded automatically.
 - **Data Persistence**: Events are stored locally in individual Markdown files per event, following the rcal specification for compatibility and portability.
 - **Git Synchronization**: Sync events across devices using Git repositories. Supports comprehensive Git operations including initialization, cloning, branching management, pulling, pushing, status checking, remote management, fetching, checkout, staging, committing, conflict resolution, stashing, and diffing. Includes automatic syncing with configurable settings and conflict resolution.
-- **Notifications**: Receive local notifications for upcoming events. Timed events notify 30 minutes before start time, all-day events notify at midday the day before. On Linux, notifications are shown while the app is running using a background timer.
+- **Notifications**: Receive local notifications for upcoming events. Timed events notify 30 minutes before start time, all-day events notify at midday the day before. Additionally, when events are created within their notification window (within 30 minutes for timed events, or anytime after midday the day before for all-day events), an immediate notification is shown at the moment of creation. On Linux, notifications are shown while the app is running using a background timer.
 
 ## Setup Instructions
 
@@ -119,7 +119,7 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
     - Tap on a day to view existing events or add new ones.
     - Use the event dialogs to create, edit, or delete events with full details: title, start/end dates, times, description, recurrence, and all-day option.
     - Events are marked on the calendar and persist across app sessions.
-    - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events).
+    - Receive notifications for upcoming events (30 minutes before timed events, midday the day before for all-day events, and immediately when events are created within their notification window).
    6. To sync events:
        - Events are automatically synced: pulls on app start, pushes after changes.
        - Configure auto sync settings via the Sync button menu > Settings: enable/disable auto sync, set sync frequency (5-60 minutes), enable sync on app resume.
@@ -170,6 +170,16 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
 - WorkManager integration provides cross-platform background task management for Android
 - No additional configuration is required beyond ensuring the permissions are included in the manifest
 
+**Immediate Notifications:**
+- When events are created within their notification window, an immediate notification is shown right away
+- Timed events: Immediate notification if created within 30 minutes of start time
+- All-day events: Immediate notification if created after midday the day before
+- Same-day all-day events: Immediate notification if created after midday on the event day
+- Immediate notifications work alongside scheduled notifications to ensure you never miss important reminders
+- Permission checks ensure notifications only appear when appropriate permissions are granted
+- Advanced deduplication prevents duplicate notifications when multiple events are created in quick succession
+- Cross-platform consistent implementation across all supported platforms (Android, iOS, Linux)
+
  ## Troubleshooting
 
     - **GUI Launch Issues**: If the app crashes on sync pull during launch, ensure the Git repository is properly initialized. The app handles empty repositories without a HEAD by using the remote default branch, preventing crashes in partial sync initialization scenarios.
@@ -211,7 +221,7 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
    | `event_list_integration_test.dart` | Tests event list display and interactions | 16+ tests |
    | `gesture_integration_test.dart` | Tests user gestures and touch interactions | 14+ tests |
    | `lifecycle_integration_test.dart` | Tests app lifecycle states and auto-sync behavior | 12+ tests |
-   | `notification_integration_test.dart` | Tests notification scheduling and display | 18+ tests |
+   | `notification_integration_test.dart` | Tests notification scheduling, display, and immediate notification behavior | 22+ tests |
    | `performance_integration_test.dart` | Tests app performance with large datasets | 12+ tests |
    | `responsive_layout_integration_test.dart` | Tests UI responsiveness across different screen sizes | 16+ tests |
     | `sync_integration_test.dart` | Tests Git synchronization operations and flows | 28+ tests |

@@ -1,20 +1,6 @@
-# event-management Specification
+# event-management Specification Delta
 
-## Purpose
-TBD - created by archiving change incorporate-existing-docs. Update Purpose after archive.
-## Requirements
-### Requirement: The application SHALL store events as individual Markdown files per event
-Events SHALL be stored as individual Markdown files per event in the app's calendar subdirectory within the documents directory, following rcal specification with fields: Date (YYYY-MM-DD or range), Time (HH:MM or all-day), Description, and Recurrence (none/daily/weekly/monthly).
-
-#### Scenario: Storing a timed event
-Given an event with title "Meeting", date "2025-11-09", start time "14:00", end time "15:00", description "Team meeting", recurrence "none"
-When the event is saved
-Then a Markdown file is created with the rcal format containing all fields
-
-#### Scenario: Storing an all-day event
-Given an event with title "Holiday", date range "2025-11-09 to 2025-11-10", all-day true, description "Vacation", recurrence "none"
-When the event is saved
-Then a Markdown file is created with all-day indicator and date range
+## MODIFIED Requirements
 
 ### Requirement: The application SHALL support Event CRUD Operations
 The application SHALL support creating, viewing, editing, and deleting events through GUI dialogs with full field editing. Additionally, when timed events are created or updated within their 30-minute notification window, or when all-day events are created or updated after midday the day before the event date, the application SHALL show an immediate notification at the moment of creation/update.
@@ -54,63 +40,6 @@ Given current time is 13:15
 When user creates a timed event for 14:00  
 Then event is saved and appears on calendar  
 And no immediate notification is shown (scheduled notification for 13:30)
-
-### Requirement: The application SHALL support Recurrence
-Events SHALL support recurrence patterns: none, daily, weekly, monthly, yearly, with automatic expansion for display and interaction.
-
-#### Scenario: Creating recurring event
-Given an event with recurrence "weekly"
-When saved
-Then individual instances are expanded for calendar display up to 1 year ahead
-
-#### Scenario: Creating yearly event
-Given an event with recurrence "yearly"
-When saved
-Then individual instances are expanded for calendar display up to 1 year ahead
-
-#### Scenario: Displaying recurring events
-Given a recurring event on calendar view
-When event day is selected
-Then all expanded instances for that day are shown in the event list
-
-### Requirement: The application SHALL manage Event Filenames
-Event storage SHALL use sanitized titles as filenames with collision handling, storing actual filename in the Event model for correct operations.
-
-#### Scenario: Handling similar titles
-Given two events with similar titles like "Meeting" and "Meeting 2"
-When saved
-Then unique filenames are generated and stored in the model for accurate deletion
-
-### Requirement: The application SHALL validate Event Input
-Event creation/editing SHALL include validation for title sanitization, time order checks, and date ranges.
-
-#### Scenario: Validating time order
-Given start time "15:00" and end time "14:00"
-When saving
-Then an error is shown and save is prevented
-
-#### Scenario: Sanitizing titles
-Given a title with special characters
-When saving
-Then the title is sanitized for safe filename usage
-
-### Requirement: The application SHALL handle February 29th in Yearly Recurrence
-Yearly recurring events on February 29th SHALL fall back to February 28th on non-leap years to ensure annual occurrence.
-
-#### Scenario: Feb 29th event on leap year
-Given an event on February 29th, 2020 (leap year) with yearly recurrence
-When expanding instances through 2024 (leap year)
-Then instances include:
-- Base event on 2020-02-29
-- Instance on 2021-02-28 (fallback, non-leap year)
-- Instance on 2022-02-28 (fallback, non-leap year)
-- Instance on 2023-02-28 (fallback, non-leap year)
-- Instance on 2024-02-29 (leap year, original date)
-
-#### Scenario: Regular date with yearly recurrence
-Given an event on December 25th with yearly recurrence
-When expanding instances for 5 years
-Then instances are generated for December 25th of each subsequent year
 
 ### Requirement: The application SHALL Include Event CRUD Integration Tests
 The application SHALL include integration tests in `integration_test/event_crud_integration_test.dart` to verify end-to-end event management workflows through GUI, complementing existing unit tests in `test/event_provider_test.dart`. Additionally, integration tests SHALL verify immediate notification behavior when events are created or updated within notification windows (see also: `specs/notifications/spec.md`).
@@ -189,3 +118,8 @@ And events are displayed in chronological order
 And each event shows its correct title, time, and description  
 And each event can be independently edited or deleted
 
+## Cross-Reference
+- **Related Capability**: notifications spec - Immediate notification behavior
+- **Related Capability**: testing spec - Integration test requirements
+- **Related Platform**: android-workflow.md - Android notification specifics
+- **Related Platform**: linux-workflow.md - Linux notification timer specifics

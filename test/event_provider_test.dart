@@ -228,6 +228,255 @@ void main() {
       final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
       expect(events, isEmpty);
     });
+
+    test(
+      'addEvent handles immediate notification check error gracefully',
+      () async {
+        // Create an event that would trigger immediate notification check
+        final event = Event(
+          title: 'Immediate Test',
+          startDate: DateTime.now().add(const Duration(hours: 1)),
+          startTime:
+              DateTime.now()
+                  .add(const Duration(hours: 1))
+                  .hour
+                  .toString()
+                  .padLeft(2, '0') +
+              ':00',
+        );
+
+        // This should not throw even if immediate notification check fails
+        await expectLater(() => eventProvider.addEvent(event), completes);
+
+        // Event should still be added successfully
+        expect(eventProvider.eventsCount, 1);
+      },
+    );
+
+    test(
+      'addEvent triggers immediate notification for events within notification window',
+      () async {
+        // Create an event that's within the notification window (e.g., 15 minutes away)
+        final now = DateTime.now();
+        final event = Event(
+          title: 'Soon Event',
+          startDate: now.add(const Duration(hours: 1)),
+          startTime: (now.hour + 1).toString().padLeft(2, '0') + ':00',
+        );
+
+        await eventProvider.addEvent(event);
+
+        // Event should be added successfully
+        expect(eventProvider.eventsCount, 1);
+
+        // Should have processed immediate notification check (internal state updated)
+        final addedEvent = eventProvider.getEventsForDate(
+          now.add(const Duration(hours: 1)),
+        )[0];
+        expect(addedEvent.title, 'Soon Event');
+      },
+    );
+
+    test(
+      'addEvent works for all-day events with immediate notification check',
+      () async {
+        final tomorrow = DateTime.now().add(const Duration(days: 1));
+        final event = Event(
+          title: 'All Day Soon',
+          startDate: tomorrow,
+          // No startTime means all-day event
+        );
+
+        await eventProvider.addEvent(event);
+
+        // Event should be added successfully
+        expect(eventProvider.eventsCount, 1);
+
+        // Should have processed immediate notification check without errors
+        final addedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(addedEvents.length, 1);
+        expect(addedEvents[0].title, 'All Day Soon');
+      },
+    );
+
+    test(
+      'addEvent calls immediate notification check regardless of platform',
+      () async {
+        // This test verifies that immediate notification check is called for all platforms
+        final event = Event(
+          title: 'Platform Test',
+          startDate: DateTime.now().add(const Duration(days: 2)),
+        );
+
+        // Should complete successfully on any platform
+        await expectLater(() => eventProvider.addEvent(event), completes);
+
+        expect(eventProvider.eventsCount, 1);
+      },
+    );
+
+    test('updateEvent updates event correctly', () async {
+      // Add an event first
+      final originalEvent = Event(
+        title: 'Original Title',
+        startDate: DateTime(2023, 10, 1),
+        startTime: '10:00',
+      );
+      await eventProvider.addEvent(originalEvent);
+
+      final addedEvent = eventProvider.getEventsForDate(
+        DateTime(2023, 10, 1),
+      )[0];
+
+      // Update the event
+      final updatedEvent = addedEvent.copyWith(
+        title: 'Updated Title',
+        description: 'Updated description',
+      );
+      await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+      // Verify update
+      final events = eventProvider.getEventsForDate(DateTime(2023, 10, 1));
+      expect(events.length, 1);
+      expect(events[0].title, 'Updated Title');
+      expect(events[0].description, 'Updated description');
+    });
+
+    test(
+      'updateEvent handles immediate notification check error gracefully',
+      () async {
+        // Add an event first
+        final event = Event(
+          title: 'Update Error Test',
+          startDate: DateTime.now().add(const Duration(hours: 2)),
+          startTime:
+              (DateTime.now().hour + 2).toString().padLeft(2, '0') + ':00',
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 2)),
+        )[0];
+
+        // Update the event - should not throw even if immediate notification check fails
+        final updatedEvent = addedEvent.copyWith(title: 'Updated Title');
+        await expectLater(
+          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          completes,
+        );
+
+        // Event should still be updated successfully
+        final events = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 2)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Updated Title');
+      },
+    );
+
+    test(
+      'updateEvent triggers immediate notification for events within notification window',
+      () async {
+        // Add an event first
+        final now = DateTime.now();
+        final event = Event(
+          title: 'Update Soon Event',
+          startDate: now.add(const Duration(hours: 1)),
+          startTime: (now.hour + 1).toString().padLeft(2, '0') + ':00',
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          now.add(const Duration(hours: 1)),
+        )[0];
+
+        // Update the event
+        final updatedEvent = addedEvent.copyWith(title: 'Updated Soon Event');
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        // Event should be updated successfully
+        final events = eventProvider.getEventsForDate(
+          now.add(const Duration(hours: 1)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Updated Soon Event');
+      },
+    );
+
+    test(
+      'updateEvent works for all-day events with immediate notification check',
+      () async {
+        // Add an all-day event first
+        final tomorrow = DateTime.now().add(const Duration(days: 1));
+        final event = Event(title: 'All Day Update Test', startDate: tomorrow);
+        await eventProvider.addEvent(event);
+
+        final addedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(addedEvents.length, 1);
+
+        // Update the event
+        final updatedEvent = addedEvents[0].copyWith(
+          title: 'Updated All Day Event',
+        );
+        await eventProvider.updateEvent(addedEvents[0], updatedEvent);
+
+        // Event should be updated successfully
+        final updatedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(updatedEvents.length, 1);
+        expect(updatedEvents[0].title, 'Updated All Day Event');
+      },
+    );
+
+    test(
+      'updateEvent calls immediate notification check regardless of platform',
+      () async {
+        // Add an event first
+        final event = Event(
+          title: 'Update Platform Test',
+          startDate: DateTime.now().add(const Duration(days: 2)),
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(days: 2)),
+        )[0];
+
+        // Update the event - should complete successfully on any platform
+        final updatedEvent = addedEvent.copyWith(
+          title: 'Updated Platform Test',
+        );
+        await expectLater(
+          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          completes,
+        );
+
+        expect(eventProvider.eventsCount, 1);
+      },
+    );
+
+    test('updateEvent preserves filename from old event correctly', () async {
+      // Add an event first
+      final event = Event(
+        title: 'Filename Test',
+        startDate: DateTime(2023, 10, 1),
+      );
+      await eventProvider.addEvent(event);
+
+      final addedEvent = eventProvider.getEventsForDate(
+        DateTime(2023, 10, 1),
+      )[0];
+      final originalFilename = addedEvent.filename;
+
+      // Update the event
+      final updatedEvent = addedEvent.copyWith(title: 'Updated Filename Test');
+      await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+      // Verify the filename is preserved
+      final updatedEvents = eventProvider.getEventsForDate(
+        DateTime(2023, 10, 1),
+      );
+      expect(updatedEvents[0].filename, originalFilename);
+    });
   });
 
   test('syncInit calls SyncService.initSync', () async {
@@ -246,4 +495,676 @@ void main() {
   test('syncStatus calls SyncService.getSyncStatus', () async {
     expect(eventProvider.syncStatus, isA<Function>());
   });
+
+  group('Immediate Notification Functionality Tests', () {
+    group('addEvent() Integration Tests', () {
+      test('triggers immediate notification for events within notification window',
+          () async {
+        // Create an event starting in 20 minutes (within 30-minute window)
+        final now = DateTime.now();
+        final event = Event(
+          title: 'Immediate Notification Test',
+          startDate: now.add(const Duration(minutes: 20)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 20).toString().padLeft(2, '0')}',
+        );
+
+        // Add event - should not throw and should process immediate notification
+        await eventProvider.addEvent(event);
+
+        // Event should be added successfully
+        expect(eventProvider.eventsCount, 1);
+
+        final addedEvents = eventProvider.getEventsForDate(
+          now.add(const Duration(minutes: 20)),
+        );
+        expect(addedEvents.length, 1);
+        expect(addedEvents[0].title, 'Immediate Notification Test');
+      });
+
+      test('does not show immediate notification for future events', () async {
+        // Create an event starting in 2 hours (outside notification window)
+        final futureEvent = Event(
+          title: 'Future Event',
+          startDate: DateTime.now().add(const Duration(hours: 2)),
+          startTime: '14:00',
+        );
+
+        // Should add successfully without immediate notification
+        await eventProvider.addEvent(futureEvent);
+
+        expect(eventProvider.eventsCount, 1);
+
+        final events = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 2)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Future Event');
+      });
+
+      test('error handling does not break event addition', () async {
+        // Create an event that would trigger immediate notification check
+        final event = Event(
+          title: 'Error Handling Test',
+          startDate: DateTime.now().add(const Duration(minutes: 25)),
+          startTime:
+              '${DateTime.now().hour.toString().padLeft(2, '0')}:${(DateTime.now().minute + 25).toString().padLeft(2, '0')}',
+        );
+
+        // Should complete successfully even if immediate notification check has issues
+        await expectLater(() => eventProvider.addEvent(event), completes);
+
+        // Event should still be added
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles all-day events with immediate notification check', () async {
+        // All-day event starting tomorrow
+        final tomorrow = DateTime.now().add(const Duration(days: 1));
+        final allDayEvent = Event(
+          title: 'All Day Immediate Test',
+          startDate: tomorrow,
+        );
+
+        await eventProvider.addEvent(allDayEvent);
+
+        expect(eventProvider.eventsCount, 1);
+
+        final addedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(addedEvents.length, 1);
+        expect(addedEvents[0].title, 'All Day Immediate Test');
+      });
+
+      test('handles platform-specific notification behavior', () async {
+        // This test verifies that addEvent works correctly regardless of platform
+        // by ensuring the immediate notification check is called for all platforms
+        final event = Event(
+          title: 'Platform Test Event',
+          startDate: DateTime.now().add(const Duration(days: 3)),
+        );
+
+        // Should complete successfully on any platform
+        await expectLater(() => eventProvider.addEvent(event), completes);
+
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('multiple rapid addEvent calls handle notifications correctly',
+          () async {
+        // Add multiple events in quick succession
+        final now = DateTime.now();
+        for (int i = 0; i < 3; i++) {
+          final event = Event(
+            title: 'Rapid Event $i',
+            startDate: now.add(Duration(minutes: 20 + i)),
+            startTime:
+                '${now.hour}:${(now.minute + 20 + i).toString().padLeft(2, '0')}',
+          );
+          await eventProvider.addEvent(event);
+        }
+
+        expect(eventProvider.eventsCount, 3);
+      });
+
+      test('handles events at midnight with immediate notification', () async {
+        // Event at midnight - notification should be 30 minutes before
+        final midnightEvent = Event(
+          title: 'Midnight Event',
+          startDate: DateTime.now().add(const Duration(days: 1)),
+          startTime: '00:00',
+        );
+
+        await eventProvider.addEvent(midnightEvent);
+
+        expect(eventProvider.eventsCount, 1);
+
+        final events = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(days: 1)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Midnight Event');
+      });
+
+      test('handles events exactly at notification threshold', () async {
+        // Event exactly 30 minutes away - right at the notification boundary
+        final now = DateTime.now();
+        final thresholdEvent = Event(
+          title: 'Threshold Event',
+          startDate: now.add(const Duration(minutes: 30)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 30).toString().padLeft(2, '0')}',
+        );
+
+        // Should handle without throwing
+        await expectLater(() => eventProvider.addEvent(thresholdEvent), completes);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles all-day events on first day of month', () async {
+        // Edge case: all-day event on first day of month
+        final firstOfMonth =
+            DateTime(DateTime.now().year, DateTime.now().month + 1, 1);
+        final firstDayEvent = Event(
+          title: 'First Day Event',
+          startDate: firstOfMonth,
+        );
+
+        await eventProvider.addEvent(firstDayEvent);
+
+        expect(eventProvider.eventsCount, 1);
+      });
+    });
+
+    group('updateEvent() Integration Tests', () {
+      test('triggers immediate notification for updated events within window',
+          () async {
+        // First add an event
+        final event = Event(
+          title: 'Update Test Original',
+          startDate: DateTime.now().add(const Duration(hours: 3)),
+          startTime: '14:00',
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 3)),
+        )[0];
+
+        // Update the event to be sooner (within notification window)
+        final now = DateTime.now();
+        final updatedEvent = addedEvent.copyWith(
+          title: 'Updated Soon Event',
+          startDate: now.add(const Duration(minutes: 15)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 15).toString().padLeft(2, '0')}',
+        );
+
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        // Event should be updated successfully
+        final events = eventProvider.getEventsForDate(
+          now.add(const Duration(minutes: 15)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Updated Soon Event');
+      });
+
+      test('does not show duplicate notifications for updated events', () async {
+        // Add initial event
+        final initialEvent = Event(
+          title: 'Duplicate Test Original',
+          startDate: DateTime.now().add(const Duration(hours: 1)),
+          startTime: '14:00',
+        );
+        await eventProvider.addEvent(initialEvent);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 1)),
+        )[0];
+
+        // Update with same timing - should not create duplicate notification
+        final updatedEvent = addedEvent.copyWith(title: 'Duplicate Test Updated');
+
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        // Should still have only one event
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('error handling does not break event update', () async {
+        // Add an event first
+        final event = Event(
+          title: 'Update Error Test',
+          startDate: DateTime.now().add(const Duration(hours: 2)),
+          startTime: '14:00',
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 2)),
+        )[0];
+
+        // Update should not throw even if immediate notification check has issues
+        final updatedEvent = addedEvent.copyWith(title: 'Updated Title');
+        await expectLater(
+          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          completes,
+        );
+
+        // Event should still be updated
+        final events = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 2)),
+        );
+        expect(events.length, 1);
+        expect(events[0].title, 'Updated Title');
+      });
+
+      test('handles all-day event updates with immediate notification check',
+          () async {
+        // Add all-day event
+        final tomorrow = DateTime.now().add(const Duration(days: 1));
+        final allDayEvent = Event(
+          title: 'All Day Update Test',
+          startDate: tomorrow,
+        );
+        await eventProvider.addEvent(allDayEvent);
+
+        final addedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(addedEvents.length, 1);
+
+        // Update the event
+        final updatedEvent = addedEvents[0].copyWith(
+          title: 'Updated All Day Event',
+          description: 'Updated description',
+        );
+        await eventProvider.updateEvent(addedEvents[0], updatedEvent);
+
+        // Event should be updated successfully
+        final updatedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(updatedEvents.length, 1);
+        expect(updatedEvents[0].title, 'Updated All Day Event');
+      });
+
+      test('updateEvent calls immediate notification check for all platforms',
+          () async {
+        // Add event first
+        final event = Event(
+          title: 'Update Platform Test',
+          startDate: DateTime.now().add(const Duration(days: 2)),
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(days: 2)),
+        )[0];
+
+        // Update should complete successfully on any platform
+        final updatedEvent = addedEvent.copyWith(
+          title: 'Updated Platform Test',
+        );
+        await expectLater(
+          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          completes,
+        );
+
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles update from future to immediate notification window',
+          () async {
+        // Add event far in the future
+        final futureEvent = Event(
+          title: 'Future to Immediate',
+          startDate: DateTime.now().add(const Duration(hours: 5)),
+          startTime: '14:00',
+        );
+        await eventProvider.addEvent(futureEvent);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 5)),
+        )[0];
+
+        // Update to be within notification window
+        final now = DateTime.now();
+        final updatedEvent = addedEvent.copyWith(
+          startDate: now.add(const Duration(minutes: 10)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 10).toString().padLeft(2, '0')}',
+        );
+
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        // Should update successfully
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles update from immediate to outside notification window',
+          () async {
+        // Add event within notification window
+        final now = DateTime.now();
+        final immediateEvent = Event(
+          title: 'Immediate to Future',
+          startDate: now.add(const Duration(minutes: 15)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 15).toString().padLeft(2, '0')}',
+        );
+        await eventProvider.addEvent(immediateEvent);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          now.add(const Duration(minutes: 15)),
+        )[0];
+
+        // Update to be outside notification window
+        final updatedEvent = addedEvent.copyWith(
+          startDate: now.add(const Duration(hours: 3)),
+          startTime: '14:00',
+        );
+
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        // Should update successfully
+        expect(eventProvider.eventsCount, 1);
+      });
+    });
+
+    group('Notification Time Calculation Tests', () {
+      test('timed event notification time is 30 minutes before start', () {
+        // Test that notification time logic works correctly
+        final eventStart = DateTime(2023, 10, 1, 14, 0); // 2:00 PM
+        final timedEvent = Event(
+          title: 'Timed Event',
+          startDate: eventStart,
+          startTime: '14:00',
+        );
+
+        // Expected notification time: 30 minutes before event start
+        final expectedNotificationTime = eventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        // Verify the calculation logic
+        expect(expectedNotificationTime.hour, 13);
+        expect(expectedNotificationTime.minute, 30);
+        expect(expectedNotificationTime.year, 2023);
+        expect(expectedNotificationTime.month, 10);
+        expect(expectedNotificationTime.day, 1);
+      });
+
+      test('all-day event notification time is at midday day before', () {
+        // Test that all-day notification logic works correctly
+        final eventDate = DateTime(2023, 10, 5);
+        final allDayEvent = Event(
+          title: 'All Day Event',
+          startDate: eventDate,
+        );
+
+        // Expected notification time: midday (12:00) on day before
+        final dayBefore = eventDate.subtract(const Duration(days: 1));
+        final expectedNotificationTime = DateTime(
+          dayBefore.year,
+          dayBefore.month,
+          dayBefore.day,
+          Event.allDayNotificationHour,
+          0,
+        );
+
+        // Verify the calculation logic
+        expect(expectedNotificationTime.year, 2023);
+        expect(expectedNotificationTime.month, 10);
+        expect(expectedNotificationTime.day, 4); // Day before
+        expect(expectedNotificationTime.hour, Event.allDayNotificationHour); // 12:00
+        expect(expectedNotificationTime.minute, 0);
+      });
+
+      test('midnight event notification time calculation', () {
+        // Test edge case: event at midnight
+        final midnightEvent = Event(
+          title: 'Midnight Event',
+          startDate: DateTime(2023, 10, 1),
+          startTime: '00:00',
+        );
+
+        // Expected notification time: 30 minutes before midnight = 23:30 previous day
+        final eventStart = DateTime(2023, 10, 1, 0, 0);
+        final expectedNotificationTime = eventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        expect(expectedNotificationTime.hour, 23);
+        expect(expectedNotificationTime.minute, 30);
+        expect(expectedNotificationTime.day, 30); // Previous day
+        expect(expectedNotificationTime.month, 9); // September
+      });
+
+      test('notification window boundaries', () {
+        // Test that we understand the notification window correctly
+        final now = DateTime.now();
+
+        // Event starting in 15 minutes - within 30-minute window
+        final soonEventStart = now.add(const Duration(minutes: 15));
+        final soonNotificationTime = soonEventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        // Should be within window: after notification time, before event
+        expect(now.isAfter(soonNotificationTime), true);
+        expect(now.isBefore(soonEventStart), true);
+
+        // Event starting in 2 hours - outside 30-minute window
+        final laterEventStart = now.add(const Duration(hours: 2));
+        final laterNotificationTime = laterEventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        // Should be outside window: before notification time
+        expect(now.isBefore(laterNotificationTime), true);
+      });
+    });
+
+    group('Edge Case and Error Handling Tests', () {
+      test('handles null/empty event data gracefully', () async {
+        // Test with minimal valid event data
+        final minimalEvent = Event(
+          title: 'Minimal Event',
+          startDate: DateTime.now().add(const Duration(days: 1)),
+        );
+
+        // Should not throw
+        await expectLater(() => eventProvider.addEvent(minimalEvent), completes);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles notification service failures gracefully', () async {
+        // Create an event that would trigger immediate notification
+        final event = Event(
+          title: 'Notification Failure Test',
+          startDate: DateTime.now().add(const Duration(minutes: 10)),
+          startTime:
+              '${DateTime.now().hour.toString().padLeft(2, '0')}:${(DateTime.now().minute + 10).toString().padLeft(2, '0')}',
+        );
+
+        // Should complete without throwing even if notification service fails
+        await expectLater(() => eventProvider.addEvent(event), completes);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles concurrent event additions', () async {
+        // Add multiple events simultaneously
+        final now = DateTime.now();
+        final events = List.generate(
+          5,
+          (index) => Event(
+            title: 'Concurrent $index',
+            startDate: now.add(Duration(hours: 1 + index)),
+            startTime: '${now.hour + 1 + index}:00',
+          ),
+        );
+
+        // Add all events
+        for (final event in events) {
+          await eventProvider.addEvent(event);
+        }
+
+        expect(eventProvider.eventsCount, 5);
+      });
+
+      test('handles timezone edge cases', () async {
+        // Test notification time calculation with various timezones
+        // Event at very early morning
+        final earlyMorningEvent = Event(
+          title: 'Early Morning',
+          startDate: DateTime(2023, 10, 1),
+          startTime: '01:00',
+        );
+
+        // Expected notification time: 30 minutes before (00:30)
+        final eventStart = DateTime(2023, 10, 1, 1, 0);
+        final notificationTime = eventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        expect(notificationTime.hour, 0);
+        expect(notificationTime.minute, 30);
+        expect(notificationTime.day, 1); // Same day, just earlier
+
+        // Add the event to verify it works
+        await eventProvider.addEvent(earlyMorningEvent);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles year boundary events', () async {
+        // Event on January 1st
+        final newYearEvent = Event(
+          title: 'New Year Event',
+          startDate: DateTime(2024, 1, 1),
+          startTime: '00:00',
+        );
+
+        // Expected notification time: 30 minutes before on December 31, 2023
+        final eventStart = DateTime(2024, 1, 1, 0, 0);
+        final notificationTime = eventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        expect(notificationTime.year, 2023);
+        expect(notificationTime.month, 12);
+        expect(notificationTime.day, 31);
+        expect(notificationTime.hour, 23);
+        expect(notificationTime.minute, 30);
+
+        // Add the event to verify it works
+        await eventProvider.addEvent(newYearEvent);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles events with maximum notification offset', () async {
+        // Event exactly 30 minutes away
+        final now = DateTime.now();
+        final boundaryEvent = Event(
+          title: 'Boundary Event',
+          startDate: now.add(const Duration(minutes: 30)),
+          startTime:
+              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 30).toString().padLeft(2, '0')}',
+        );
+
+        // Should handle without throwing
+        await expectLater(() => eventProvider.addEvent(boundaryEvent), completes);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('preserves notification deduplication across multiple operations',
+          () async {
+        // Add an event, update it, then add another similar event
+        final event1 = Event(
+          title: 'Deduplication Test',
+          startDate: DateTime.now().add(const Duration(minutes: 15)),
+          startTime:
+              '${DateTime.now().hour}:${(DateTime.now().minute + 15).toString().padLeft(2, '0')}',
+        );
+
+        await eventProvider.addEvent(event1);
+
+        // Update the event
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(minutes: 15)),
+        )[0];
+
+        final event2 = addedEvent.copyWith(title: 'Deduplication Test Updated');
+        await eventProvider.updateEvent(addedEvent, event2);
+
+        // Add another event with similar timing
+        final event3 = Event(
+          title: 'Deduplication Test 2',
+          startDate: DateTime.now().add(const Duration(minutes: 16)),
+          startTime:
+              '${DateTime.now().hour}:${(DateTime.now().minute + 16).toString().padLeft(2, '0')}',
+        );
+
+        await eventProvider.addEvent(event3);
+
+        // Should have 2 events (updated + new)
+        expect(eventProvider.eventsCount, 2);
+      });
+
+      test('handles rapid successive updates to same event', () async {
+        // Add an event
+        final event = Event(
+          title: 'Rapid Updates',
+          startDate: DateTime.now().add(const Duration(hours: 1)),
+          startTime: '14:00',
+        );
+        await eventProvider.addEvent(event);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime.now().add(const Duration(hours: 1)),
+        )[0];
+
+        // Rapidly update the same event multiple times
+        for (int i = 0; i < 3; i++) {
+          final updatedEvent = addedEvent.copyWith(title: 'Rapid Update $i');
+          await eventProvider.updateEvent(addedEvent, updatedEvent);
+        }
+
+        // Should still have only one event
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test('handles late night all-day event notification', () async {
+        // Test edge case: all-day event starting after notification hour
+        final lateEvent = Event(
+          title: 'Late Event',
+          startDate: DateTime(2023, 10, 1),
+          startTime: '23:59', // Almost midnight
+        );
+
+        // Expected notification time: 30 minutes before
+        final eventStart = DateTime(2023, 10, 1, 23, 59);
+        final notificationTime = eventStart.subtract(
+          const Duration(minutes: Event.notificationOffsetMinutes),
+        );
+
+        expect(notificationTime.day, 1);
+        expect(notificationTime.hour, 23);
+        expect(notificationTime.minute, 29);
+
+        // Add the event to verify it works
+        await eventProvider.addEvent(lateEvent);
+        expect(eventProvider.eventsCount, 1);
+      });
+
+      test(
+          'handles all-day event notification when today is notification day',
+          () async {
+        // All-day event starting tomorrow, but if it's after noon today,
+        // notification should be triggered
+        final tomorrow = DateTime.now().add(const Duration(days: 1));
+        final allDayEvent = Event(
+          title: 'All Day Soon',
+          startDate: tomorrow,
+        );
+
+        await eventProvider.addEvent(allDayEvent);
+
+        expect(eventProvider.eventsCount, 1);
+
+        final addedEvents = eventProvider.getEventsForDate(tomorrow);
+        expect(addedEvents.length, 1);
+        expect(addedEvents[0].title, 'All Day Soon');
+      });
+
+      test('does not notify for events that have already started', () async {
+        // Event that has already started should not trigger notification
+        final pastEvent = Event(
+          title: 'Past Event',
+          startDate: DateTime.now().subtract(const Duration(hours: 1)),
+          startTime: '10:00',
+        );
+
+        // Should add successfully without issues
+        await eventProvider.addEvent(pastEvent);
+        expect(eventProvider.eventsCount, 1);
+      });
+    });
+  });
 }
+

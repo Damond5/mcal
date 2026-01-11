@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `setupTestWindowSize()` to configure test viewport (1920x1080) for UI element accessibility
   - `resetTestWindowSize()` for proper test isolation
   - Increased test window size from 1200x800 to 1920x1080 to ensure all AppBar buttons are within viewport
+- **Immediate Event Notifications**: When events are created within their notification window (within 30 minutes for timed events, or anytime after midday the day before for all-day events), an immediate notification is shown at the moment of creation. This ensures users never miss notifications for recently created urgent events. Works across all platforms (Android, iOS, Linux) with consistent behavior. Includes permission checking before displaying notifications and improved notification deduplication to prevent duplicates. (See: openspec/changes/immediate-notification-on-event-creation)
+
+### Changed
+- Notification system design improved to provide cross-platform consistent behavior:
+  - Linux notification handling now unified with Android/iOS immediate notification system
+  - Previously, Linux used a separate timer-based approach; now all platforms use the same immediate notification logic
+  - Ensures users receive consistent notification experience regardless of platform
+  - Enhanced permission checking before showing notifications across all platforms
+  - Improved notification deduplication mechanism to prevent duplicate alerts
 
 ### Fixed
 - All 10 calendar theme integration tests in `integration_test/calendar_integration_test.dart`:

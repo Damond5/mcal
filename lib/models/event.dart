@@ -120,7 +120,20 @@ class Event {
           final parts = dateStr.split(' to ');
           startDate = _parseDate(parts[0]);
           if (parts.length > 1) endDate = _parseDate(parts[1]);
+        } else if (trimmed.startsWith('- **Start Time**: ')) {
+          final timeStr = trimmed.substring(17).trim();
+          if (timeStr == 'all-day') {
+            startTime = null;
+            endTime = null;
+          } else {
+            final parts = timeStr.split(' to ');
+            startTime = parts[0];
+            if (parts.length > 1) endTime = parts[1];
+          }
         } else if (trimmed.startsWith('- **Time**: ')) {
+          log(
+            'Warning: Deprecated time format detected. Please use "- **Start Time**: " instead.',
+          );
           final timeStr = trimmed.substring(11).trim();
           if (timeStr == 'all-day') {
             startTime = null;
@@ -217,7 +230,7 @@ class Event {
     return '''# Event: $title
 
 - **Date**: $dateStr
-- **Time**: $timeStr
+- **Start Time**: $timeStr
 - **Description**: $description
 - **Recurrence**: $recurrence
 ''';

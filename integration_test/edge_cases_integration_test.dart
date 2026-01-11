@@ -808,7 +808,7 @@ void main() {
 Valid event
 
 - **Date**: $dateStr
-- **Time**: 14:00 to 15:00
+- **Start Time**: 14:00 to 15:00
 - **Recurrence**: none
 ''';
       final validFile = File('${eventsDir.path}/valid_event.md');
@@ -824,7 +824,7 @@ Valid event
 First event
 
 - **Date**: $dateStr
-- **Time**: 09:00 to 10:00
+- **Start Time**: 09:00 to 10:00
 - **Recurrence**: none
 ''';
       final event1File = File('${eventsDir.path}/event1.md');
@@ -842,7 +842,7 @@ First event
 Second event
 
 - **Date**: $dateStr
-- **Time**: 11:00 to 12:00
+- **Start Time**: 11:00 to 12:00
 - **Recurrence**: none
 ''';
       final event2File = File('${eventsDir.path}/event2.md');

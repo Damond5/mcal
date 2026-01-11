@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Immediate Event Notifications**: When events are created within their notification window (within 30 minutes for timed events, or anytime after midday the day before for all-day events), an immediate notification is shown at the moment of creation. This ensures users never miss notifications for recently created urgent events. Works across all platforms (Android, iOS, Linux) with consistent behavior. Includes permission checking before displaying notifications and improved notification deduplication to prevent duplicates. (See: openspec/changes/immediate-notification-on-event-creation)
 
 ### Changed
+- Renamed Markdown field label from "- **Time**: " to "- **Start Time**: " to align MCAL with the rcal specification format and improve semantic clarity. Maintains backward compatibility with old format during transition period.
 - Notification system design improved to provide cross-platform consistent behavior:
   - Linux notification handling now unified with Android/iOS immediate notification system
   - Previously, Linux used a separate timer-based approach; now all platforms use the same immediate notification logic

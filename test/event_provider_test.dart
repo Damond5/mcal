@@ -585,11 +585,20 @@ void main() {
       'updateEvent handles immediate notification check error gracefully',
       () async {
         // Add an event first
+        final now = DateTime.now();
+        final eventDate = now.add(const Duration(hours: 2));
+        // Generate a valid time using proper DateTime arithmetic
+        final timeDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          now.hour + 2,
+          0,
+        );
         final event = Event(
           title: 'Update Error Test',
-          startDate: DateTime.now().add(const Duration(hours: 2)),
-          startTime:
-              (DateTime.now().hour + 2).toString().padLeft(2, '0') + ':00',
+          startDate: eventDate,
+          startTime: '${timeDateTime.hour.toString().padLeft(2, '0')}:00',
         );
         await eventProvider.addEvent(event);
 
@@ -618,10 +627,19 @@ void main() {
       () async {
         // Add an event first
         final now = DateTime.now();
+        final eventDate = now.add(const Duration(hours: 1));
+        // Generate a valid time using proper DateTime arithmetic
+        final timeDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          now.hour + 1,
+          0,
+        );
         final event = Event(
           title: 'Update Soon Event',
-          startDate: now.add(const Duration(hours: 1)),
-          startTime: (now.hour + 1).toString().padLeft(2, '0') + ':00',
+          startDate: eventDate,
+          startTime: '${timeDateTime.hour.toString().padLeft(2, '0')}:00',
         );
         await eventProvider.addEvent(event);
 
@@ -1235,14 +1253,15 @@ void main() {
       test('handles concurrent event additions', () async {
         // Add multiple events simultaneously
         final now = DateTime.now();
-        final events = List.generate(
-          5,
-          (index) => Event(
+        final events = List.generate(5, (index) {
+          // Use proper DateTime arithmetic to avoid hour overflow
+          final eventTime = now.add(Duration(hours: 1 + index));
+          return Event(
             title: 'Concurrent $index',
-            startDate: now.add(Duration(hours: 1 + index)),
-            startTime: '${now.hour + 1 + index}:00',
-          ),
-        );
+            startDate: eventTime,
+            startTime: '${eventTime.hour.toString().padLeft(2, '0')}:00',
+          );
+        });
 
         // Add all events
         for (final event in events) {

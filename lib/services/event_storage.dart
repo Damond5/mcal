@@ -113,14 +113,20 @@ class EventStorage {
 
   Future<String> updateEvent(Event oldEvent, Event newEvent) async {
     final dir = await _getCalendarDirectory();
-    // Use old event's filename if available
+    // Use old event's filename if available, preserve it unless explicitly changed
     final oldFileName = oldEvent.filename ?? await _getUniqueFileName(oldEvent);
     final oldFile = File('$dir/$oldFileName');
     if (await oldFile.exists()) {
       await oldFile.delete();
     }
-    // Save new
-    return await saveEvent(newEvent);
+
+    // Preserve the original filename unless explicitly provided in the new event
+    final eventWithFilename = newEvent.filename != null
+        ? newEvent
+        : newEvent.copyWith(filename: oldFileName);
+
+    // Save new event with preserved filename
+    return await saveEvent(eventWithFilename);
   }
 
   Future<void> deleteEvent(Event event) async {

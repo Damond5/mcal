@@ -126,9 +126,19 @@ class Event {
             startTime = null;
             endTime = null;
           } else {
-            final parts = timeStr.split(' to ');
-            startTime = parts[0];
-            if (parts.length > 1) endTime = parts[1];
+            // Use regex to handle flexible spacing around "to"
+            final timeRangeMatch = RegExp(
+              r'^(\d{2}:\d{2})\s*to\s*(\d{2}:\d{2})$',
+            ).firstMatch(timeStr);
+            if (timeRangeMatch != null) {
+              startTime = timeRangeMatch.group(1);
+              endTime = timeRangeMatch.group(2);
+            } else {
+              // Fallback to simple split for backward compatibility
+              final parts = timeStr.split(' to ');
+              startTime = parts[0].trim();
+              if (parts.length > 1) endTime = parts[1].trim();
+            }
           }
         } else if (trimmed.startsWith('- **Time**: ')) {
           log(
@@ -139,9 +149,19 @@ class Event {
             startTime = null;
             endTime = null;
           } else {
-            final parts = timeStr.split(' to ');
-            startTime = parts[0];
-            if (parts.length > 1) endTime = parts[1];
+            // Use regex to handle flexible spacing around "to"
+            final timeRangeMatch = RegExp(
+              r'^(\d{2}:\d{2})\s*to\s*(\d{2}:\d{2})$',
+            ).firstMatch(timeStr);
+            if (timeRangeMatch != null) {
+              startTime = timeRangeMatch.group(1);
+              endTime = timeRangeMatch.group(2);
+            } else {
+              // Fallback to simple split for backward compatibility
+              final parts = timeStr.split(' to ');
+              startTime = parts[0].trim();
+              if (parts.length > 1) endTime = parts[1].trim();
+            }
           }
         } else if (trimmed.startsWith('- **Description**: ')) {
           description = trimmed.substring(18).trim();

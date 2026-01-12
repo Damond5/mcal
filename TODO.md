@@ -1,7 +1,4 @@
 # TODO
-- fix unit tests
-  - Other time generation bugs (generating hours > 23, like 25:00) 
-  - Parsing edge cases
 
 ## Other Tasks
 - Integration Testing: Perform end-to-end tests with actual Git repos (initialized and uninitialized) to ensure sync operations (init, pull, push, status) handle all edge cases

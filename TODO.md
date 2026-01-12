@@ -1,6 +1,8 @@
 # TODO
 - fix unit tests
-  - The unit test failures are caused by test code that doesn't handle minute overflow properly (e.g., "14:65" instead of "15:05"). These are unrelated to the rename implementation.
+  - Test framework compatibility issues with expectLater (10 failures)
+  - Other time generation bugs (generating hours > 23, like 25:00) 
+  - Parsing edge cases
 
 ## Other Tasks
 - Integration Testing: Perform end-to-end tests with actual Git repos (initialized and uninitialized) to ensure sync operations (init, pull, push, status) handle all edge cases

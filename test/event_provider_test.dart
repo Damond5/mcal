@@ -8,6 +8,15 @@ import "package:mcal/frb_generated.dart";
 import "event_provider_test.mocks.dart";
 import "test_helpers.dart";
 
+/// Helper function to add minutes to a time and return properly formatted HH:MM string
+/// Handles minute overflow (e.g., 14:60 becomes 15:00)
+String _addMinutes(int hour, int minute, int offset) {
+  final totalMinutes = minute + offset;
+  final newHour = hour + totalMinutes ~/ 60;
+  final newMinute = totalMinutes % 60;
+  return '${newHour.toString().padLeft(2, '0')}:${newMinute.toString().padLeft(2, '0')}';
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -736,8 +745,7 @@ void main() {
           final event = Event(
             title: 'Immediate Notification Test',
             startDate: now.add(const Duration(minutes: 20)),
-            startTime:
-                '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 20).toString().padLeft(2, '0')}',
+            startTime: _addMinutes(now.hour, now.minute, 20),
           );
 
           // Add event - should not throw and should process immediate notification
@@ -779,8 +787,11 @@ void main() {
         final event = Event(
           title: 'Error Handling Test',
           startDate: DateTime.now().add(const Duration(minutes: 25)),
-          startTime:
-              '${DateTime.now().hour.toString().padLeft(2, '0')}:${(DateTime.now().minute + 25).toString().padLeft(2, '0')}',
+          startTime: _addMinutes(
+            DateTime.now().hour,
+            DateTime.now().minute,
+            25,
+          ),
         );
 
         // Should complete successfully even if immediate notification check has issues
@@ -833,8 +844,7 @@ void main() {
             final event = Event(
               title: 'Rapid Event $i',
               startDate: now.add(Duration(minutes: 20 + i)),
-              startTime:
-                  '${now.hour}:${(now.minute + 20 + i).toString().padLeft(2, '0')}',
+              startTime: _addMinutes(now.hour, now.minute, 20 + i),
             );
             await eventProvider.addEvent(event);
           }
@@ -868,8 +878,7 @@ void main() {
         final thresholdEvent = Event(
           title: 'Threshold Event',
           startDate: now.add(const Duration(minutes: 30)),
-          startTime:
-              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 30).toString().padLeft(2, '0')}',
+          startTime: _addMinutes(now.hour, now.minute, 30),
         );
 
         // Should handle without throwing
@@ -919,8 +928,7 @@ void main() {
           final updatedEvent = addedEvent.copyWith(
             title: 'Updated Soon Event',
             startDate: now.add(const Duration(minutes: 15)),
-            startTime:
-                '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 15).toString().padLeft(2, '0')}',
+            startTime: _addMinutes(now.hour, now.minute, 15),
           );
 
           await eventProvider.updateEvent(addedEvent, updatedEvent);
@@ -1063,8 +1071,7 @@ void main() {
           final now = DateTime.now();
           final updatedEvent = addedEvent.copyWith(
             startDate: now.add(const Duration(minutes: 10)),
-            startTime:
-                '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 10).toString().padLeft(2, '0')}',
+            startTime: _addMinutes(now.hour, now.minute, 10),
           );
 
           await eventProvider.updateEvent(addedEvent, updatedEvent);
@@ -1082,8 +1089,7 @@ void main() {
           final immediateEvent = Event(
             title: 'Immediate to Future',
             startDate: now.add(const Duration(minutes: 15)),
-            startTime:
-                '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 15).toString().padLeft(2, '0')}',
+            startTime: _addMinutes(now.hour, now.minute, 15),
           );
           await eventProvider.addEvent(immediateEvent);
 
@@ -1220,8 +1226,11 @@ void main() {
         final event = Event(
           title: 'Notification Failure Test',
           startDate: DateTime.now().add(const Duration(minutes: 10)),
-          startTime:
-              '${DateTime.now().hour.toString().padLeft(2, '0')}:${(DateTime.now().minute + 10).toString().padLeft(2, '0')}',
+          startTime: _addMinutes(
+            DateTime.now().hour,
+            DateTime.now().minute,
+            10,
+          ),
         );
 
         // Should complete without throwing even if notification service fails
@@ -1304,8 +1313,7 @@ void main() {
         final boundaryEvent = Event(
           title: 'Boundary Event',
           startDate: now.add(const Duration(minutes: 30)),
-          startTime:
-              '${now.hour.toString().padLeft(2, '0')}:${(now.minute + 30).toString().padLeft(2, '0')}',
+          startTime: _addMinutes(now.hour, now.minute, 30),
         );
 
         // Should handle without throwing
@@ -1324,7 +1332,7 @@ void main() {
             title: 'Deduplication Test',
             startDate: DateTime.now().add(const Duration(minutes: 15)),
             startTime:
-                '${DateTime.now().hour}:${(DateTime.now().minute + 15).toString().padLeft(2, '0')}',
+                '${DateTime.now().hour}:${_addMinutes(DateTime.now().hour, DateTime.now().minute, 15).split(':')[1]}',
           );
 
           await eventProvider.addEvent(event1);
@@ -1344,7 +1352,7 @@ void main() {
             title: 'Deduplication Test 2',
             startDate: DateTime.now().add(const Duration(minutes: 16)),
             startTime:
-                '${DateTime.now().hour}:${(DateTime.now().minute + 16).toString().padLeft(2, '0')}',
+                '${DateTime.now().hour}:${_addMinutes(DateTime.now().hour, DateTime.now().minute, 16).split(':')[1]}',
           );
 
           await eventProvider.addEvent(event3);

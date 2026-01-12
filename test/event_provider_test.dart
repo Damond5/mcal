@@ -485,7 +485,7 @@ void main() {
         );
 
         // This should not throw even if immediate notification check fails
-        await expectLater(() => eventProvider.addEvent(event), completes);
+        await expectLater(eventProvider.addEvent(event), completes);
 
         // Event should still be added successfully
         expect(eventProvider.eventsCount, 1);
@@ -548,7 +548,7 @@ void main() {
         );
 
         // Should complete successfully on any platform
-        await expectLater(() => eventProvider.addEvent(event), completes);
+        await expectLater(eventProvider.addEvent(event), completes);
 
         expect(eventProvider.eventsCount, 1);
       },
@@ -600,7 +600,7 @@ void main() {
         // Update the event - should not throw even if immediate notification check fails
         final updatedEvent = addedEvent.copyWith(title: 'Updated Title');
         await expectLater(
-          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          eventProvider.updateEvent(addedEvent, updatedEvent),
           completes,
         );
 
@@ -685,7 +685,7 @@ void main() {
           title: 'Updated Platform Test',
         );
         await expectLater(
-          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          eventProvider.updateEvent(addedEvent, updatedEvent),
           completes,
         );
 
@@ -795,7 +795,7 @@ void main() {
         );
 
         // Should complete successfully even if immediate notification check has issues
-        await expectLater(() => eventProvider.addEvent(event), completes);
+        await expectLater(eventProvider.addEvent(event), completes);
 
         // Event should still be added
         expect(eventProvider.eventsCount, 1);
@@ -830,7 +830,7 @@ void main() {
         );
 
         // Should complete successfully on any platform
-        await expectLater(() => eventProvider.addEvent(event), completes);
+        await expectLater(eventProvider.addEvent(event), completes);
 
         expect(eventProvider.eventsCount, 1);
       });
@@ -882,10 +882,7 @@ void main() {
         );
 
         // Should handle without throwing
-        await expectLater(
-          () => eventProvider.addEvent(thresholdEvent),
-          completes,
-        );
+        await expectLater(eventProvider.addEvent(thresholdEvent), completes);
         expect(eventProvider.eventsCount, 1);
       });
 
@@ -985,7 +982,7 @@ void main() {
         // Update should not throw even if immediate notification check has issues
         final updatedEvent = addedEvent.copyWith(title: 'Updated Title');
         await expectLater(
-          () => eventProvider.updateEvent(addedEvent, updatedEvent),
+          eventProvider.updateEvent(addedEvent, updatedEvent),
           completes,
         );
 
@@ -1044,7 +1041,7 @@ void main() {
             title: 'Updated Platform Test',
           );
           await expectLater(
-            () => eventProvider.updateEvent(addedEvent, updatedEvent),
+            eventProvider.updateEvent(addedEvent, updatedEvent),
             completes,
           );
 
@@ -1214,10 +1211,7 @@ void main() {
         );
 
         // Should not throw
-        await expectLater(
-          () => eventProvider.addEvent(minimalEvent),
-          completes,
-        );
+        await expectLater(eventProvider.addEvent(minimalEvent), completes);
         expect(eventProvider.eventsCount, 1);
       });
 
@@ -1234,7 +1228,7 @@ void main() {
         );
 
         // Should complete without throwing even if notification service fails
-        await expectLater(() => eventProvider.addEvent(event), completes);
+        await expectLater(eventProvider.addEvent(event), completes);
         expect(eventProvider.eventsCount, 1);
       });
 
@@ -1317,10 +1311,7 @@ void main() {
         );
 
         // Should handle without throwing
-        await expectLater(
-          () => eventProvider.addEvent(boundaryEvent),
-          completes,
-        );
+        await expectLater(eventProvider.addEvent(boundaryEvent), completes);
         expect(eventProvider.eventsCount, 1);
       });
 

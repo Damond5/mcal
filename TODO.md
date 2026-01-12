@@ -1,6 +1,5 @@
 # TODO
 - fix unit tests
-  - Test framework compatibility issues with expectLater (10 failures)
   - Other time generation bugs (generating hours > 23, like 25:00) 
   - Parsing edge cases
 

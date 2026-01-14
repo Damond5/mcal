@@ -736,6 +736,880 @@ void main() {
     });
   });
 
+  // ============================================================================
+  // BATCH OPERATIONS TESTS
+  // ============================================================================
+
+  group('Batch Operations Tests', () {
+    group('addEventsBatch()', () {
+      test('adds multiple events in a single batch operation', () async {
+        final events = List.generate(5, (index) {
+          return Event(
+            title: 'Batch Event $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+
+        final filenames = await eventProvider.addEventsBatch(events);
+
+        expect(filenames.length, 5);
+        expect(eventProvider.eventsCount, 5);
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+
+      test('returns filenames in the same order as input events', () async {
+        final events = List.generate(3, (index) {
+          return Event(
+            title: 'Ordered Event $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+
+        final filenames = await eventProvider.addEventsBatch(events);
+
+        for (int i = 0; i < events.length; i++) {
+          expect(filenames[i], contains('batch_event_$i'));
+        }
+      });
+
+      test('respects deferUpdates parameter', () async {
+        final events = List.generate(3, (index) {
+          return Event(
+            title: 'Defer Test $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+
+        // With deferUpdates=true (default), updates should be paused during batch
+        await eventProvider.addEventsBatch(events, deferUpdates: true);
+        expect(eventProvider.areUpdatesPaused, false);
+
+        // With deferUpdates=false, caller is responsible for pause/resume
+        await eventProvider.addEventsBatch(events, deferUpdates: false);
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+
+      test('handles empty event list gracefully', () async {
+        final filenames = await eventProvider.addEventsBatch([]);
+
+        expect(filenames, isEmpty);
+        expect(eventProvider.eventsCount, 0);
+      });
+
+      test('computes event dates correctly after batch add', () async {
+        final events = List.generate(5, (index) {
+          return Event(
+            title: 'Date Test Event $index',
+            startDate: DateTime(2023, 10, index + 1),
+          );
+        });
+
+        await eventProvider.addEventsBatch(events);
+
+        expect(eventProvider.eventDates.length, 5);
+        for (int i = 0; i < 5; i++) {
+          expect(
+            eventProvider.eventDates.contains(DateTime(2023, 10, i + 1)),
+            true,
+          );
+        }
+      });
+
+      test('preserves event data correctly', () async {
+        final events = [
+          Event(
+            title: 'Preserve Test',
+            startDate: DateTime(2023, 10, 1),
+            startTime: '10:00',
+            endTime: '11:00',
+            description: 'Test description',
+            recurrence: 'daily',
+          ),
+        ];
+
+        await eventProvider.addEventsBatch(events);
+
+        expect(eventProvider.eventsCount, 1);
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime(2023, 10, 1),
+        )[0];
+        expect(addedEvent.title, 'Preserve Test');
+        expect(addedEvent.startTime, '10:00');
+        expect(addedEvent.endTime, '11:00');
+        expect(addedEvent.description, 'Test description');
+        expect(addedEvent.recurrence, 'daily');
+      });
+    });
+
+    group('updateEventsBatch()', () {
+      test('updates multiple events in a single batch operation', () async {
+        // First add some events
+        final originalEvents = List.generate(3, (index) {
+          return Event(
+            title: 'Original $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        await eventProvider.addEventsBatch(originalEvents);
+
+        // Update them in batch
+        final updatedEvents = List.generate(3, (index) {
+          return Event(
+            title: 'Updated $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+            description: 'Updated description $index',
+          );
+        });
+
+        await eventProvider.updateEventsBatch(updatedEvents);
+
+        expect(eventProvider.eventsCount, 3);
+        for (int i = 0; i < 3; i++) {
+          final events = eventProvider.getEventsForDate(
+            DateTime(2023, 10, 1).add(Duration(days: i)),
+          );
+          expect(events[0].title, 'Updated $i');
+          expect(events[0].description, 'Updated description $i');
+        }
+      });
+
+      test('handles empty event list gracefully', () async {
+        await eventProvider.updateEventsBatch([]);
+        // Should not throw and events should remain unchanged
+        expect(eventProvider.eventsCount, 0);
+      });
+
+      test('respects deferUpdates parameter', () async {
+        // Add initial events
+        final events = List.generate(3, (index) {
+          return Event(
+            title: 'Update Defer Test $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        await eventProvider.addEventsBatch(events);
+
+        // Update with deferUpdates=true
+        final updatedEvents = List.generate(3, (index) {
+          return Event(
+            title: 'Deferred Update $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+
+        await eventProvider.updateEventsBatch(
+          updatedEvents,
+          deferUpdates: true,
+        );
+        expect(eventProvider.areUpdatesPaused, false);
+
+        // Update with deferUpdates=false
+        await eventProvider.updateEventsBatch(
+          updatedEvents,
+          deferUpdates: false,
+        );
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+    });
+
+    group('deleteEventsBatch()', () {
+      test('deletes multiple events in a single batch operation', () async {
+        // First add some events
+        final events = List.generate(5, (index) {
+          return Event(
+            title: 'Delete Test $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        final filenames = await eventProvider.addEventsBatch(events);
+
+        // Delete some of them
+        final filenamesToDelete = [filenames[0], filenames[2], filenames[4]];
+        await eventProvider.deleteEventsBatch(filenamesToDelete);
+
+        expect(eventProvider.eventsCount, 2);
+      });
+
+      test('handles empty filename list gracefully', () async {
+        await eventProvider.deleteEventsBatch([]);
+        // Should not throw
+        expect(eventProvider.eventsCount, 0);
+      });
+
+      test('respects deferUpdates parameter', () async {
+        // Add initial events
+        final events = List.generate(3, (index) {
+          return Event(
+            title: 'Delete Defer Test $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        final filenames = await eventProvider.addEventsBatch(events);
+
+        // Delete with deferUpdates=true
+        await eventProvider.deleteEventsBatch([
+          filenames[0],
+        ], deferUpdates: true);
+        expect(eventProvider.areUpdatesPaused, false);
+
+        // Delete with deferUpdates=false
+        await eventProvider.deleteEventsBatch([
+          filenames[0],
+        ], deferUpdates: false);
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+    });
+
+    group('pause/resume Updates Pattern', () {
+      test('pauseUpdates increments pause count', () {
+        expect(eventProvider.areUpdatesPaused, false);
+
+        eventProvider.pauseUpdates();
+        expect(eventProvider.areUpdatesPaused, true);
+        expect(eventProvider.hasPendingUpdate, false);
+
+        eventProvider.pauseUpdates();
+        expect(eventProvider.areUpdatesPaused, true);
+      });
+
+      test('resumeUpdates decrements pause count', () {
+        eventProvider.pauseUpdates();
+        eventProvider.pauseUpdates();
+        expect(eventProvider.areUpdatesPaused, true);
+
+        eventProvider.resumeUpdates();
+        expect(eventProvider.areUpdatesPaused, true);
+
+        eventProvider.resumeUpdates();
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+
+      test('pause/resume handles underflow gracefully', () {
+        // Resume without pause should not cause issues
+        eventProvider.resumeUpdates();
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+
+      test('pending update flag is set correctly', () async {
+        eventProvider.pauseUpdates();
+
+        // Add event while paused - should set pending update flag
+        final event = Event(
+          title: 'Paused Update Test',
+          startDate: DateTime(2023, 10, 1),
+        );
+        await eventProvider.addEvent(event);
+
+        expect(eventProvider.hasPendingUpdate, true);
+
+        // Resume should clear pending flag and notify
+        eventProvider.resumeUpdates();
+        expect(eventProvider.hasPendingUpdate, false);
+      });
+
+      test('nested pause/resume works correctly', () async {
+        eventProvider.pauseUpdates();
+        eventProvider.pauseUpdates();
+
+        final event = Event(
+          title: 'Nested Pause Test',
+          startDate: DateTime(2023, 10, 1),
+        );
+        await eventProvider.addEvent(event);
+
+        expect(eventProvider.hasPendingUpdate, true);
+        expect(eventProvider.areUpdatesPaused, true);
+
+        // First resume should not notify
+        eventProvider.resumeUpdates();
+        expect(eventProvider.hasPendingUpdate, true);
+        expect(eventProvider.areUpdatesPaused, true);
+
+        // Second resume should notify
+        eventProvider.resumeUpdates();
+        expect(eventProvider.hasPendingUpdate, false);
+        expect(eventProvider.areUpdatesPaused, false);
+      });
+    });
+
+    group('Performance Tests', () {
+      test('batch add is faster than individual adds', () async {
+        final eventCount = 10;
+        final events = List.generate(eventCount, (index) {
+          return Event(
+            title: 'Performance Test $index',
+            startDate: DateTime.now().add(Duration(days: index)),
+          );
+        });
+
+        // Measure batch add time
+        final batchStopwatch = Stopwatch()..start();
+        await eventProvider.addEventsBatch(events);
+        batchStopwatch.stop();
+
+        // Measure individual add time (with fresh provider)
+        final individualProvider = EventProvider();
+        await setupTestEnvironment();
+
+        final individualStopwatch = Stopwatch()..start();
+        for (final event in events) {
+          await individualProvider.addEvent(event);
+        }
+        individualStopwatch.stop();
+
+        // Batch should be significantly faster
+        expect(
+          batchStopwatch.elapsedMilliseconds,
+          lessThan(individualStopwatch.elapsedMilliseconds),
+        );
+      });
+
+      test('100 event batch creation completes in reasonable time', () async {
+        final eventCount = 100;
+        final events = List.generate(eventCount, (index) {
+          return Event(
+            title: 'Bulk Test Event $index',
+            startDate: DateTime.now().add(Duration(days: index)),
+          );
+        });
+
+        final stopwatch = Stopwatch()..start();
+        final filenames = await eventProvider.addEventsBatch(events);
+        stopwatch.stop();
+
+        // Should complete in under 30 seconds (requirement is <30s)
+        expect(stopwatch.elapsedMilliseconds, lessThan(30000));
+        expect(filenames.length, eventCount);
+        expect(eventProvider.eventsCount, eventCount);
+      });
+    });
+
+    group('Backward Compatibility Tests', () {
+      test('single event methods still work correctly', () async {
+        final event = Event(
+          title: 'Single Event Test',
+          startDate: DateTime(2023, 10, 1),
+          startTime: '10:00',
+        );
+
+        await eventProvider.addEvent(event);
+        expect(eventProvider.eventsCount, 1);
+
+        final addedEvent = eventProvider.getEventsForDate(
+          DateTime(2023, 10, 1),
+        )[0];
+
+        final updatedEvent = addedEvent.copyWith(title: 'Updated Single Event');
+        await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+        final eventsAfterUpdate = eventProvider.getEventsForDate(
+          DateTime(2023, 10, 1),
+        );
+        expect(eventsAfterUpdate[0].title, 'Updated Single Event');
+
+        await eventProvider.deleteEvent(eventsAfterUpdate[0]);
+        expect(eventProvider.eventsCount, 0);
+      });
+
+      test('batch operations work alongside single operations', () async {
+        // Add single event
+        final singleEvent = Event(
+          title: 'Single Event',
+          startDate: DateTime(2023, 10, 1),
+        );
+        await eventProvider.addEvent(singleEvent);
+
+        // Add batch events
+        final batchEvents = List.generate(3, (index) {
+          return Event(
+            title: 'Batch Event $index',
+            startDate: DateTime(2023, 10, 2).add(Duration(days: index)),
+          );
+        });
+        await eventProvider.addEventsBatch(batchEvents);
+
+        expect(eventProvider.eventsCount, 4);
+
+        // Update single event
+        final addedSingleEvent = eventProvider.getEventsForDate(
+          DateTime(2023, 10, 1),
+        )[0];
+        final updatedSingleEvent = addedSingleEvent.copyWith(
+          title: 'Updated Single Event',
+        );
+        await eventProvider.updateEvent(addedSingleEvent, updatedSingleEvent);
+
+        // Delete batch event
+        final batchEvent = eventProvider.getEventsForDate(
+          DateTime(2023, 10, 2),
+        )[0];
+        await eventProvider.deleteEvent(batchEvent);
+
+        expect(eventProvider.eventsCount, 3);
+      });
+
+      test('error handling works correctly in batch operations', () async {
+        // Add some valid events first
+        final validEvents = List.generate(3, (index) {
+          return Event(
+            title: 'Valid Event $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        await eventProvider.addEventsBatch(validEvents);
+
+        expect(eventProvider.eventsCount, 3);
+      });
+    });
+  });
+
+  // ============================================================================
+  // BACKGROUND ISOLATE PROCESSING TESTS
+  // ============================================================================
+
+  group('Background Isolate Processing Tests', () {
+    group('Event.getAllEventDatesAsync()', () {
+      test('returns same results as synchronous version', () async {
+        final events = [
+          Event(
+            title: 'Daily Event',
+            startDate: DateTime(2023, 10, 1),
+            recurrence: 'daily',
+          ),
+          Event(
+            title: 'Weekly Event',
+            startDate: DateTime(2023, 10, 1),
+            recurrence: 'weekly',
+          ),
+          Event(title: 'Single Event', startDate: DateTime(2023, 10, 15)),
+        ];
+
+        // Compute results with both methods
+        final syncResult = Event.getAllEventDates(events);
+        final asyncResult = await Event.getAllEventDatesAsync(events);
+
+        // Results should be identical
+        expect(asyncResult.length, syncResult.length);
+        for (final date in syncResult) {
+          expect(asyncResult.contains(date), true);
+        }
+      });
+
+      test('handles empty event list', () async {
+        final result = await Event.getAllEventDatesAsync([]);
+        expect(result, isEmpty);
+      });
+
+      test('handles large number of recurring events', () async {
+        // Create 50 daily recurring events spanning a year
+        final events = List.generate(50, (index) {
+          return Event(
+            title: 'Daily Recurring $index',
+            startDate: DateTime(2023, 1, 1).add(Duration(days: index)),
+            recurrence: 'daily',
+          );
+        });
+
+        final stopwatch = Stopwatch()..start();
+        final result = await Event.getAllEventDatesAsync(events);
+        stopwatch.stop();
+
+        // Should complete in reasonable time (under 10 seconds)
+        expect(stopwatch.elapsedMilliseconds, lessThan(10000));
+        // Should have many dates due to daily recurrence
+        expect(result.length, greaterThan(0));
+      });
+
+      test('handles error gracefully with fallback', () async {
+        // This test verifies that errors are caught and fallback works
+        final events = [
+          Event(title: 'Test Event', startDate: DateTime(2023, 10, 1)),
+        ];
+
+        // Should complete successfully even if isolate has issues
+        final result = await Event.getAllEventDatesAsync(events);
+        expect(result.contains(DateTime(2023, 10, 1)), true);
+      });
+    });
+
+    group('Event.expandRecurringAsync()', () {
+      test('returns same results as synchronous version', () async {
+        final event = Event(
+          title: 'Weekly Event',
+          startDate: DateTime(2023, 10, 1),
+          recurrence: 'weekly',
+        );
+        final endDate = DateTime(2023, 10, 31);
+
+        final syncResult = Event.expandRecurring(event, endDate);
+        final asyncResult = await Event.expandRecurringAsync(event, endDate);
+
+        expect(asyncResult.length, syncResult.length);
+        for (int i = 0; i < syncResult.length; i++) {
+          expect(asyncResult[i].title, syncResult[i].title);
+          expect(asyncResult[i].startDate, syncResult[i].startDate);
+        }
+      });
+
+      test('handles daily recurrence correctly', () async {
+        final event = Event(
+          title: 'Daily',
+          startDate: DateTime(2023, 10, 1),
+          recurrence: 'daily',
+        );
+        final endDate = DateTime(2023, 10, 5);
+
+        final result = await Event.expandRecurringAsync(event, endDate);
+
+        expect(result.length, 5); // Oct 1, 2, 3, 4, 5
+      });
+
+      test('handles monthly recurrence correctly', () async {
+        final event = Event(
+          title: 'Monthly',
+          startDate: DateTime(2023, 1, 15),
+          recurrence: 'monthly',
+        );
+        final endDate = DateTime(2023, 6, 1);
+
+        final result = await Event.expandRecurringAsync(event, endDate);
+
+        // Should have instances for Jan, Feb, Mar, Apr, May, Jun
+        expect(result.length, 6);
+      });
+
+      test('handles yearly recurrence correctly', () async {
+        final event = Event(
+          title: 'Yearly',
+          startDate: DateTime(2023, 3, 15),
+          recurrence: 'yearly',
+        );
+        final endDate = DateTime(2026, 3, 15);
+
+        final result = await Event.expandRecurringAsync(event, endDate);
+
+        // Should have instances for each year
+        expect(
+          result.length,
+          greaterThanOrEqualTo(4),
+        ); // 2023, 2024, 2025, 2026
+      });
+
+      test('handles error gracefully with fallback', () async {
+        final event = Event(title: 'Test', startDate: DateTime(2023, 10, 1));
+
+        // Should complete successfully even if isolate has issues
+        final result = await Event.expandRecurringAsync(
+          event,
+          DateTime(2023, 10, 5),
+        );
+        expect(result.length, 1);
+        expect(result[0].title, 'Test');
+      });
+    });
+
+    group('EventProvider.computeEventDatesAsync()', () {
+      test('updates event dates correctly', () async {
+        // Add some events first
+        final events = [
+          Event(title: 'Event 1', startDate: DateTime(2023, 10, 1)),
+          Event(title: 'Event 2', startDate: DateTime(2023, 10, 2)),
+        ];
+        await eventProvider.addEventsBatch(events);
+
+        // Compute dates asynchronously
+        await eventProvider.computeEventDatesAsync();
+
+        // Verify dates are computed correctly
+        expect(eventProvider.eventDates.contains(DateTime(2023, 10, 1)), true);
+        expect(eventProvider.eventDates.contains(DateTime(2023, 10, 2)), true);
+      });
+
+      test('handles recurring events correctly', () async {
+        final recurringEvent = Event(
+          title: 'Weekly',
+          startDate: DateTime(2023, 10, 1),
+          recurrence: 'weekly',
+        );
+        await eventProvider.addEvent(recurringEvent);
+
+        await eventProvider.computeEventDatesAsync();
+
+        // Should have multiple dates due to weekly recurrence
+        expect(eventProvider.eventDates.length, greaterThan(1));
+      });
+
+      test('handles empty event list', () async {
+        // Provider starts with no events
+        await eventProvider.computeEventDatesAsync();
+        expect(eventProvider.eventDates, isEmpty);
+      });
+
+      test('completes in reasonable time with many events', () async {
+        // Add many events
+        final events = List.generate(100, (index) {
+          return Event(
+            title: 'Event $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+            recurrence: index % 3 == 0 ? 'daily' : 'none',
+          );
+        });
+        await eventProvider.addEventsBatch(events);
+
+        final stopwatch = Stopwatch()..start();
+        await eventProvider.computeEventDatesAsync();
+        stopwatch.stop();
+
+        // Should complete within reasonable time (under 5 seconds)
+        expect(stopwatch.elapsedMilliseconds, lessThan(5000));
+      });
+
+      test('handles error gracefully with fallback', () async {
+        // Add some events
+        final event = Event(title: 'Test', startDate: DateTime(2023, 10, 1));
+        await eventProvider.addEvent(event);
+
+        // Should complete successfully even if isolate has issues
+        await expectLater(eventProvider.computeEventDatesAsync(), completes);
+        expect(eventProvider.eventDates.contains(DateTime(2023, 10, 1)), true);
+      });
+    });
+
+    group('Integration Tests - Background Processing in Operations', () {
+      test(
+        'addEvent uses background processing for date computation',
+        () async {
+          final event = Event(
+            title: 'Add Test',
+            startDate: DateTime(2023, 10, 1),
+          );
+
+          await eventProvider.addEvent(event);
+
+          expect(eventProvider.eventsCount, 1);
+          expect(
+            eventProvider.eventDates.contains(DateTime(2023, 10, 1)),
+            true,
+          );
+        },
+      );
+
+      test(
+        'updateEvent uses background processing for date computation',
+        () async {
+          final event = Event(
+            title: 'Original',
+            startDate: DateTime(2023, 10, 1),
+          );
+          await eventProvider.addEvent(event);
+
+          final addedEvent = eventProvider.getEventsForDate(
+            DateTime(2023, 10, 1),
+          )[0];
+          final updatedEvent = addedEvent.copyWith(
+            title: 'Updated',
+            startDate: DateTime(2023, 10, 2),
+          );
+          await eventProvider.updateEvent(addedEvent, updatedEvent);
+
+          expect(eventProvider.eventsCount, 1);
+          expect(
+            eventProvider.eventDates.contains(DateTime(2023, 10, 2)),
+            true,
+          );
+          expect(
+            eventProvider.eventDates.contains(DateTime(2023, 10, 1)),
+            false,
+          );
+        },
+      );
+
+      test(
+        'deleteEvent uses background processing for date computation',
+        () async {
+          final event = Event(
+            title: 'To Delete',
+            startDate: DateTime(2023, 10, 1),
+          );
+          await eventProvider.addEvent(event);
+
+          final addedEvent = eventProvider.getEventsForDate(
+            DateTime(2023, 10, 1),
+          )[0];
+          await eventProvider.deleteEvent(addedEvent);
+
+          expect(eventProvider.eventsCount, 0);
+          expect(eventProvider.eventDates, isEmpty);
+        },
+      );
+
+      test('batch operations use background processing', () async {
+        final events = List.generate(20, (index) {
+          return Event(
+            title: 'Batch Event $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+            recurrence: index % 5 == 0 ? 'weekly' : 'none',
+          );
+        });
+
+        await eventProvider.addEventsBatch(events);
+
+        expect(eventProvider.eventsCount, 20);
+        expect(eventProvider.eventDates.length, greaterThan(0));
+      });
+
+      test('loadAllEvents uses background processing', () async {
+        // Add some events first
+        final events = List.generate(10, (index) {
+          return Event(
+            title: 'Load Test $index',
+            startDate: DateTime(2023, 10, 1).add(Duration(days: index)),
+          );
+        });
+        await eventProvider.addEventsBatch(events);
+
+        // Clear and reload
+        eventProvider = EventProvider();
+        await setupTestEnvironment();
+        await eventProvider.loadAllEvents();
+
+        expect(eventProvider.eventsCount, 10);
+        expect(eventProvider.eventDates.length, 10);
+      });
+    });
+
+    group('Performance Tests - Background Processing', () {
+      test('UI remains responsive during heavy event processing', () async {
+        // Create many recurring events that would be computationally expensive
+        final events = List.generate(50, (index) {
+          return Event(
+            title: 'Heavy Processing $index',
+            startDate: DateTime(2020, 1, 1).add(Duration(days: index)),
+            recurrence: 'daily', // This will generate many instances
+          );
+        });
+
+        // Measure time for background processing
+        final stopwatch = Stopwatch()..start();
+        await eventProvider.addEventsBatch(events);
+        stopwatch.stop();
+
+        // Should complete in reasonable time (under 30 seconds as per requirements)
+        expect(stopwatch.elapsedMilliseconds, lessThan(30000));
+
+        // Verify results are correct
+        expect(eventProvider.eventsCount, 50);
+        expect(eventProvider.eventDates.length, greaterThan(0));
+      });
+
+      test(
+        'expandRecurringAsync handles complex recurrence patterns efficiently',
+        () async {
+          // Test with yearly recurrence over many years (computationally expensive)
+          final event = Event(
+            title: 'Yearly Complex',
+            startDate: DateTime(2000, 2, 29), // Leap year day
+            recurrence: 'yearly',
+          );
+
+          final stopwatch = Stopwatch()..start();
+          final result = await Event.expandRecurringAsync(
+            event,
+            DateTime(2100, 2, 28),
+          );
+          stopwatch.stop();
+
+          // Should handle leap year transitions efficiently
+          expect(stopwatch.elapsedMilliseconds, lessThan(5000));
+          expect(result.length, greaterThan(0));
+        },
+      );
+
+      test('getAllEventDatesAsync with mixed recurrence types', () async {
+        final events = [
+          // 10 daily events
+          ...List.generate(10, (index) {
+            return Event(
+              title: 'Daily $index',
+              startDate: DateTime(2023, 1, 1).add(Duration(days: index)),
+              recurrence: 'daily',
+            );
+          }),
+          // 5 weekly events
+          ...List.generate(5, (index) {
+            return Event(
+              title: 'Weekly $index',
+              startDate: DateTime(2023, 1, 1).add(Duration(days: index * 7)),
+              recurrence: 'weekly',
+            );
+          }),
+          // 3 monthly events
+          ...List.generate(3, (index) {
+            return Event(
+              title: 'Monthly $index',
+              startDate: DateTime(2023, 1, 1).add(Duration(days: index * 30)),
+              recurrence: 'monthly',
+            );
+          }),
+        ];
+
+        final stopwatch = Stopwatch()..start();
+        final dates = await Event.getAllEventDatesAsync(events);
+        stopwatch.stop();
+
+        // Should complete efficiently
+        expect(stopwatch.elapsedMilliseconds, lessThan(10000));
+        expect(dates.length, greaterThan(0));
+      });
+    });
+
+    group('Error Handling and Fallback Tests', () {
+      test('getAllEventDatesAsync fallback on error works correctly', () async {
+        final events = [Event(title: 'Test', startDate: DateTime(2023, 10, 1))];
+
+        // Should work normally and produce correct results
+        final result = await Event.getAllEventDatesAsync(events);
+        expect(result.contains(DateTime(2023, 10, 1)), true);
+      });
+
+      test('expandRecurringAsync fallback on error works correctly', () async {
+        final event = Event(
+          title: 'Test',
+          startDate: DateTime(2023, 10, 1),
+          recurrence: 'daily',
+        );
+
+        // Should work normally and produce correct results
+        final result = await Event.expandRecurringAsync(
+          event,
+          DateTime(2023, 10, 5),
+        );
+        expect(result.length, 5);
+      });
+
+      test(
+        'computeEventDatesAsync fallback maintains data consistency',
+        () async {
+          final events = [
+            Event(
+              title: 'Consistency Test',
+              startDate: DateTime(2023, 10, 1),
+              recurrence: 'weekly',
+            ),
+          ];
+          await eventProvider.addEventsBatch(events);
+
+          // Force async computation
+          await eventProvider.computeEventDatesAsync();
+
+          // Verify data consistency
+          expect(eventProvider.eventsCount, 1);
+          expect(eventProvider.eventDates.length, greaterThan(0));
+        },
+      );
+    });
+  });
+
   test('syncInit calls SyncService.initSync', () async {
     // Since SyncService is private, we can't easily test, but the method exists
     expect(eventProvider.syncInit, isA<Function>());

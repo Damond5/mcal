@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 
 class Event {
   static const List<String> validRecurrences = [
@@ -308,7 +309,8 @@ class Event {
       recurrence.hashCode ^
       (filename?.hashCode ?? 0);
 
-  // Static utility methods for recurrence handling
+  // Static constants for recurrence limits to prevent excessive computation
+  static const int maxRecurrenceInstances = 1000;
   static bool _isLeapYear(int year) {
     return DateTime(year, 2, 29).month == 2;
   }
@@ -351,8 +353,12 @@ class Event {
     final endDate = targetDate;
     final capDate = maxDate ?? targetDate.add(const Duration(days: 365));
     DateTime current = event.startDate;
+    int instanceCount = 0;
 
-    while (current.isBefore(endDate) && current.isBefore(capDate)) {
+    while (current.isBefore(endDate) &&
+        current.isBefore(capDate) &&
+        instanceCount < maxRecurrenceInstances) {
+      instanceCount++;
       if (event.recurrence == 'daily') {
         current = current.add(const Duration(days: 1));
       } else if (event.recurrence == 'weekly') {
@@ -425,30 +431,210 @@ class Event {
             target.isBefore(endDt.add(const Duration(days: 1))));
   }
 
-  static Set<DateTime> getAllEventDates(List<Event> events) {
+  // Static cache for computed results to improve performance
+  static final Map<String, Set<DateTime>> _dateCache = {};
+
+  static Set<DateTime> getAllEventDates(
+    List<Event> events, {
+    DateTime? cacheKey,
+    DateTime? endDate,
+  }) {
+    // Use provided cacheKey or generate one from events
+    final effectiveCacheKey = cacheKey != null
+        ? 'explicit_${cacheKey.millisecondsSinceEpoch}'
+        : _generateCacheKey(events);
+
+    // Check cache first
+    if (_dateCache.containsKey(effectiveCacheKey)) {
+      return _dateCache[effectiveCacheKey]!;
+    }
+
+    // Use provided endDate for pruning if available, otherwise default to 1 year from now
+    final effectiveEnd =
+        endDate ?? DateTime.now().add(const Duration(days: 365));
+
     final dates = <DateTime>{};
+
     for (final event in events) {
-      final expanded = Event.expandRecurring(
-        event,
-        DateTime.now().add(const Duration(days: 365)),
-      );
+      // Early termination: skip events that end before now
+      if (event.endDate != null && event.endDate!.isBefore(DateTime.now())) {
+        continue;
+      }
+
+      // Expand recurring events
+      final expanded = Event.expandRecurring(event, effectiveEnd);
+
       for (final e in expanded) {
+        // Add start date (normalized to midnight)
         dates.add(
           DateTime(e.startDate.year, e.startDate.month, e.startDate.day),
         );
+
+        // Optimized multi-day event iteration using set operations
         if (e.endDate != null) {
-          DateTime current = e.startDate;
-          while (current.isBefore(e.endDate!) ||
-              current.isAtSameMomentAs(e.endDate!)) {
-            dates.add(DateTime(current.year, current.month, current.day));
-            current = current.add(const Duration(days: 1));
+          // Normalize dates to midnight for consistent comparison
+          final start = DateTime(
+            e.startDate.year,
+            e.startDate.month,
+            e.startDate.day,
+          );
+          final end = DateTime(
+            e.endDate!.year,
+            e.endDate!.month,
+            e.endDate!.day,
+          );
+
+          // Calculate number of days using Duration difference (O(1) operation)
+          final days = end.difference(start).inDays;
+
+          // Generate all dates in range efficiently
+          for (int i = 1; i <= days; i++) {
+            dates.add(start.add(Duration(days: i)));
           }
         }
       }
     }
+
     log(
       'Computed event dates: ${dates.map((d) => '${d.year}-${d.month}-${d.day}').join(', ')}',
     );
+
+    // Store in cache
+    _dateCache[effectiveCacheKey] = dates;
+
     return dates;
+  }
+
+  /// Generates a cache key from a list of events
+  /// Uses length and content hash for O(1) key generation instead of O(n) sorting
+  static String _generateCacheKey(List<Event> events) {
+    if (events.isEmpty) return 'empty_${DateTime.now().day}';
+
+    // Use length + content hash for O(1) key generation
+    // This is much faster than sorting all hash codes
+    final contentHash = events.fold(0, (hash, event) => hash ^ event.hashCode);
+    return 'events_${events.length}_${contentHash.hashCode & 0xFFFFFFFF}_${DateTime.now().day}';
+  }
+
+  /// Clears the event dates cache
+  /// Useful for testing or when events are significantly modified
+  static void clearDateCache() {
+    _dateCache.clear();
+    log('Event dates cache cleared');
+  }
+
+  /// Gets the current cache size for monitoring purposes
+  static int get cacheSize => _dateCache.length;
+
+  /// Background isolate callback for computing event dates
+  ///
+  /// This function is designed to run in a separate isolate and handles
+  /// the computation of all event dates for recurring events.
+  ///
+  /// **Performance considerations:**
+  /// - Runs in separate isolate to avoid blocking main thread
+  /// - Processes events in batch for better performance
+  /// - Uses Set for O(1) date lookups
+  /// - Leverages caching for repeated computations
+  ///
+  /// **Parameters:**
+  /// - `events`: List of events to process
+  ///
+  /// **Returns:**
+  /// Set of unique dates when events occur
+  static Set<DateTime> _computeEventDatesIsolate(List<Event> events) {
+    return Event.getAllEventDates(events);
+  }
+
+  /// Asynchronous version of getAllEventDates that runs in background isolate
+  ///
+  /// Uses Dart's [compute] function to move expensive computation to a
+  /// background isolate, keeping the UI responsive during heavy processing.
+  ///
+  /// **Performance benefits:**
+  /// - Runs on separate thread to avoid UI blocking
+  /// - Particularly effective for large numbers of recurring events
+  /// - Falls back to synchronous computation on isolate errors
+  ///
+  /// **Parameters:**
+  /// - [events]: List of events to compute dates for
+  ///
+  /// **Returns:**
+  /// `Future<Set<DateTime>>` containing all event dates
+  ///
+  /// **Error handling:**
+  /// - Catches isolate errors and falls back to synchronous computation
+  /// - Logs errors for debugging without crashing
+  /// - Maintains backward compatibility with existing API
+  static Future<Set<DateTime>> getAllEventDatesAsync(List<Event> events) async {
+    try {
+      return await compute(_computeEventDatesIsolate, events);
+    } catch (e, stackTrace) {
+      log('Isolate error in getAllEventDatesAsync: $e');
+      log('Stack trace: $stackTrace');
+      log('Falling back to synchronous computation');
+      // Fallback to synchronous computation
+      return getAllEventDates(events);
+    }
+  }
+
+  /// Background isolate callback for expanding recurring events
+  ///
+  /// This function is designed to run in a separate isolate and handles
+  /// the expansion of a single recurring event into individual instances.
+  ///
+  /// **Parameters:**
+  /// - [params]: Map containing 'event' and 'endDate' keys
+  ///
+  /// **Returns:**
+  /// List of expanded Event instances
+  static List<Event> _expandRecurringIsolate(Map<String, dynamic> params) {
+    final event = params['event'] as Event;
+    final endDate = params['endDate'] as DateTime;
+    return Event.expandRecurring(event, endDate);
+  }
+
+  /// Asynchronous version of expandRecurring that runs in background isolate
+  ///
+  /// Uses Dart's [compute] function to move expensive event expansion to a
+  /// background isolate, keeping the UI responsive during heavy processing.
+  ///
+  /// **Use cases:**
+  /// - Expanding complex recurring events (e.g., yearly events spanning decades)
+  /// - Bulk operations on recurring events
+  /// - Pre-computing event instances for calendar display
+  ///
+  /// **Performance benefits:**
+  /// - Runs on separate thread to avoid UI blocking
+  /// - Particularly effective for long-running recurring events
+  /// - Falls back to synchronous computation on isolate errors
+  ///
+  /// **Parameters:**
+  /// - `event`: The recurring event to expand
+  /// - `endDate`: The end date for expansion
+  ///
+  /// **Returns:**
+  /// `Future<List<Event>>` containing expanded event instances
+  ///
+  /// **Error handling:**
+  /// - Catches isolate errors and falls back to synchronous computation
+  /// - Logs errors for debugging without crashing
+  /// - Maintains backward compatibility with existing API
+  static Future<List<Event>> expandRecurringAsync(
+    Event event,
+    DateTime endDate,
+  ) async {
+    try {
+      return await compute(_expandRecurringIsolate, {
+        'event': event,
+        'endDate': endDate,
+      });
+    } catch (e, stackTrace) {
+      log('Isolate error in expandRecurringAsync: $e');
+      log('Stack trace: $stackTrace');
+      log('Falling back to synchronous computation');
+      // Fallback to synchronous computation
+      return Event.expandRecurring(event, endDate);
+    }
   }
 }

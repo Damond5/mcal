@@ -48,14 +48,28 @@ class EventProvider extends ChangeNotifier {
   DateTime? _selectedDate;
   int _refreshCounter = 0;
   Timer? _notificationTimer;
-  final Set<int> _notifiedIds = {};
   SyncSettings _syncSettings = const SyncSettings();
   DateTime? _lastSyncTime;
   Timer? _periodicSyncTimer;
 
   // Batch operation support - deferred update pattern
-  int _updatePauseCount = 0;
+  int _pauseUpdateCount = 0;
   bool _pendingUpdate = false;
+
+  // State change synchronization support
+  final List<VoidCallback> _stateChangeListeners = [];
+  final Map<String, Completer<void>> _stateChangeCompleters = {};
+
+  // Async operation tracking
+  int _pendingAsyncCount = 0;
+  final List<Future<void>> _pendingAsyncOperations = [];
+
+  // Notification state management for test isolation
+  final Set<int> _notifiedIds = {};
+  final Set<int> _scheduledNotifications = {};
+
+  // Logging and debugging support
+  static const bool _enableDetailedLogging = true;
 
   bool get isLoading => _isLoading;
   bool get isSyncing => _isSyncing;
@@ -66,12 +80,70 @@ class EventProvider extends ChangeNotifier {
   int get eventsCount => _allEvents.length;
 
   // Batch operation state getters
-  bool get areUpdatesPaused => _updatePauseCount > 0;
+  bool get updatesPaused => _pauseUpdateCount > 0;
+
+  /// Backward compatibility alias for [updatesPaused]
+  @Deprecated('Use updatesPaused instead')
+  bool get areUpdatesPaused => updatesPaused;
+
   bool get hasPendingUpdate => _pendingUpdate;
+
+  // ============================================================================
+  // STATE MANAGEMENT HELPER METHODS
+  // ============================================================================
+
+  /// Log state changes with timing information for debugging
+  void _logStateChange(String message, [dynamic value]) {
+    if (_enableDetailedLogging) {
+      final timestamp = DateTime.now().toIso8601String();
+      log(
+        'EventProvider [$timestamp]: $message ${value != null ? '- Value: $value' : ''}',
+      );
+    }
+  }
+
+  /// Trigger listeners with proper logging and state validation
+  void _triggerListenersWithLogging() {
+    _validateState();
+    notifyListeners();
+    _logStateChange('Listeners notified', _refreshCounter);
+    _notifyStateChangeListeners();
+  }
+
+  /// Validate internal state consistency
+  void _validateState() {
+    assert(
+      _allEvents.every(
+        (event) =>
+            event.title.isNotEmpty &&
+            (event.endDate == null ||
+                event.startDate.isBefore(event.endDate!)) &&
+            !event.startDate.isBefore(DateTime(1970)),
+      ),
+      'Invalid event found in state',
+    );
+    assert(
+      _eventDates.every((date) => !date.isBefore(DateTime(1970))),
+      'Invalid date found in state',
+    );
+    assert(_pauseUpdateCount >= 0, 'Pause count cannot be negative');
+    assert(_pendingAsyncCount >= 0, 'Pending async count cannot be negative');
+  }
+
+  /// Notify state change listeners for synchronization
+  void _notifyStateChangeListeners() {
+    for (final listener in _stateChangeListeners) {
+      try {
+        listener();
+      } catch (e) {
+        log('Error in state change listener: $e');
+      }
+    }
+  }
 
   void setSelectedDate(DateTime date) {
     _selectedDate = date;
-    notifyListeners();
+    _triggerListenersWithLogging();
   }
 
   void _computeEventDates() {
@@ -189,8 +261,8 @@ class EventProvider extends ChangeNotifier {
   /// await provider.autoPush(); // Manual sync after batch
   /// ```
   void pauseUpdates() {
-    _updatePauseCount++;
-    log('EventProvider: Updates paused ($_updatePauseCount)');
+    _pauseUpdateCount++;
+    _logStateChange('Updates paused', _pauseUpdateCount);
   }
 
   /// Resume UI updates after batch operations
@@ -206,17 +278,14 @@ class EventProvider extends ChangeNotifier {
   /// **Performance note:** Only triggers one notifyListeners() call
   /// even if multiple updates occurred during the pause.
   void resumeUpdates() {
-    _updatePauseCount = _updatePauseCount.clamp(0, double.infinity).toInt() - 1;
-    if (_updatePauseCount < 0) {
-      _updatePauseCount = 0;
-    }
+    if (_pauseUpdateCount > 0) {
+      _pauseUpdateCount--;
+      _logStateChange('Updates resumed', _pauseUpdateCount);
 
-    if (_updatePauseCount == 0 && _pendingUpdate) {
-      _pendingUpdate = false;
-      notifyListeners();
-      log('EventProvider: Resumed and triggered update');
-    } else {
-      log('EventProvider: Updates resumed ($_updatePauseCount remaining)');
+      if (_pauseUpdateCount == 0 && _pendingUpdate) {
+        _pendingUpdate = false;
+        _triggerListenersWithLogging();
+      }
     }
   }
 
@@ -225,11 +294,11 @@ class EventProvider extends ChangeNotifier {
   /// Called by [addEvent], [updateEvent], and [deleteEvent] to defer
   /// notifications when updates are paused.
   void _notifyIfNotPaused() {
-    if (_updatePauseCount > 0) {
+    if (_pauseUpdateCount > 0) {
       _pendingUpdate = true;
-      log('EventProvider: Update paused, queuing notification');
+      _logStateChange('Update paused, queuing notification', _pendingUpdate);
     } else {
-      notifyListeners();
+      _triggerListenersWithLogging();
     }
   }
 
@@ -237,7 +306,7 @@ class EventProvider extends ChangeNotifier {
   ///
   /// Returns true if autoPush should be deferred during batch operations.
   /// Used by batch methods to skip autoPush and let caller manage sync timing.
-  bool get _isUpdatePaused => _updatePauseCount > 0;
+  bool get _isUpdatePaused => _pauseUpdateCount > 0;
 
   /// Deferred autoPush that respects pause state
   ///
@@ -253,8 +322,104 @@ class EventProvider extends ChangeNotifier {
   }
 
   // ============================================================================
-  // BATCH OPERATION METHODS
+  // TEST-FRIENDLY METHODS
   // ============================================================================
+
+  /// Force notifyListeners() for test synchronization
+  ///
+  /// This method bypasses the pause mechanism and immediately triggers
+  /// listener notification. Useful for tests that need to ensure widgets
+  /// rebuild before proceeding.
+  void forceNotifyListeners() {
+    _logStateChange('Force notify listeners called', _refreshCounter);
+    _validateState();
+    notifyListeners();
+    _notifyStateChangeListeners();
+  }
+
+  /// Wait for all pending async operations to complete
+  ///
+  /// This method returns a future that completes when all currently
+  /// pending async operations finish. Useful for tests that need to
+  /// wait for data to be fully loaded before making assertions.
+  Future<void> waitForProcessing() async {
+    if (_pendingAsyncOperations.isEmpty) return;
+
+    _logStateChange('Waiting for processing', _pendingAsyncOperations.length);
+    await Future.wait(_pendingAsyncOperations);
+    _logStateChange('Processing complete', _pendingAsyncOperations.length);
+  }
+
+  /// Reset notification state for test isolation
+  ///
+  /// Clears the notified IDs set and scheduled notifications set.
+  /// Call this method at the beginning of each test to ensure
+  /// notification deduplication doesn't affect test results.
+  void resetNotificationState() {
+    _notifiedIds.clear();
+    _scheduledNotifications.clear();
+    _logStateChange('Notification state reset');
+  }
+
+  /// Reset provider state for test isolation
+  ///
+  /// This method resets all internal state to initial values.
+  /// Call this method at the beginning of each test to ensure
+  /// test isolation and prevent state leakage between tests.
+  void resetState() {
+    _pauseUpdateCount = 0;
+    _pendingUpdate = false;
+    _pendingAsyncCount = 0;
+    _pendingAsyncOperations.clear();
+    _stateChangeListeners.clear();
+    _stateChangeCompleters.clear();
+    resetNotificationState();
+    _logStateChange('Full state reset');
+  }
+
+  /// Add a state change listener for synchronization
+  ///
+  /// The listener will be called whenever notifyListeners() is triggered.
+  /// Useful for tests that need to wait for specific state changes.
+  void addStateChangeListener(VoidCallback listener) {
+    _stateChangeListeners.add(listener);
+  }
+
+  /// Notify state change completers for event updates
+  void _notifyStateChangeCompleter(String? eventId) {
+    if (eventId == null) return;
+
+    final completer = _stateChangeCompleters.remove(eventId);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  /// Wait for a specific event state change
+  ///
+  /// Returns a future that completes when the specified event ID is updated.
+  /// Times out after 5 seconds to prevent hanging tests.
+  Future<void> waitForEventUpdate(
+    String eventId, {
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final completer = Completer<void>();
+    _stateChangeCompleters[eventId] = completer;
+
+    try {
+      await completer.future.timeout(
+        timeout,
+        onTimeout: () {
+          _stateChangeCompleters.remove(eventId);
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
+      );
+    } finally {
+      _stateChangeCompleters.remove(eventId);
+    }
+  }
 
   /// Add multiple events in a single batch operation
   ///
@@ -309,11 +474,11 @@ class EventProvider extends ChangeNotifier {
       pauseUpdates();
     }
 
-    // Track added events for potential rollback
-    final filenames = <String>[];
-    final addedEvents = <Event>[];
-
     try {
+      // Track added events for potential rollback
+      final filenames = <String>[];
+      final addedEvents = <Event>[];
+
       for (final event in events) {
         final filename = await _storage.addEvent(event);
         final eventWithFilename = event.copyWith(filename: filename);
@@ -345,31 +510,34 @@ class EventProvider extends ChangeNotifier {
 
       // Note: We don't call autoPush() here - caller should call it explicitly
       // This gives the caller control over when sync happens
-      log('EventProvider: Batch add complete - ${events.length} events added');
-
-      if (deferUpdates) {
-        resumeUpdates();
-      }
+      _logStateChange('Batch add complete', events.length);
 
       return filenames;
     } catch (e) {
       // Rollback: remove all added events and their files
-      log(
-        'Error in batch add: $e - rolling back ${addedEvents.length} added events',
-      );
-      for (int i = 0; i < addedEvents.length; i++) {
+      _logStateChange('Error in batch add', e);
+      for (
+        int i = _allEvents.length - events.length;
+        i < _allEvents.length;
+        i++
+      ) {
         try {
-          _allEvents.remove(addedEvents[i]);
-          await _storage.deleteEvent(addedEvents[i]);
+          await _storage.deleteEvent(_allEvents[i]);
         } catch (deleteError) {
-          log('Rollback failed for ${filenames[i]}: $deleteError');
+          log('Rollback failed: $deleteError');
         }
       }
+      // Remove the added events from _allEvents
+      _allEvents.removeRange(
+        _allEvents.length - events.length,
+        _allEvents.length,
+      );
+      log('Batch operation rolled back');
+      rethrow;
+    } finally {
       if (deferUpdates) {
         resumeUpdates();
       }
-      log('Batch operation rolled back');
-      rethrow;
     }
   }
 
@@ -422,19 +590,14 @@ class EventProvider extends ChangeNotifier {
       _refreshCounter++;
 
       // Note: We don't call autoPush() here - caller should call it explicitly
-      log(
-        'EventProvider: Batch update complete - ${events.length} events updated',
-      );
-
-      if (deferUpdates) {
-        resumeUpdates();
-      }
+      _logStateChange('Batch update complete', events.length);
     } catch (e) {
+      _logStateChange('Error in batch update', e);
+      rethrow;
+    } finally {
       if (deferUpdates) {
         resumeUpdates();
       }
-      log('Error in batch update: $e');
-      rethrow;
     }
   }
 
@@ -492,26 +655,35 @@ class EventProvider extends ChangeNotifier {
       _refreshCounter++;
 
       // Note: We don't call autoPush() here - caller should call it explicitly
-      log(
-        'EventProvider: Batch delete complete - ${filenames.length} events deleted',
-      );
-
-      if (deferUpdates) {
-        resumeUpdates();
-      }
+      _logStateChange('Batch delete complete', filenames.length);
     } catch (e) {
+      _logStateChange('Error in batch delete', e);
+      rethrow;
+    } finally {
       if (deferUpdates) {
         resumeUpdates();
       }
-      log('Error in batch delete: $e');
-      rethrow;
     }
   }
 
   Future<void> loadAllEvents() async {
+    // Track async operations for waitForProcessing()
+    _pendingAsyncCount++;
+    final operation = _performLoadAllEvents();
+    _pendingAsyncOperations.add(operation);
+
+    try {
+      await operation;
+    } finally {
+      _pendingAsyncCount--;
+      _pendingAsyncOperations.remove(operation);
+    }
+  }
+
+  Future<void> _performLoadAllEvents() async {
     // Always load to ensure fresh data, especially after sync
     _isLoading = true;
-    notifyListeners();
+    _triggerListenersWithLogging();
 
     try {
       _allEvents = await _storage.loadAllEvents();
@@ -536,11 +708,25 @@ class EventProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _triggerListenersWithLogging();
     }
   }
 
   Future<void> addEvent(Event event) async {
+    // Track async operations for waitForProcessing()
+    _pendingAsyncCount++;
+    final operation = _performAddEvent(event);
+    _pendingAsyncOperations.add(operation);
+
+    try {
+      await operation;
+    } finally {
+      _pendingAsyncCount--;
+      _pendingAsyncOperations.remove(operation);
+    }
+  }
+
+  Future<void> _performAddEvent(Event event) async {
     try {
       final filename = await _storage.addEvent(event);
       final eventWithFilename = event.copyWith(filename: filename);
@@ -570,6 +756,9 @@ class EventProvider extends ChangeNotifier {
       _refreshCounter++;
       _notifyIfNotPaused();
       await _autoPushDeferred();
+
+      // Notify waiting state change listeners
+      _notifyStateChangeCompleter(eventWithFilename.filename);
     } catch (e) {
       log('Error adding event: $e');
       rethrow;
@@ -577,6 +766,20 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> updateEvent(Event oldEvent, Event newEvent) async {
+    // Track async operations for waitForProcessing()
+    _pendingAsyncCount++;
+    final operation = _performUpdateEvent(oldEvent, newEvent);
+    _pendingAsyncOperations.add(operation);
+
+    try {
+      await operation;
+    } finally {
+      _pendingAsyncCount--;
+      _pendingAsyncOperations.remove(operation);
+    }
+  }
+
+  Future<void> _performUpdateEvent(Event oldEvent, Event newEvent) async {
     try {
       final newFilename = await _storage.updateEvent(oldEvent, newEvent);
       final index = _allEvents.indexWhere((e) => e == oldEvent);
@@ -609,6 +812,9 @@ class EventProvider extends ChangeNotifier {
       _refreshCounter++;
       _notifyIfNotPaused();
       await _autoPushDeferred();
+
+      // Notify waiting state change listeners
+      _notifyStateChangeCompleter(newEventWithFilename.filename);
     } catch (e) {
       log('Error updating event: $e');
       rethrow;
@@ -616,6 +822,20 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> deleteEvent(Event event) async {
+    // Track async operations for waitForProcessing()
+    _pendingAsyncCount++;
+    final operation = _performDeleteEvent(event);
+    _pendingAsyncOperations.add(operation);
+
+    try {
+      await operation;
+    } finally {
+      _pendingAsyncCount--;
+      _pendingAsyncOperations.remove(operation);
+    }
+  }
+
+  Future<void> _performDeleteEvent(Event event) async {
     try {
       await _storage.deleteEvent(event);
       _allEvents.removeWhere((e) => e == event);
@@ -626,6 +846,9 @@ class EventProvider extends ChangeNotifier {
       _refreshCounter++;
       _notifyIfNotPaused();
       await _autoPushDeferred();
+
+      // Notify waiting state change listeners
+      _notifyStateChangeCompleter(event.filename);
     } catch (e) {
       log('Error deleting event: $e');
       rethrow;
@@ -648,66 +871,67 @@ class EventProvider extends ChangeNotifier {
   }) async {
     if (_isSyncing) return;
     _isSyncing = true;
-    notifyListeners();
+    _triggerListenersWithLogging();
     try {
       await _syncService.initSync(url, username: username, password: password);
     } catch (e) {
-      log('Sync init failed: $e');
+      _logStateChange('Sync init failed', e);
       rethrow;
     } finally {
       _isSyncing = false;
-      notifyListeners();
+      _triggerListenersWithLogging();
     }
   }
 
   Future<void> syncPull() async {
     if (_isSyncing) return;
     _isSyncing = true;
-    notifyListeners();
+    _triggerListenersWithLogging();
+
     try {
       await _syncService.pullSync();
       // Reload events after pull
       _allEvents.clear();
       await loadAllEvents();
-      log('Loaded ${_allEvents.length} events after pull');
+      _logStateChange('Loaded events after pull', _allEvents.length);
       // _refreshCounter incremented in loadAllEvents
     } catch (e) {
-      log('Sync pull failed: $e');
+      _logStateChange('Sync pull failed', e);
       _isSyncing = false;
-      notifyListeners();
+      _triggerListenersWithLogging();
       rethrow;
     }
     _isSyncing = false;
-    notifyListeners();
+    _triggerListenersWithLogging();
   }
 
   Future<void> syncPush() async {
     if (_isSyncing) return;
     _isSyncing = true;
-    notifyListeners();
+    _triggerListenersWithLogging();
     try {
       await _syncService.pushSync();
     } catch (e) {
-      log('Sync push failed: $e');
+      _logStateChange('Sync push failed', e);
       rethrow;
     } finally {
       _isSyncing = false;
-      notifyListeners();
+      _triggerListenersWithLogging();
     }
   }
 
   Future<String> syncStatus() async {
     if (_isSyncing) return "syncing";
     _isSyncing = true;
-    notifyListeners();
+    _triggerListenersWithLogging();
     try {
       return await _syncService.getSyncStatus();
     } catch (e) {
-      log('Sync status failed: $e');
+      _logStateChange('Sync status failed', e);
       rethrow;
     } finally {
       _isSyncing = false;
-      notifyListeners();
+      _triggerListenersWithLogging();
     }
   }
 
@@ -717,7 +941,7 @@ class EventProvider extends ChangeNotifier {
       try {
         await syncPull();
       } catch (e) {
-        log('Auto pull failed: $e');
+        _logStateChange('Auto pull failed', e);
       }
     }
   }
@@ -735,7 +959,7 @@ class EventProvider extends ChangeNotifier {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('lastSyncTime', now.toIso8601String());
         } catch (e) {
-          log('Auto periodic pull failed: $e');
+          _logStateChange('Auto periodic pull failed', e);
         }
       }
     }
@@ -753,7 +977,7 @@ class EventProvider extends ChangeNotifier {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('lastSyncTime', now.toIso8601String());
         } catch (e) {
-          log('Auto resume pull failed: $e');
+          _logStateChange('Auto resume pull failed', e);
         }
       }
     }

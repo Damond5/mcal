@@ -300,7 +300,7 @@ void main() {
           ),
         );
 
-        // Wait for bulk operation to complete
+        // Wait for bulk operation to complete with timeout
         await tester.pumpAndSettle(const Duration(seconds: 45));
 
         // Verify UI responsiveness

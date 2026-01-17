@@ -43,12 +43,12 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(seconds: 5));
 
         final events = TestFixtures.createLargeEventSet(count: 100);
         for (final event in events) {
           await tester.tap(find.text('15'));
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 500));
           await tester.tap(find.byType(FloatingActionButton));
           await tester.pumpAndSettle(const Duration(milliseconds: 200));
           await tester.pumpAndSettle();
@@ -57,11 +57,10 @@ void main() {
             find.byKey(const Key('event_title_field')),
             event.title,
           );
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
           await tester.tap(find.text('Save'));
           await tester.pumpAndSettle(const Duration(milliseconds: 100));
-          await tester.pumpAndSettle();
         }
 
         stopwatch.stop();
@@ -84,12 +83,12 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(seconds: 5));
 
         final events = TestFixtures.createLargeEventSet(count: 10);
         for (final event in events) {
           await tester.tap(find.text('15'));
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 500));
           await tester.tap(find.byType(FloatingActionButton));
           await tester.pumpAndSettle(const Duration(milliseconds: 200));
           await tester.pumpAndSettle();
@@ -98,14 +97,13 @@ void main() {
             find.byKey(const Key('event_title_field')),
             event.title,
           );
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
           await tester.tap(find.text('Save'));
           await tester.pumpAndSettle(const Duration(milliseconds: 100));
-          await tester.pumpAndSettle();
         }
 
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
         expect(find.byType(CalendarWidget), findsOneWidget);
       });
 
@@ -120,12 +118,12 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(seconds: 5));
 
         final events = TestFixtures.createLargeEventSet(count: 10);
         for (final event in events) {
           await tester.tap(find.text('15'));
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 500));
           await tester.tap(find.byType(FloatingActionButton));
           await tester.pumpAndSettle(const Duration(milliseconds: 200));
           await tester.pumpAndSettle();
@@ -134,14 +132,13 @@ void main() {
             find.byKey(const Key('event_title_field')),
             event.title,
           );
-          await tester.pumpAndSettle();
+          await tester.pumpAndSettle(const Duration(milliseconds: 200));
 
           await tester.tap(find.text('Save'));
           await tester.pumpAndSettle(const Duration(milliseconds: 100));
-          await tester.pumpAndSettle();
         }
 
-        await tester.pumpAndSettle();
+        await tester.pumpAndSettle(const Duration(seconds: 2));
         expect(find.byType(CalendarWidget), findsOneWidget);
       });
     });

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mcal/models/event.dart';
 import 'package:mcal/services/event_storage.dart';
+import 'package:mcal/frb_generated.dart';
 import 'test_helpers.dart';
 
 void main() {
@@ -10,6 +11,7 @@ void main() {
   late EventStorage eventStorage;
 
   setUpAll(() async {
+    await RustLib.init(); // Initialize Rust bridge first
     await setupTestEnvironment();
   });
 

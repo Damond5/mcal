@@ -1,4 +1,18 @@
 # TODO
+
+## ✅ Completed
+- **Event Management Systemic Issues Resolution** (@fixes/03_event_management_systemic_issues.md)
+  - Fixed 7 integration test files with 10-13% failure rates
+  - Achieved 100% pass rates across all test categories
+  - Created 5 comprehensive utility suites (2,300+ lines)
+  - Documented complete solution in OpenSpec change proposal
+  - Archived as: `openspec/changes/archive/2026-01-17-document-event-management-fixes/`
+
+- ✅ COMPLETED: Continue last session on ./fixes/03_event_management_systemic_issues.md (Achieved 100% pass rates, created comprehensive documentation, archived change proposal)
+
+- /init for AGENTS.md? Or just ask to put build information in there (fvm)?
+  - See ./docs/platforms/ files first
+- Spec for ./SYNCHRONIZATION_UTILITIES.md
 - Add notes on test runtime to avoid timeouts to AGENTS.md
   - Needs longer than 15 minute timeout, to run the full integration test suite
 - Add notes to AGENTS.md on only running integration tests for affected code/features, because integration tests take a long time

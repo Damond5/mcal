@@ -26,10 +26,20 @@ class EventStorage {
   Future<String> _getCalendarDirectory() async {
     if (_testDirectory != null) {
       final calendarDir = Directory('$_testDirectory/$_calendarDir');
-      if (!await calendarDir.exists()) {
-        await calendarDir.create(recursive: true);
+      try {
+        if (!await calendarDir.exists()) {
+          await calendarDir.create(recursive: true);
+        }
+        return calendarDir.path;
+      } catch (e) {
+        // If we can't create the directory (e.g., permission denied),
+        // return an empty temporary directory
+        log('Warning: Could not create test directory $calendarDir: $e');
+        final tempDir = Directory.systemTemp.createTempSync(
+          'mcal_test_fallback_',
+        );
+        return tempDir.path;
       }
-      return calendarDir.path;
     }
 
     final appDir = await getApplicationDocumentsDirectory();

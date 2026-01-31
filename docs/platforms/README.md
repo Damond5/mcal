@@ -14,9 +14,9 @@ This directory contains detailed development workflow guides for each platform s
 |----------|------|-------------|--------|
 | Android | [android-workflow.md](android-workflow.md) | Comprehensive guide for Android development, including Flutter Rust Bridge integration and cross-compilation | Available |
 | iOS | [ios-workflow.md](ios-workflow.md) | iOS-specific development instructions | Coming soon |
-| Linux | [linux-workflow.md](linux-workflow.md) | Linux desktop development instructions | Coming soon |
+| Linux | [linux-workflow.md](linux-workflow.md) | Linux desktop development instructions | Available |
 | macOS | [macos-workflow.md](macos-workflow.md) | macOS desktop development instructions | Coming soon |
-| Web | [web-workflow.md](web-workflow.md) | Web platform development instructions | Coming soon |
+| Web | [web-workflow.md](web-workflow.md) | Web platform development instructions | NOT SUPPORTED |
 | Windows | [windows-workflow.md](windows-workflow.md) | Windows desktop development instructions | Coming soon |
 
 **Quick Links:**

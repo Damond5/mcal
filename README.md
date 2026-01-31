@@ -40,7 +40,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 
 2. **Install dependencies**:
    ```bash
-   flutter pub get
+   fvm flutter pub get
    ```
 
 3. **Generate Rust bridge code**:
@@ -51,39 +51,36 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 4. **Run the app**:
    - For mobile/emulator:
      ```bash
-     flutter run
+     fvm flutter run
      ```
    - For web:
      ```bash
-     flutter run -d chrome
+     fvm flutter run -d chrome
      ```
    - For desktop (e.g., Linux):
      ```bash
-     flutter run -d linux
+     fvm flutter run -d linux
      ```
 
 ### Building for Production
 
 - **Android APK**:
   ```bash
-  flutter build apk
+   fvm flutter build apk
   ```
 
 - **iOS**:
   ```bash
-  flutter build ios
+   fvm flutter build ios
   ```
 
-- **Web**:
-  ```bash
-  flutter build web
-  ```
-  Note: Web builds are not supported due to FFI incompatibility with Rust-based Git sync. The app will fail to build for web platforms.
+ - **Desktop**:
+   ```bash
+    fvm flutter build linux  # or macos, windows
+    ```
 
-- **Desktop**:
-  ```bash
-  flutter build linux  # or macos, windows
-  ```
+   Note: Web builds are not supported due to FFI incompatibility with Rust-based Git sync. The app will fail to build for web platforms.
+
 
 ### Rebuilding After Rust Changes
 
@@ -242,7 +239,7 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
 
    **Debugging Tests**: To preserve test artifacts for debugging (useful when investigating failures), set the environment variable:
    ```bash
-   MCAL_TEST_CLEANUP=false flutter test
+   MCAL_TEST_CLEANUP=false fvm flutter test
    ```
 
    This will keep the test directories and files in the system temp directory for manual inspection.
@@ -251,18 +248,18 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
 
     To run all tests (unit and widget):
     ```bash
-    flutter test
+    fvm flutter test
     ```
 
     To run tests with coverage:
     ```bash
-    flutter test --coverage
+    fvm flutter test --coverage
     ```
 
     To run tests on a specific platform:
     ```bash
-    flutter test -d linux
-    flutter test -d chrome  # For web testing
+   fvm flutter test -d linux
+   fvm flutter test -d chrome  # For web testing
     ```
 
 ### Platform Testing Strategy

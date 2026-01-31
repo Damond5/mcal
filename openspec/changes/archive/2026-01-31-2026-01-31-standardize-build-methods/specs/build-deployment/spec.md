@@ -1,31 +1,10 @@
-# build-deployment Specification
+## REMOVED Requirements
 
-## Purpose
-TBD - created by archiving change incorporate-existing-docs. Update Purpose after archive.
-## Requirements
-### Requirement: The application SHALL Environment Setup
-Java OpenJDK 17 (or 11) SHALL be required for Android builds, avoiding development versions.
+### Requirement: The application SHALL Web Build Limitations
+**Reason**: This requirement is superseded by the new "The application SHALL document web builds as not supported" requirement, which takes a stronger position by removing misleading command references rather than just documenting failure.
+**Migration**: The new requirement ensures web builds are clearly documented as not supported with prominent warnings, preventing user confusion.
 
-#### Scenario: Java version check
-Given build environment
-When doctor command runs
-Then appropriate Java version is verified
-
-### Requirement: The application SHALL Flutter Rust Bridge Codegen
-Flutter Rust Bridge v2 SHALL be used with `flutter_rust_bridge_codegen generate --config-file frb.yaml` to generate bridge code.
-
-#### Scenario: Code generation
-Given Rust code changes
-When generate command runs
-Then Dart bridge code is updated
-
-### Requirement: The application SHALL build Rust libraries for supported platforms
-Rust libraries SHALL be built for supported Android ABIs and stored in the appropriate native library directories.
-
-#### Scenario: Android library build
-Given native code changes
-When build process runs
-Then native libraries are generated for supported ABIs
+## MODIFIED Requirements
 
 ### Requirement: The application SHALL Platform-Specific Builds
 The application SHALL support builds for Android APK, iOS, Linux, macOS, and Windows using the `fvm flutter` prefix for all commands to ensure consistent Flutter SDK versions across development environments. Web platform is NOT supported due to FFI incompatibility with Rust-based Git sync.
@@ -55,29 +34,7 @@ The application SHALL support builds for Android APK, iOS, Linux, macOS, and Win
 - **WHEN** `fvm flutter build windows` is executed
 - **THEN** a Windows executable is generated successfully
 
-### Requirement: The application SHALL Build Dependencies
-Core library desugaring SHALL be enabled for Android builds supporting flutter_local_notifications.
-
-#### Scenario: Android compatibility
-Given build configuration
-When APK builds
-Then desugaring ensures notification compatibility
-
-### Requirement: The application SHALL CMake Configuration
-Custom targets in Android CMakeLists.txt SHALL be renamed to avoid duplicate names.
-
-#### Scenario: CMake build
-Given Android project
-When built
-Then no duplicate target errors occur
-
-### Requirement: The application SHALL Build Validation
-All builds SHALL pass lint checks with `fvm flutter analyze`.
-
-#### Scenario: Code analysis
-Given source code
-When analyze runs
-Then no lint errors remain
+## ADDED Requirements
 
 ### Requirement: The application SHALL use fvm prefix for all Flutter commands
 All Flutter commands used in documentation, scripts, and Makefile SHALL use the `fvm flutter` prefix to ensure consistent Flutter SDK versions across development environments. This includes `run`, `build`, `test`, `pub get`, `clean`, and `analyze` commands.
@@ -122,13 +79,19 @@ The application documentation SHALL clearly state that web builds are not suppor
 - **AND** the `flutter build web` command is either removed or marked as "NOT SUPPORTED" with explanation
 
 ### Requirement: The application SHALL use Makefile as primary build automation
-The application SHALL use Makefile as the primary build automation tool for all platform builds, including Android.
+The application SHALL use the Makefile as the primary automation tool for build processes. Alternative shell scripts (e.g., `scripts/build-android.sh`) SHALL be marked as deprecated with a warning directing users to use the equivalent Makefile target.
 
 #### Scenario: Using Makefile for Android builds
 - **GIVEN** a developer wants to build the Android application
 - **WHEN** they execute `make android-build`
 - **THEN** the complete build process executes: FRB codegen, Rust cross-compilation, library copying, and Flutter APK build
 - **AND** all Flutter commands use the `fvm` prefix
+
+#### Scenario: Developer finds deprecated build script
+- **GIVEN** a developer considers using `scripts/build-android.sh`
+- **WHEN** they read the script
+- **THEN** they see a deprecation warning at the top of the file
+- **AND** the warning directs them to use `make android-build` instead
 
 ### Requirement: The application SHALL maintain accurate build documentation
 All documentation files SHALL accurately reflect the current build state and capabilities. Documentation SHALL NOT reference deleted scripts, removed features, or non-functional build methods. Build instructions SHALL be consistent across README, platform workflow docs, and OpenSpec specifications.
@@ -144,4 +107,3 @@ All documentation files SHALL accurately reflect the current build state and cap
 - **WHEN** they look at the platform status indicators
 - **THEN** they see accurate status (Available, Coming soon, or NOT SUPPORTED)
 - **AND** the status matches the actual platform support in the project
-

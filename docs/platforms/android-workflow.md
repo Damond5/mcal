@@ -40,7 +40,7 @@ fvm flutter --version
 cargo ndk --version
 
 # Verify FRB codegen
-flutter_rust_bridge_codegen --version
+fvm dart flutter_rust_bridge_codegen --version
 
 # Verify Android device
 adb devices
@@ -63,47 +63,81 @@ adb devices
 
 ### Complete Development Cycle
 
-When making changes to Rust code (`native/src/api.rs`) or Flutter-Rust Bridge interfaces, follow this complete workflow to prevent hash mismatches and build failures:
+Once the Rust side is ready, you can build the complete Android app with a single command:
 
-1. **Make Rust Code Changes**
-2. **Regenerate FRB Bindings**
-3. **Rebuild Android Native Libraries**
-4. **Clean and Rebuild Flutter APK**
-5. **Test on Device**
-
-#### Step-by-Step Commands:
 ```bash
-# 1. Make your Rust code changes in native/src/api.rs
+make android-build
+```
 
-# 2. Regenerate Flutter Rust Bridge bindings
-flutter_rust_bridge_codegen generate --config-file frb.yaml
+This will:
+1. Regenerate FRB bindings
+2. Build native libraries for all Android architectures
+3. Copy libraries to the Android project
+4. Clean and build the Flutter APK
 
-# 3. Rebuild Android native libraries for all architectures
-cd native && cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 build --release
+To run tests:
+```bash
+make android-test
+```
 
-# 4. Copy updated libraries to Android project
-cp target/aarch64-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/arm64-v8a/
-cp target/armv7-linux-androideabi/release/libmcal_native.so ../android/app/src/main/cpp/libs/armeabi-v7a/
-cp target/i686-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/x86/
-cp target/x86_64-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/x86_64/
-
-# 5. Clean and rebuild Flutter APK
-cd .. && fvm flutter clean && fvm flutter build apk --debug
-
-# 6. Install and test
+To install on a connected device:
+```bash
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
-fvm flutter test integration_test/app_integration_test.dart
+```
+
+```bash
+make android-build
+```
+
+This will:
+1. Regenerate FRB bindings
+2. Build native libraries for all Android architectures
+3. Copy libraries to the Android project
+4. Clean and build the Flutter APK
+
+To run tests:
+```bash
+make android-test
+```
+
+To install on a connected device:
+```bash
+adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
 
 ### Building the Android App
 
 To build the Android APK, use Flutter Version Management (fvm) to ensure the correct Flutter version. fvm is a tool for managing Flutter SDK versions per project, avoiding global version conflicts.
 
+#### Build Output Locations
+
+The APK output location depends on whether you build a debug or release variant:
+
+**Debug Builds** (using `--debug` flag):
+- Output directory: `build/app/outputs/flutter-apk/`
+- Example APK: `build/app/outputs/flutter-apk/app-debug.apk`
+- Use for: Development and testing with full debugging capabilities
+
+**Release Builds** (using `--release` flag or default):
+- Output directory: `android/app/build/outputs/apk/release/`
+- Example APK: `android/app/build/outputs/apk/release/app-release.apk`
+- Use for: Production distribution and performance testing
+
+#### Build Commands
+
+**Debug APK (recommended for development):**
 ```bash
-fvm flutter build apk
+fvm flutter build apk --debug
 ```
 
-This command builds a release APK in the `android/app/build/outputs/apk/release/` directory. On success, you'll see output like "Built build/app/outputs/apk/release/app-release.apk". This may take several minutes depending on your machine.
+**Release APK:**
+```bash
+fvm flutter build apk --release
+```
+
+**Note**: The `--debug` and `--release` flags determine the output location. Debug builds use Flutter's optimized output path (`build/app/outputs/flutter-apk/`), while release builds use the standard Android build output path (`android/app/build/outputs/apk/release/`).
+
+On success, you'll see output indicating the built APK location. This may take several minutes depending on your machine.
 
 **Important**: After making changes to Rust code, always follow the Complete Development Cycle above to ensure proper synchronization.
 
@@ -220,32 +254,10 @@ The project uses Rust code that needs to be compiled for Android architectures. 
 
 To reduce manual errors, consider these automation approaches:
 
-#### Option 1: Shell Script
-A build script is available at `scripts/build-android.sh`:
-```bash
-#!/bin/bash
-set -e
+#### Option 1: Shell Script (DEPRECATED - REMOVED)
+> ⚠️ **Note:** The shell script (`scripts/build-android.sh`) has been removed. Please use the Makefile option instead.
 
-echo "🔧 Regenerating FRB bindings..."
-flutter_rust_bridge_codegen generate --config-file frb.yaml
-
-echo "🏗️ Building Android native libraries..."
-cd native
-cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 build --release
-
-echo "📦 Copying libraries..."
-cp target/aarch64-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/arm64-v8a/
-cp target/armv7-linux-androideabi/release/libmcal_native.so ../android/app/src/main/cpp/libs/armeabi-v7a/
-cp target/i686-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/x86/
-cp target/x86_64-linux-android/release/libmcal_native.so ../android/app/src/main/cpp/libs/x86_64/
-cd ..
-
-echo "🧹 Cleaning and building APK..."
-fvm flutter clean
-fvm flutter build apk --debug
-
-echo "✅ Build complete!"
-```
+See [Option 2: Makefile](#option-2-makefile) below for the current recommended build method.
 
 #### Option 2: Make Integration
 A Makefile with Android build targets is available in the project root:

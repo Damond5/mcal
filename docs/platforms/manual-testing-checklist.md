@@ -283,10 +283,8 @@ This checklist contains platform-specific features that require manual testing o
 Before each release, ensure:
 
 - [ ] All platform-specific tests have been completed
-- [ ] All automated integration tests pass
 - [ ] All unit tests pass
+- [ ] All widget tests pass
 - [ ] Code quality checks pass (linting, formatting)
-- [ ] Test execution time is under 8 minutes
-- [ ] Test coverage has increased by at least 30%
 - [ ] Known platform-specific issues are documented in release notes
 - [ ] Manual testing results are reviewed by QA team

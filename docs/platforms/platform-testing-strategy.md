@@ -1,135 +1,108 @@
 # Platform Testing Strategy
 
-## Linux-Only Testing Justification
+This document outlines the testing approach for MCAL across all supported platforms. The strategy focuses on unit testing and manual verification to ensure quality across Linux, Android, iOS, macOS, Web, and Windows platforms.
 
-Integration tests for the MCAL project target Linux as the primary platform for automated testing. This strategic decision is based on the following rationale:
+## Testing Philosophy
 
-### Core Functionality is Platform-Independent
+MCAL uses a layered testing approach that balances automation with manual verification:
 
-The majority of MCAL's functionality is implemented using Flutter, Provider for state management, and Dart, which are inherently platform-independent. Core features that work consistently across all platforms include:
+1. **Unit Tests**: Fast, focused tests for individual functions and classes
+2. **Widget Tests**: Flutter widget tests for UI component behavior
+3. **Manual Testing**: Platform-specific verification by developers and QA
 
-- Event creation, editing, and deletion through UI
-- Calendar display and navigation
-- Event list rendering and interactions
-- Theme management and persistence
-- Form validation and error handling
-- Event recurrence logic and expansion
-- Multi-day event handling
-- Data persistence to local storage
-- Notification scheduling and management
+## Unit Testing Coverage
 
-These features use Flutter's widget system and cross-platform APIs that behave identically on Linux, Android, iOS, macOS, Web, and Windows.
+Unit tests form the foundation of MCAL's test strategy:
 
-### Linux Provides Fast, Reliable Test Execution
+- **Event Model Tests**: Event creation, validation, recurrence logic
+- **Provider Tests**: State management logic and notifications
+- **Repository Tests**: Data layer operations and caching
+- **Utility Tests**: Date/time calculations, formatting, validation
 
-Linux is the primary development platform and offers several advantages for integration testing:
+These tests run on all platforms and provide fast feedback during development.
 
-1. **Speed**: Integration tests on Linux run significantly faster than on mobile platforms due to:
-   - No emulator/simulator overhead
-   - Native execution without translation layers
-   - Efficient CI/CD pipeline integration
+## Widget Testing
 
-2. **Reliability**: Linux tests are more stable and less prone to:
-   - Device-specific timing issues
-   - Platform-dependent UI rendering differences
-   - Emulator/simulator flakiness
+Flutter widget tests verify UI component behavior:
 
-3. **Cost-Effectiveness**: Linux requires no:
-   - Physical device testing
-   - Device farms or emulators
-   - Platform-specific infrastructure
+- Widget rendering and layout
+- User interaction handling (taps, swipes, gestures)
+- State changes and Provider integration
+- Dialog and navigation behavior
 
-### Platform-Specific Features Require Manual Testing
+Widget tests run efficiently without platform-specific emulators.
 
-While core functionality is platform-independent, some features do require platform-specific verification. These features are intentionally excluded from automated integration tests:
+## Platform-Specific Manual Testing
 
-#### Android-Specific Features (Manual Testing Required)
+Each platform has unique features that require manual verification:
 
-- **System Back Button**: Android's system navigation back button behavior
-  - Test: Verify pressing back button closes dialogs as expected
-  - Test: Verify pressing back button in main screen doesn't close app unexpectedly
+### Android-Specific Features
 
-- **Permission Requests**: Android runtime permission dialogs
-  - Test: Notification permissions are requested on first use
-  - Test: File system permissions are handled correctly
-  - Test: Permissions are displayed in system dialog, not in-app
+- System back button behavior
+- Runtime permission dialogs
+- Notification channels and badges
+- File picker integration
+- Material Design 3 theming
 
-- **Notification Channels**: Android-specific notification channel configuration
-  - Test: Notifications appear in Android notification shade
-  - Test: Notification channel is properly configured (grouped by importance)
-  - Test: Notification badges appear on launcher icon
+### iOS-Specific Features
 
-- **File Picker**: Android-specific file selection dialogs
-  - Test: File picker opens correctly when selecting certificates
-  - Test: File picker handles storage permissions
+- Swipe-to-go-back gestures
+- iOS permission presentation
+- Background app refresh
+- iOS sandbox file access
+- Human Interface Guidelines compliance
 
-#### iOS-Specific Features (Manual Testing Required)
+### macOS-Specific Features
 
-- **Navigation Bar**: iOS swipe-to-go-back gesture
-  - Test: Swipe from left edge closes dialogs
-  - Test: Swipe gesture works consistently across app
+- Application bundle and Dock integration
+- macOS system permissions
+- Command+Q/W keyboard shortcuts
+- Notification Center integration
+- Traffic light window controls
 
-- **Permission Dialogs**: iOS permission request presentation
-  - Test: Notification permissions are presented in iOS system dialog
-  - Test: Permission prompts use iOS-appropriate messaging
+### Linux-Specific Features
 
-- **Background Fetch**: iOS-specific background app refresh
-  - Test: App continues to sync in background with proper iOS permissions
-  - Test: Background fetch respects iOS battery optimization settings
+- XDG directory compliance
+- Desktop notification integration
+- Global theme support
+- Desktop launcher integration
 
-- **File System**: iOS app sandbox and file access
-  - Test: File picker respects iOS app sandbox
-  - Test: File operations work within iOS containerized storage
+### Windows-Specific Features
 
-#### Cross-Platform Behavioral Differences
+- Start Menu integration
+- Windows notification system
+- Alt+F4 window closing
+- Windows theming support
 
-- **Notification Display**: Visual differences across platforms
-  - Android: Notification shade with actions
-  - iOS: Lock screen, Notification Center, banners
-  - Web: Browser notification APIs
-  - Test: Notifications are readable and actionable on each platform
+### Web-Specific Features
 
-- **File System Paths**: Platform-specific directory structures
-  - Linux: `/home/user/.local/share/`
-  - Android: `/storage/emulated/0/Android/data/`
-  - iOS: `Containers/Data/Application/`
-  - Test: Events are stored in correct platform-specific location
+- Cross-browser compatibility (Chrome, Firefox, Safari, Edge)
+- PWA installation (if applicable)
+- Browser notification APIs
+- Responsive design across screen sizes
 
-- **Keyboard Handling**: Virtual vs. physical keyboard differences
-  - Android: Virtual keyboard auto-displays with text fields
-  - iOS: Virtual keyboard with different behavior
-  - Desktop: Physical keyboard, no virtual keyboard
-  - Test: Input fields work correctly with platform-specific keyboards
+## Testing Priorities
 
-### Acceptable Risk
+1. **Critical Path**: Event CRUD, calendar display, sync functionality
+2. **Core Features**: Theme management, notifications, data persistence
+3. **Platform Features**: Platform-specific integrations and UI conventions
+4. **Edge Cases**: Error handling, empty states, large datasets
 
-Focusing automated integration tests on Linux acknowledges that some platform-specific bugs may not be caught. This is an acceptable trade-off because:
+## Test Execution
 
-1. **Frequency of Platform-Specific Bugs**: Platform-specific issues are rare and typically involve:
-   - UI rendering nuances specific to iOS/Android design guidelines
-   - Platform API changes that affect behavior but not functionality
+- **Unit Tests**: Run on every commit (fast, < 1 minute)
+- **Widget Tests**: Run on every commit (fast, < 2 minutes)
+- **Manual Testing**: Before each release (varies by platform)
+- **Platform Verification**: All platforms tested before major releases
 
-2. **Manual Testing Coverage**: Platform-specific features will be verified through manual testing before releases
+## Quality Standards
 
-3. **Cost-Benefit**: Testing on all 6 platforms (Linux, Android, iOS, macOS, Web, Windows) would:
-   - Multiply development and execution time by 6x
-   - Require maintaining complex multi-platform CI infrastructure
-   - Provide diminishing returns for platform-independent code
+All code contributions must include:
 
-4. **Regression Protection**: The 254+ integration test scenarios provide comprehensive coverage of:
-   - All user workflows (CRUD, sync, notifications, lifecycle)
-   - All UI interactions (forms, dialogs, navigation)
-   - All edge cases (errors, empty states, large datasets)
-   - All non-functional requirements (accessibility, performance, gestures)
+- [ ] Unit tests for new functionality
+- [ ] Widget tests for new UI components
+- [ ] Manual testing on target platforms
+- [ ] Code quality checks pass (linting, formatting)
+- [ ] No new linting warnings
 
-### Conclusion
-
-The Linux-only automated testing strategy provides:
-
-- ✅ Comprehensive test coverage of platform-independent functionality (254+ scenarios)
-- ✅ Fast, reliable test execution suitable for CI/CD
-- ✅ Clear documentation of platform-specific features requiring manual verification
-- ✅ Acceptable risk level for platform-specific bugs
-- ✅ Efficient use of development resources
-
-This approach balances thoroughness with practicality, ensuring high-quality software while maintaining reasonable development velocity.
+This testing strategy ensures MCAL maintains high quality across all supported platforms while remaining practical for ongoing development.

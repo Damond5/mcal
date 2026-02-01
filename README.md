@@ -86,7 +86,7 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 
 If you make changes to the Rust code in the `native/` directory, the rebuild process varies by platform:
 
-- **Android**: Follow the [Complete Development Cycle](docs/platforms/android-workflow.md#complete-development-cycle) in the Android workflow documentation to ensure proper synchronization and prevent hash mismatches.
+- **Android**: Run `make android-build` to ensure proper synchronization and prevent hash mismatches.
 
 - **Other Platforms**: Follow these general steps:
   1. Build the Rust library:
@@ -105,7 +105,7 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
      fvm flutter pub get
      ```
 
-**Note**: Android builds require additional steps to rebuild native libraries for all architectures. See the [Android workflow documentation](docs/platforms/android-workflow.md) for complete instructions.
+**Note**: Android builds require rebuilding native libraries for all architectures. Run `make android-build` to build the complete Android APK with all native libraries.
 
 ## Usage
 
@@ -270,11 +270,11 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
     - **Fast, Reliable Execution**: Linux tests run without emulator/simulator overhead
     - **Cost-Effectiveness**: No need for device farms or complex multi-platform CI infrastructure
 
-    Platform-specific features (system back button, permission dialogs, notification channels, etc.) are verified through manual testing before each release. For complete details, see the [Platform Testing Strategy](docs/platforms/platform-testing-strategy.md) documentation.
+    Platform-specific features (system back button, permission dialogs, notification channels, etc.) are verified through manual testing before each release. Run `make linux-test` to execute the automated test suite.
 
 ### Manual Testing
 
-    While automated tests provide comprehensive coverage of platform-independent functionality, certain platform-specific features require manual verification. Refer to the [Manual Testing Checklist](docs/platforms/manual-testing-checklist.md) for a complete list of platform-specific tests to perform before releases.
+    While automated tests provide comprehensive coverage of platform-independent functionality, certain platform-specific features require manual verification. Please refer to the project maintainers for the manual testing checklist before releases.
 
  ## Dependencies
 
@@ -293,37 +293,29 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
 
 For a full list, see `pubspec.yaml`.
 
- ## Project Structure
+## Project Structure
 
    ```
-docs/
-├── platforms/              # Platform-specific workflow files for agents
-│   ├── android-workflow.md
-│   ├── ios-workflow.md
-│   ├── linux-workflow.md
-│   ├── macos-workflow.md
-│   ├── web-workflow.md
-│   └── windows-workflow.md
-lib/
-  ├── main.dart                 # App entry point and main widget
-  ├── models/
-  │   └── event.dart            # Event data model
-   ├── providers/
-   │   ├── event_provider.dart   # Manages event state
-   │   └── theme_provider.dart   # Manages app theme state
-   ├── services/
-   │   ├── event_storage.dart    # Handles event persistence
-   │   ├── notification_service.dart # Handles local notifications
-   │   └── sync_service.dart     # Handles Git synchronization
-   ├── themes/
-   │   ├── dark_theme.dart       # Dark theme configuration
-   │   └── light_theme.dart      # Light theme configuration
-   └── widgets/
-       ├── calendar_widget.dart  # Calendar implementation
-       ├── event_form_dialog.dart # Event creation/editing dialog
-       ├── event_list.dart       # Displays list of events for a day
-       ├── sync_button.dart      # Sync button widget
-       └── theme_toggle_button.dart # Theme toggle button widget
+   lib/
+     ├── main.dart                 # App entry point and main widget
+     ├── models/
+     │   └── event.dart            # Event data model
+    ├── providers/
+    │   ├── event_provider.dart   # Manages event state
+    │   └── theme_provider.dart   # Manages app theme state
+    ├── services/
+    │   ├── event_storage.dart    # Handles event persistence
+    │   ├── notification_service.dart # Handles local notifications
+    │   └── sync_service.dart     # Handles Git synchronization
+    ├── themes/
+    │   ├── dark_theme.dart       # Dark theme configuration
+    │   └── light_theme.dart      # Light theme configuration
+    └── widgets/
+        ├── calendar_widget.dart  # Calendar implementation
+        ├── event_form_dialog.dart # Event creation/editing dialog
+        ├── event_list.dart       # Displays list of events for a day
+        ├── sync_button.dart      # Sync button widget
+        └── theme_toggle_button.dart # Theme toggle button widget
    test/
    ├── test_helpers.dart         # Test cleanup utilities and helper functions
    ├── test_helpers_test.dart    # Unit tests for test cleanup utilities
@@ -333,7 +325,10 @@ lib/
    ├── sync_settings_test.dart   # Unit tests for SyncSettings model
    ├── theme_provider_test.dart  # Unit tests for ThemeProvider
    └── widget_test.dart          # Widget tests for app components
-  ```
+   native/                       # Rust native library for Git synchronization
+   ```
+
+For platform-specific development tasks, agents should use the Makefile. Run `make help` to see all available targets.
 
 ## Contributing
 

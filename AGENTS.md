@@ -1,26 +1,80 @@
+# AGENTS.md
 
-# Platform-Specific Instructions
+AI agents working on the MCAL project should use the Makefile for all platform-specific development tasks. This file provides direct mappings to Makefile targets.
 
-The MCAL project supports multiple platforms (Android, iOS, Linux, macOS, Web, Windows). Platform-specific development workflows are organized in separate files under the `docs/platforms/` directory for better maintainability.
+## Quick Start
 
-## Platform Instruction Access for AI Agents
+Run `make help` to see all available targets.
 
-AI agents working on platform-specific tasks MUST first identify the current platform and read the corresponding workflow file. Use the following mapping to locate instructions:
+## Platform-Specific Commands
 
-| Platform | Workflow File Path | Status |
-|----------|-------------------|--------|
-| Android | docs/platforms/android-workflow.md | Available |
-| iOS | docs/platforms/ios-workflow.md | Coming soon |
-| Linux | docs/platforms/linux-workflow.md | Available |
-| macOS | docs/platforms/macos-workflow.md | Coming soon |
-| Web | docs/platforms/web-workflow.md | Coming soon |
-| Windows | docs/platforms/windows-workflow.md | Coming soon |
+Use the following `make` commands for platform-specific development:
 
-**Navigation Guide:**
-- README.md
-- docs/platforms/README.md
+### Linux
+```bash
+make linux-run      # Run app on Linux
+make linux-build    # Build app for Linux
+make linux-test     # Run tests on Linux
+make linux-analyze  # Analyze Flutter code on Linux
+make linux-clean    # Clean Linux build artifacts
+```
 
-**AI Agent Instructions:**
-- Detect platform from environment context (e.g., `platform: linux` in env info).
-- Read the linked workflow file before executing platform-specific commands.
-- Use -prefixed paths for AI-friendly documentation access.
+### Android
+```bash
+make android-build    # Build Android APK (debug)
+make android-release  # Build Android APK (release)
+make android-test     # Run tests on Android
+make android-run      # Run app on Android device/emulator
+make android-libs     # Build Rust libraries for all Android architectures
+make android-clean    # Clean Android build artifacts
+make install-apk      # Install debug APK on connected device
+```
+
+### Native (Rust)
+```bash
+make native-build   # Build Rust native library (debug)
+make native-release # Build Rust native library (release)
+make native-test    # Run Rust tests
+```
+
+## Common Tasks
+
+```bash
+# Setup
+make deps           # Install dependencies
+make generate       # Generate Flutter Rust Bridge code
+
+# Development
+make analyze        # Run Flutter analyzer
+make test           # Run all tests
+make test-cov       # Run tests with coverage
+make build          # Build for current platform
+
+# Maintenance
+make clean          # Clean all build artifacts
+make format         # Format Dart and Rust code
+make lint           # Run Dart linter
+make rust-lint      # Run Rust linter
+
+# Utilities
+make help           # Show all available targets
+make devices        # Show available devices
+make verify-deps    # Verify development environment
+make verify-sync    # Verify build synchronization
+```
+
+## Full Build Pipeline
+
+```bash
+# Build everything
+make all
+
+# Or build for specific platform
+make android-libs generate && make android-build
+```
+
+## Notes
+
+- Always run `make deps` after pulling changes to ensure dependencies are up to date
+- Run `make generate` after modifying Rust code to update Flutter bindings
+- Use `make verify-sync` to check if build artifacts are in sync with source code

@@ -202,6 +202,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added SCHEDULE_EXACT_ALARM permission and calendar app qualification for Android notification scheduling
 - Added user feedback for denied permissions on Android
 
+### Changed
+- **Agent Workflows Simplified**: Consolidated all build, test, and development commands into Makefile targets with comprehensive documentation
+  - Added platform-agnostic targets: `make build`, `make test`, `make clean`, `make help`, `make deps`, `make generate`, `make analyze`, `make test-cov`
+  - Added Linux-specific targets: `make linux-run`, `make linux-build`, `make linux-test`, `make linux-analyze`, `make linux-clean`, `make native-build`, `make native-release`, `make native-test`
+  - Added Android-specific targets: `make android-build`, `make android-release`, `make android-test`, `make android-run`, `make android-libs`, `make android-clean`, `make install-apk`
+  - Added utility targets: `make verify-sync`, `make devices`, `make lint`, `make rust-lint`, `make format`, `make verify-deps`
+  - Simplified AGENTS.md to point directly to Makefile targets instead of docs/platforms/ workflow files
+  - Removed entire `docs/` directory (platform workflow documentation now in Makefile comments)
+  - Updated README.md to use Makefile commands instead of docs/platforms/ references
+
 ## [1.0.1] - 2025-11-02
 
 ### Fixed

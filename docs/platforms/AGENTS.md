@@ -13,12 +13,9 @@ AI agents MUST:
 
 | Platform | Workflow File Path |
 |----------|-------------------|
-| Android | @docs/platforms/android-workflow.md |
-| iOS | @docs/platforms/ios-workflow.md |
-| Linux | @docs/platforms/linux-workflow.md |
-| macOS | @docs/platforms/macos-workflow.md |
-| Web | @docs/platforms/web-workflow.md |
-| Windows | @docs/platforms/windows-workflow.md |
-
-**@ Notation Explanation:**
-The @ notation is used for AI-friendly linking to project documentation paths. For example, @docs/ refers to the docs/ directory.
+| Android | docs/platforms/android-workflow.md |
+| iOS | docs/platforms/ios-workflow.md |
+| Linux | docs/platforms/linux-workflow.md |
+| macOS | docs/platforms/macos-workflow.md |
+| Web | docs/platforms/web-workflow.md |
+| Windows | docs/platforms/windows-workflow.md |

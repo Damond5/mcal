@@ -392,13 +392,16 @@ class Event {
           );
         }
 
-        if (!current.isBefore(endDate)) break;
         if (event.endDate != null && current.isAfter(event.endDate!)) break;
+        if (current.isAfter(endDate)) break;
       } else {
         break;
       }
 
       if (event.endDate != null && current.isAfter(event.endDate!)) break;
+
+      // Check endDate boundary BEFORE adding instance to prevent off-by-one errors
+      if (current.isAfter(endDate)) break;
 
       if (current.isAfter(event.startDate)) {
         instances.add(
@@ -434,33 +437,69 @@ class Event {
   // Static cache for computed results to improve performance
   static final Map<String, Set<DateTime>> _dateCache = {};
 
+  /// Returns all occurrence dates for events within the specified date range.
+  ///
+  /// This method generates a set of unique dates on which events occur, supporting
+  /// both single-day and multi-day events, as well as recurring events with RRULE
+  /// recurrence patterns.
+  ///
+  /// ## Key Behavior
+  ///
+  /// - Returns dates for **all events** regardless of their individual [Event.endDate]
+  /// - This allows access to historical event data and ensures tests can validate past events
+  /// - The [startDate] and [endDate] parameters filter the returned dates to a query range
+  /// - For calendar displays, use the [endDate] parameter to limit results to relevant periods
+  ///
+  /// ## Parameters
+  ///
+  /// - `events`: List of events to process
+  /// - `cacheKey`: Optional explicit cache key for caching results (useful for stable queries)
+  /// - `endDate`: Optional end date boundary for expansion (defaults to 1 year from now)
+  ///
+  /// ## Performance Considerations
+  ///
+  /// - Results are cached using a hash of event content and cache key
+  /// - For large historical datasets, provide an [endDate] parameter to limit computation
+  /// - Multi-day events are optimized using set operations for efficient date generation
+  ///
+  /// ## Consistency
+  ///
+  /// This method returns dates for all events regardless of their [Event.endDate] property,
+  /// maintaining consistency with [Event.occursOnDate()] which also handles past events correctly.
+  ///
+  /// ## Example
+  ///
+  /// ```dart
+  /// final events = [pastEvent, futureEvent, recurringEvent];
+  /// final dates = Event.getAllEventDates(
+  ///   events,
+  ///   startDate: DateTime(2024, 1, 1),
+  ///   endDate: DateTime(2024, 12, 31),
+  /// );
+  /// // Returns all dates where events occur in 2024, including past events
+  /// ```
   static Set<DateTime> getAllEventDates(
     List<Event> events, {
     DateTime? cacheKey,
     DateTime? endDate,
   }) {
-    // Use provided cacheKey or generate one from events
+    // Use provided endDate for pruning if available, otherwise default to 1 year from now
+    final effectiveEnd =
+        endDate ?? DateTime.now().add(const Duration(days: 365));
+
+    // Generate cache key including endDate to ensure different date ranges have separate cache entries
     final effectiveCacheKey = cacheKey != null
-        ? 'explicit_${cacheKey.millisecondsSinceEpoch}'
-        : _generateCacheKey(events);
+        ? 'explicit_${cacheKey.millisecondsSinceEpoch}_end${effectiveEnd.millisecondsSinceEpoch}'
+        : '${_generateCacheKey(events)}_end${effectiveEnd.millisecondsSinceEpoch}';
 
     // Check cache first
     if (_dateCache.containsKey(effectiveCacheKey)) {
       return _dateCache[effectiveCacheKey]!;
     }
 
-    // Use provided endDate for pruning if available, otherwise default to 1 year from now
-    final effectiveEnd =
-        endDate ?? DateTime.now().add(const Duration(days: 365));
-
     final dates = <DateTime>{};
 
     for (final event in events) {
-      // Early termination: skip events that end before now
-      if (event.endDate != null && event.endDate!.isBefore(DateTime.now())) {
-        continue;
-      }
-
       // Expand recurring events
       final expanded = Event.expandRecurring(event, effectiveEnd);
 

@@ -9,21 +9,18 @@ AI agents working on platform-specific tasks MUST first identify the current pla
 
 | Platform | Workflow File Path | Status |
 |----------|-------------------|--------|
-| Android | @docs/platforms/android-workflow.md | Available |
-| iOS | @docs/platforms/ios-workflow.md | Coming soon |
-| Linux | @docs/platforms/linux-workflow.md | Coming soon |
-| macOS | @docs/platforms/macos-workflow.md | Coming soon |
-| Web | @docs/platforms/web-workflow.md | Coming soon |
-| Windows | @docs/platforms/windows-workflow.md | Coming soon |
+| Android | docs/platforms/android-workflow.md | Available |
+| iOS | docs/platforms/ios-workflow.md | Coming soon |
+| Linux | docs/platforms/linux-workflow.md | Available |
+| macOS | docs/platforms/macos-workflow.md | Coming soon |
+| Web | docs/platforms/web-workflow.md | Coming soon |
+| Windows | docs/platforms/windows-workflow.md | Coming soon |
 
 **Navigation Guide:**
-- @README.md
-- @docs/platforms/README.md
+- README.md
+- docs/platforms/README.md
 
 **AI Agent Instructions:**
 - Detect platform from environment context (e.g., `platform: linux` in env info).
 - Read the linked workflow file before executing platform-specific commands.
-- Use @-prefixed paths for AI-friendly documentation access.
-
-**@ Notation Explanation:**
-The @ notation is used for AI-friendly linking to project documentation paths. For example, @docs/ refers to the docs/ directory, and @/ refers to the openspec/ directory.
+- Use -prefixed paths for AI-friendly documentation access.

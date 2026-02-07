@@ -89,23 +89,119 @@ If you make changes to the Rust code in the `native/` directory, the rebuild pro
 - **Android**: Run `make android-build` to ensure proper synchronization and prevent hash mismatches.
 
 - **Other Platforms**: Follow these general steps:
-  1. Build the Rust library:
-     ```bash
-     cd native && cargo build --release
-     ```
+   1. Build the Rust library:
+      ```bash
+      cd native && cargo build --release
+      ```
 
-  2. Regenerate the Flutter Rust Bridge code:
-     ```bash
-     flutter_rust_bridge_codegen generate --config-file frb.yaml
-     ```
+   2. Regenerate the Flutter Rust Bridge code:
+      ```bash
+      flutter_rust_bridge_codegen generate --config-file frb.yaml
+      ```
 
-  3. Clean and reinstall Flutter dependencies:
-     ```bash
-     fvm flutter clean
-     fvm flutter pub get
-     ```
+   3. Clean and reinstall Flutter dependencies:
+      ```bash
+      fvm flutter clean
+      fvm flutter pub get
+      ```
 
 **Note**: Android builds require rebuilding native libraries for all architectures. Run `make android-build` to build the complete Android APK with all native libraries.
+
+### Build System
+
+The MCAL project includes an enhanced Makefile that provides a robust, platform-agnostic build system with automatic dependency management, progress tracking, and comprehensive error handling.
+
+#### Key Features
+
+- **Enhanced Error Handling**: The build system uses fail-fast behavior with informative error messages that include:
+  - Clear error descriptions
+  - Suggested fixes
+  - Documentation links
+  - Exit on first error (`set -e`) to prevent cascading failures
+
+- **Dependency Verification**: Before any build operation, the system automatically checks for:
+  - `fvm` (Flutter Version Manager)
+  - `flutter_rust_bridge_codegen` for code generation
+  - `adb` for Android device operations
+  - Provides installation instructions when tools are missing
+
+- **Progress Indicators**: Multi-architecture builds show real-time progress:
+  ```
+  [  1/4] Building for arm64-v8a...
+  [  2/4] Building for armeabi-v7a...
+  [  3/4] Building for x86...
+  [  4/4] Building for x86_64...
+  ```
+
+- **Output Verification**: All build targets include verification steps:
+  - Checks file existence and content size
+  - Displays build artifacts with file sizes
+  - Provides clear success/failure feedback
+
+- **Android Device Detection**: Robust device detection with:
+  - Automatic device identification via JSON parsing
+  - Detailed troubleshooting for missing devices
+  - Support for emulators and physical devices
+  - Step-by-step setup instructions when no device is found
+
+- **Enhanced Help System**: Run `make help` for:
+  - Quick start workflow examples
+  - Platform-specific targets
+  - Common issues with solutions
+  - Links to documentation
+
+#### Build Pipeline
+
+The Android build pipeline follows a specific order to ensure synchronization:
+
+```
+1. android-libs → 2. generate → 3. flutter build
+```
+
+1. **`make android-libs`**: Builds Rust native libraries for all Android architectures (arm64-v8a, armeabi-v7a, x86, x86_64)
+2. **`make generate`**: Regenerates Flutter Rust Bridge code
+3. **`make android-build`** or **`make android-release`**: Builds the APK
+
+**Verification Steps**: Each target includes automatic verification:
+- Native library existence and size checks
+- Generated code file validation
+- APK file verification
+- Build artifact listing
+
+#### Quick Start Commands
+
+```bash
+# First-time setup
+make deps              # Install Flutter dependencies
+make android-libs      # Build Rust for Android
+make generate          # Generate Flutter Rust Bridge code
+make verify-sync      # Verify all components are synchronized
+
+# Development
+make linux-run         # Run app on Linux (fastest iteration)
+make linux-build       # Build Linux app
+
+# Building for release
+make android-release  # Build release APK
+make install-apk       # Install on connected device
+
+# Diagnostics
+make help             # Show all targets with examples
+make verify-sync      # Check build synchronization
+make devices          # Show available devices
+```
+
+#### Dependency Chain
+
+```
+native/                → android-libs → generate → flutter build
+  Rust code              Native libs     FRB code       APK/Bundle
+```
+
+The dependency chain ensures:
+- Rust code is compiled for all architectures first
+- Flutter bindings are regenerated after native changes
+- Flutter build uses up-to-date native libraries
 
 ## Usage
 
@@ -180,7 +276,79 @@ This app targets Android SDK 36 (Android 14) and is qualified as a calendar appl
 
  ## Troubleshooting
 
-    - **Android Notification Issues**: If notifications are not appearing on Android devices, ensure the app has notification permissions granted in device settings (Settings > Apps > mcal > Notifications). On Android 12+, WorkManager handles background delivery - if issues persist, try clearing app data and reinstalling to reset WorkManager tasks.
+### Common Build Issues
+
+- **Build fails with 'native library not found'**:
+  Run: `make android-libs && make generate`
+
+- **Flutter analyzer shows errors in generated code**:
+  Run: `make generate` to regenerate bindings
+
+- **Android build fails**:
+  Run: `make verify-sync && make android-libs`
+
+### Enhanced Error Messages
+
+The build system now provides actionable error messages with:
+
+- **Clear error descriptions**: Specific failure points
+- **Suggested fixes**: Commands to run for resolution
+- **Documentation links**: References to relevant docs
+- **Fail-fast behavior**: Stops on first error to prevent cascading failures
+
+**Example error output**:
+```
+ERROR: [BUILD_FAILED] Failed to build for arm64-v8a
+  Category: Compilation
+  Suggestion: Check Rust compilation errors above
+```
+
+### Using Diagnostic Tools
+
+- **`make verify-sync`**: Check if all build components are synchronized
+  ```bash
+  make verify-sync
+  ```
+
+- **`make help`**: Enhanced help system with common issues and solutions
+  ```bash
+  make help
+  ```
+
+- **`make devices`**: Show available devices for running/deploying
+  ```bash
+  make devices
+  ```
+
+### Android-Specific Issues
+
+**No Android device found**: The system provides step-by-step instructions for:
+- Starting an Android Emulator
+- Connecting a physical device with USB debugging
+- Troubleshooting ADB connection issues
+
+**APK build failures**: Run verification to check component synchronization:
+```bash
+make verify-sync
+```
+
+### Still Having Issues?
+
+1. Run `make verify-sync` to check build synchronization
+2. Check `make help` for common issues and solutions
+3. Review the error messages above for specific suggestions
+4. Try cleaning and rebuilding:
+   ```bash
+   make clean
+   make android-libs && make generate
+   make android-build
+   ```
+
+For more help, see the [AGENTS.md](AGENTS.md) file for development workflows.
+
+### Android Notification Issues
+
+If notifications are not appearing on Android devices, ensure the app has notification permissions granted in device settings (Settings > Apps > mcal > Notifications). On Android 12+, WorkManager handles background delivery - if issues persist, try clearing app data and reinstalling to reset WorkManager tasks.
 
   The app includes a comprehensive test suite to ensure functionality and reliability. Tests cover widget interactions, theme management, event management, sync operations, notifications, and core app behavior.
 
@@ -328,7 +496,7 @@ For a full list, see `pubspec.yaml`.
    native/                       # Rust native library for Git synchronization
    ```
 
-For platform-specific development tasks, agents should use the Makefile. Run `make help` to see all available targets.
+For platform-specific development tasks, agents should use the Makefile. Run `make help` to see all available targets with examples, common issues, and troubleshooting guidance. Use `make verify-sync` to diagnose build synchronization issues.
 
 ## Contributing
 

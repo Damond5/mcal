@@ -202,15 +202,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added SCHEDULE_EXACT_ALARM permission and calendar app qualification for Android notification scheduling
 - Added user feedback for denied permissions on Android
 
+## [1.1.0] - 2025-02-07
+
+### Added
+- **Success Feedback Helpers** (`success`, `info`, `build_success`, `multi_build_success`, `arch_progress`, `lib_progress`, `android_libs_complete`, `generate_success`, `apk_success`): Comprehensive set of user-friendly feedback macros providing clear build progress indicators and completion messages with file sizes and next steps
+- **Output Verification Helpers** (`verify_apk`, `verify_linux_bundle`, `verify_native_lib`): Automated build artifact validation ensuring outputs exist and have content before proceeding
+- **Dependency Verification Helpers** (`check_dep`, `check_fvm`, `verify_output`, `verify_build`, `check_flutter_deps`): Systematic dependency checking with helpful installation instructions when tools are missing
+- **Device Detection Helpers** (`get_android_device`, `list_android_devices`, `check_android_device`, `require_android_device`): JSON-based Android device detection and listing with fallback mechanisms
+- **Enhanced Help System**: Comprehensive `make help` target organized into sections (QUICK START, DEVELOPMENT TARGETS, LINUX TARGETS, ANDROID TARGETS, NATIVE RUST TARGETS, BUILD & UTILITY TARGETS, COMMON ISSUES) with quick answers to frequently asked questions
+- **Development Environment Verification** (`verify-deps` target): Complete development toolchain verification including Flutter, Cargo, cargo-ndk, FRB codegen, and ADB
+- **Interactive Device Selection** (`android-select` target): User-friendly Android device listing and selection for multi-device scenarios
+
 ### Changed
-- **Agent Workflows Simplified**: Consolidated all build, test, and development commands into Makefile targets with comprehensive documentation
-  - Added platform-agnostic targets: `make build`, `make test`, `make clean`, `make help`, `make deps`, `make generate`, `make analyze`, `make test-cov`
-  - Added Linux-specific targets: `make linux-run`, `make linux-build`, `make linux-test`, `make linux-analyze`, `make linux-clean`, `make native-build`, `make native-release`, `make native-test`
-  - Added Android-specific targets: `make android-build`, `make android-release`, `make android-test`, `make android-run`, `make android-libs`, `make android-clean`, `make install-apk`
-  - Added utility targets: `make verify-sync`, `make devices`, `make lint`, `make rust-lint`, `make format`, `make verify-deps`
-  - Simplified AGENTS.md to point directly to Makefile targets instead of docs/platforms/ workflow files
-  - Removed entire `docs/` directory (platform workflow documentation now in Makefile comments)
-  - Updated README.md to use Makefile commands instead of docs/platforms/ references
+- **Error Handling Framework**: Implemented consistent error reporting with category classification, actionable suggestions, and documentation links for troubleshooting
+- **Verification Steps**: Enhanced build artifact verification with automatic size reporting and clear success/failure indicators
+- **Build Output Messaging**: Replaced minimal output with comprehensive progress indicators showing architecture build progress, file sizes, and next steps
+
+### Fixed
+- **Silent Error Suppression Removed**: Eliminated hidden failures by implementing explicit error checking and user-visible error messages with troubleshooting guidance
+- **Device Detection Reliability**: Improved Android device detection with better JSON parsing, error handling, and fallback mechanisms for edge cases
+- **Build Artifact Verification**: Added post-build verification steps to catch missing or empty output files immediately with actionable recovery steps
+
+### Improved
+- **Build Feedback Quality**: All build targets now provide clear success/failure status, file locations, sizes, and suggested next actions
+- **Output Verification**: Automated verification of all build artifacts (APKs, native libraries, Flutter bundles) with informative status messages
+- **Error Recovery**: Build failures now provide specific error categories, suggestions for resolution, and links to relevant documentation
+- **Multi-Architecture Build Progress**: Android library builds now display real-time progress with architecture indicators ([001/004], [002/004], etc.)
 
 ## [1.0.1] - 2025-11-02
 

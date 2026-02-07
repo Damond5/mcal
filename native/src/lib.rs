@@ -5,9 +5,9 @@ mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
     use super::*;
     use std::fs;
+    use std::process::Command;
     use tempdir::TempDir;
 
     #[test]
@@ -84,7 +84,10 @@ mod tests {
         // Now test prefer remote (feature branch)
         let result = api::git_merge_prefer_remote(path.clone());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Merge resolved by preferring remote".to_string());
+        assert_eq!(
+            result.unwrap(),
+            "Merge resolved by preferring remote".to_string()
+        );
 
         // Check content is from feature
         let content = fs::read_to_string(format!("{}/test.txt", path)).unwrap();

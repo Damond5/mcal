@@ -50,19 +50,16 @@ class EventValidationError extends EventError {
   final dynamic invalidValue;
 
   const EventValidationError(
-    String message, {
+    super.message, {
     this.fieldName,
     this.invalidValue,
-    dynamic cause,
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ??
              'Please check the event details and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -75,17 +72,14 @@ class EventValidationError extends EventError {
 /// Error for event storage failures
 class EventStorageError extends EventError {
   const EventStorageError(
-    String message, {
-    dynamic cause,
+    super.message, {
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ??
              'Please check storage permissions and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -100,20 +94,17 @@ class EventSyncError extends EventError {
   final bool isConflict;
 
   const EventSyncError(
-    String message, {
+    super.message, {
     this.isConflict = false,
-    dynamic cause,
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ??
              (isConflict
                  ? 'Resolve the conflict and try again.'
                  : 'Check your network connection and try again.'),
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -126,17 +117,14 @@ class EventSyncError extends EventError {
 /// Error for notification-related failures
 class EventNotificationError extends EventError {
   const EventNotificationError(
-    String message, {
-    dynamic cause,
+    super.message, {
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ??
              'Check notification permissions and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -151,17 +139,14 @@ class EventParseError extends EventError {
   final String? rawContent;
 
   const EventParseError(
-    String message, {
+    super.message, {
     this.rawContent,
-    dynamic cause,
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ?? 'Check the event format and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -174,17 +159,14 @@ class EventParseError extends EventError {
 /// Error for network-related failures
 class EventNetworkError extends EventError {
   const EventNetworkError(
-    String message, {
-    dynamic cause,
+    super.message, {
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ??
              'Check your network connection and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override
@@ -197,16 +179,13 @@ class EventNetworkError extends EventError {
 /// Error for permission-related failures
 class EventPermissionError extends EventError {
   const EventPermissionError(
-    String message, {
-    dynamic cause,
+    super.message, {
+    super.cause,
     String? recoverySuggestion,
-    Event? relatedEvent,
+    super.relatedEvent,
   }) : super(
-         message,
-         cause: cause,
          recoverySuggestion:
              recoverySuggestion ?? 'Check app permissions and try again.',
-         relatedEvent: relatedEvent,
        );
 
   @override

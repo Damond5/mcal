@@ -2,9 +2,32 @@
 
 AI agents working on the MCAL project should use the Makefile for all platform-specific development tasks. This file provides direct mappings to Makefile targets.
 
-## Quick Start
+## Flutter Version Management (fvm)
 
-Run `make help` to see all available targets.
+This project uses **Flutter Version Management (fvm)** to ensure consistent Flutter versions across all developers and CI/CD pipelines.
+
+### Quick Commands
+
+```bash
+# Install/activate fvm
+dart pub global activate fvm
+
+# Install project Flutter version
+fvm install
+
+# Run Flutter commands with fvm
+fvm flutter --version
+fvm flutter pub get
+
+# List available versions
+fvm list
+```
+
+### Development Workflow
+
+For all Flutter development tasks, use the **Makefile commands** listed below. They automatically use fvm and handle all platform-specific operations.
+
+---
 
 ## Platform-Specific Commands
 

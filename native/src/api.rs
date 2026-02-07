@@ -1,4 +1,4 @@
-use git2::{Repository, Delta};
+use git2::{Delta, Repository};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -33,7 +33,12 @@ impl From<git2::Error> for GitError {
 }
 
 // Helper function for credentials
-fn get_credentials(url: &str, username: &Option<String>, password: &Option<String>, ssh_key_path: &Option<String>) -> Result<git2::Cred, git2::Error> {
+fn get_credentials(
+    url: &str,
+    username: &Option<String>,
+    password: &Option<String>,
+    ssh_key_path: &Option<String>,
+) -> Result<git2::Cred, git2::Error> {
     if url.starts_with("http") || url.starts_with("https") {
         if let (Some(user), Some(pass)) = (username, password) {
             git2::Cred::userpass_plaintext(user, pass)
@@ -77,7 +82,10 @@ fn validate_certificate(hostname: &str, cert_data: &[u8]) -> Result<(), String> 
             }
         }
     }
-    Err(format!("Hostname '{}' does not match certificate", hostname))
+    Err(format!(
+        "Hostname '{}' does not match certificate",
+        hostname
+    ))
 }
 
 // Define the API struct
@@ -105,13 +113,20 @@ pub fn git_init(path: String) -> Result<String, GitError> {
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_clone(url: String, path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+pub fn git_clone(
+    url: String,
+    path: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     let mut callbacks = git2::RemoteCallbacks::new();
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
     let _url_clone = url.clone();
-    callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks
+        .credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
     callbacks.certificate_check(move |cert, hostname| {
         if let Some(x509) = cert.as_x509() {
             match validate_certificate(hostname, x509.data()) {
@@ -134,7 +149,10 @@ pub fn git_clone(url: String, path: String, username: Option<String>, password: 
 pub fn git_current_branch(path: String) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
     let head_ref = repo.head()?;
-    let branch_name = head_ref.name().and_then(|n| n.strip_prefix("refs/heads/")).unwrap_or("unknown");
+    let branch_name = head_ref
+        .name()
+        .and_then(|n| n.strip_prefix("refs/heads/"))
+        .unwrap_or("unknown");
     Ok(branch_name.to_string())
 }
 
@@ -157,12 +175,12 @@ fn has_local_changes(repo: &Repository) -> Result<bool, GitError> {
     let statuses = repo.statuses(None)?;
     Ok(statuses.iter().any(|entry| {
         let status = entry.status();
-        status.contains(git2::Status::WT_MODIFIED) ||
-        status.contains(git2::Status::WT_DELETED) ||
-        status.contains(git2::Status::WT_NEW) ||
-        status.contains(git2::Status::INDEX_MODIFIED) ||
-        status.contains(git2::Status::INDEX_DELETED) ||
-        status.contains(git2::Status::INDEX_NEW)
+        status.contains(git2::Status::WT_MODIFIED)
+            || status.contains(git2::Status::WT_DELETED)
+            || status.contains(git2::Status::WT_NEW)
+            || status.contains(git2::Status::INDEX_MODIFIED)
+            || status.contains(git2::Status::INDEX_DELETED)
+            || status.contains(git2::Status::INDEX_NEW)
     }))
 }
 
@@ -175,7 +193,12 @@ pub fn git_has_local_changes(path: String) -> Result<bool, GitError> {
 /// Pull from remote repository, handling local uncommitted changes by stashing them.
 /// If pull succeeds, attempts to restore stashed changes.
 /// If stash pop fails due to conflicts, drops the stash to prefer remote changes.
-fn git_pull_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+fn git_pull_impl(
+    path: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     let mut repo = Repository::open(&path)?;
     let has_changes = has_local_changes(&repo)?;
     let mut stashed = false;
@@ -198,7 +221,9 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
         let username = username.clone();
         let password = password.clone();
         let ssh_key_path = ssh_key_path.clone();
-        callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+        callbacks.credentials(move |url, _, _| {
+            get_credentials(url, &username, &password, &ssh_key_path)
+        });
         callbacks.certificate_check(move |cert, hostname| {
             if let Some(x509) = cert.as_x509() {
                 match validate_certificate(hostname, x509.data()) {
@@ -230,7 +255,9 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
             new_tree = Some(repo.head()?.peel_to_tree()?);
             Ok("Fast-forward merge completed".to_string())
         } else {
-            Err(GitError::Other("Non-fast-forward merge required".to_string()))
+            Err(GitError::Other(
+                "Non-fast-forward merge required".to_string(),
+            ))
         }
     })();
 
@@ -238,7 +265,10 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
         if let Some(new_tree) = &new_tree {
             let old_tree = repo.find_tree(old_oid)?;
             let diff = repo.diff_tree_to_tree(Some(&old_tree), Some(new_tree), None)?;
-            diff.deltas().filter(|d| d.status() == Delta::Deleted).map(|d| d.old_file().path().unwrap().to_string_lossy().to_string()).collect()
+            diff.deltas()
+                .filter(|d| d.status() == Delta::Deleted)
+                .map(|d| d.old_file().path().unwrap().to_string_lossy().to_string())
+                .collect()
         } else {
             vec![]
         }
@@ -261,7 +291,11 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
                     let full_path = workdir.join(path);
                     if full_path.exists() {
                         if let Err(e) = fs::remove_file(&full_path) {
-                            eprintln!("Failed to remove deleted file {}: {}", full_path.display(), e);
+                            eprintln!(
+                                "Failed to remove deleted file {}: {}",
+                                full_path.display(),
+                                e
+                            );
                         }
                     }
                 }
@@ -276,11 +310,21 @@ fn git_pull_impl(path: String, username: Option<String>, password: Option<String
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_pull(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+pub fn git_pull(
+    path: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     git_pull_impl(path, username, password, ssh_key_path)
 }
 
-fn git_push_impl(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+fn git_push_impl(
+    path: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
     let branch_name = extract_branch_name(&repo);
     let mut remote = repo.find_remote("origin")?;
@@ -288,7 +332,8 @@ fn git_push_impl(path: String, username: Option<String>, password: Option<String
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
-    callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks
+        .credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
     callbacks.certificate_check(move |cert, hostname| {
         if let Some(x509) = cert.as_x509() {
             match validate_certificate(hostname, x509.data()) {
@@ -307,7 +352,12 @@ fn git_push_impl(path: String, username: Option<String>, password: Option<String
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_push(path: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+pub fn git_push(
+    path: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     git_push_impl(path, username, password, ssh_key_path)
 }
 
@@ -352,7 +402,13 @@ pub fn git_remove_remote(path: String, name: String) -> Result<String, GitError>
     git_remove_remote_impl(path, name)
 }
 
-fn git_fetch_impl(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+fn git_fetch_impl(
+    path: String,
+    remote: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     let repo = Repository::open(&path)?;
     let branch_name = extract_branch_name(&repo);
     let mut remote_obj = repo.find_remote(&remote)?;
@@ -360,7 +416,8 @@ fn git_fetch_impl(path: String, remote: String, username: Option<String>, passwo
     let username = username.clone();
     let password = password.clone();
     let ssh_key_path = ssh_key_path.clone();
-    callbacks.credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
+    callbacks
+        .credentials(move |url, _, _| get_credentials(url, &username, &password, &ssh_key_path));
     callbacks.certificate_check(move |cert, hostname| {
         if let Some(x509) = cert.as_x509() {
             match validate_certificate(hostname, x509.data()) {
@@ -378,7 +435,13 @@ fn git_fetch_impl(path: String, remote: String, username: Option<String>, passwo
 }
 
 #[flutter_rust_bridge::frb]
-pub fn git_fetch(path: String, remote: String, username: Option<String>, password: Option<String>, ssh_key_path: Option<String>) -> Result<String, GitError> {
+pub fn git_fetch(
+    path: String,
+    remote: String,
+    username: Option<String>,
+    password: Option<String>,
+    ssh_key_path: Option<String>,
+) -> Result<String, GitError> {
     git_fetch_impl(path, remote, username, password, ssh_key_path)
 }
 
@@ -424,9 +487,20 @@ fn git_commit_impl(path: String, message: String) -> Result<String, GitError> {
     let oid = index.write_tree()?;
     let tree = repo.find_tree(oid)?;
     let signature = git2::Signature::now("App", "app@example.com")?;
-    let parent_commit = repo.head().ok().and_then(|head| head.target()).and_then(|oid| repo.find_commit(oid).ok());
+    let parent_commit = repo
+        .head()
+        .ok()
+        .and_then(|head| head.target())
+        .and_then(|oid| repo.find_commit(oid).ok());
     let commit = if let Some(parent) = parent_commit {
-        repo.commit(Some("HEAD"), &signature, &signature, &message, &tree, &[&parent])?
+        repo.commit(
+            Some("HEAD"),
+            &signature,
+            &signature,
+            &message,
+            &tree,
+            &[&parent],
+        )?
     } else {
         repo.commit(Some("HEAD"), &signature, &signature, &message, &tree, &[])?
     };
@@ -449,7 +523,9 @@ fn git_merge_prefer_remote_impl(path: String) -> Result<String, GitError> {
         .current_dir(&path)
         .output()?;
     if !output.status.success() {
-        return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
+        return Err(GitError::Other(
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
     }
     let output = Command::new("git")
         .arg("add")
@@ -457,7 +533,9 @@ fn git_merge_prefer_remote_impl(path: String) -> Result<String, GitError> {
         .current_dir(&path)
         .output()?;
     if !output.status.success() {
-        return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
+        return Err(GitError::Other(
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
     }
     let output = Command::new("git")
         .arg("commit")
@@ -466,7 +544,9 @@ fn git_merge_prefer_remote_impl(path: String) -> Result<String, GitError> {
         .current_dir(&path)
         .output()?;
     if !output.status.success() {
-        return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
+        return Err(GitError::Other(
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
     }
     Ok("Merge resolved by preferring remote".to_string())
 }
@@ -500,7 +580,12 @@ fn git_diff_impl(path: String) -> Result<String, GitError> {
     let diff = repo.diff_tree_to_workdir(Some(&head_tree), None)?;
     let mut diff_str = String::new();
     diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
-        diff_str.push_str(&format!("{:?} {:?} {:?}\n", delta.old_file().path(), delta.new_file().path(), line.origin()));
+        diff_str.push_str(&format!(
+            "{:?} {:?} {:?}\n",
+            delta.old_file().path(),
+            delta.new_file().path(),
+            line.origin()
+        ));
         true
     })?;
     Ok(diff_str)
@@ -521,7 +606,9 @@ fn git_merge_abort_impl(path: String) -> Result<String, GitError> {
         .current_dir(&path)
         .output()?;
     if !output.status.success() {
-        return Err(GitError::Other(String::from_utf8_lossy(&output.stderr).to_string()));
+        return Err(GitError::Other(
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
     }
     Ok("Merge aborted".to_string())
 }

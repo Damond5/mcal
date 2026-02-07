@@ -221,7 +221,7 @@ rust-lint:
 # Format targets
 format:
 	@echo "Formatting Dart code..."
-	fvm flutter format lib/ test/
+	fvm dart format lib/ test/
 	@echo "Formatting Rust code..."
 	cd native && cargo fmt
 

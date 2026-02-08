@@ -285,24 +285,29 @@ fn git_pull_impl(
                 // Stash pop failed (conflicts with remote changes), drop stash to prefer remote
                 let _ = repo.stash_drop(0);
             }
-            // Enforce deletions after stash pop
-            for path in deleted_paths {
-                if let Some(workdir) = repo.workdir() {
-                    let full_path = workdir.join(path);
-                    if full_path.exists() {
-                        if let Err(e) = fs::remove_file(&full_path) {
-                            eprintln!(
-                                "Failed to remove deleted file {}: {}",
-                                full_path.display(),
-                                e
-                            );
-                        }
-                    }
-                }
-            }
         } else {
             // Pull failed, restore local changes to original state
             let _ = repo.stash_pop(0, None);
+        }
+    }
+
+    // Handle deletion of files that were deleted in remote
+    // This must happen outside the stash block to ensure deletions are processed
+    // even when there were no local changes to stash
+    if result.is_ok() {
+        for path in deleted_paths {
+            if let Some(workdir) = repo.workdir() {
+                let full_path = workdir.join(path);
+                if full_path.exists() {
+                    if let Err(e) = fs::remove_file(&full_path) {
+                        eprintln!(
+                            "Failed to remove deleted file {}: {}",
+                            full_path.display(),
+                            e
+                        );
+                    }
+                }
+            }
         }
     }
 

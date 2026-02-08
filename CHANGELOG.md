@@ -210,6 +210,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed test pollution issue by implementing comprehensive test cleanup utilities. Added `test/test_helpers.dart` with `setupTestEnvironment`, `cleanupTestEnvironment`, and `setupTestEventProvider` functions. All test suites now properly clean up test artifacts in a platform-independent directory using `Directory.systemTemp`. Tests can optionally preserve artifacts for debugging by setting `MCAL_TEST_CLEANUP=false` environment variable.
 - Improved error handling and constraints for Android notifications, maintaining cross-platform compatibility
 
+### Fixed
+- **Event Synchronization**: Fixed bug where events deleted in remote repository were not being deleted locally when pulling changes
+  - **Root Cause**: Deletion logic in `native/src/api.rs` (`git_pull_impl` function) was incorrectly placed inside the `if stashed` block, so it only executed when there were local changes to stash
+  - **Impact**: When users had no local uncommitted changes, remote-deleted events would persist locally indefinitely
+  - **Fix**: Moved deletion logic outside the `if stashed` block so it runs regardless of whether local changes existed
+
 ### Changed
 - Switched from AlarmManager to WorkManager for Android notification scheduling to improve reliability on Android 12+ devices
 - Changed package name from com.example.mcal to com.mcal

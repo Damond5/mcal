@@ -165,23 +165,33 @@ linux-build: deps generate native-build
 android-build: deps generate native-android-build
 	@echo "Building Android APK (debug)..."
 	$(call check_fvm)
-	fvm flutter clean
 	fvm flutter pub get
 	fvm flutter build apk --debug
 	$(call build_success,"Android","build/app/outputs/flutter-apk/app-debug.apk")
 
 # Full build first, then run on Android device
 android-run: android-build
-	@echo "Running on Android device..."
-	$(call check_fvm)
-	fvm flutter run
+	@echo "Detecting connected Android device..."
+	@DEVICE_ID=$$(fvm flutter devices | grep -E "android" | head -1 | awk '{print $$1}'); \
+	if [ -z "$$DEVICE_ID" ]; then \
+		echo "ERROR: No connected Android device found"; \
+		echo "Run 'fvm flutter devices' to see available devices"; \
+		exit 1; \
+	fi; \
+	echo "Running on device: $$DEVICE_ID"; \
+	fvm flutter run -d $$DEVICE_ID
 
 # Full build first, then install debug APK on connected device
 android-install: android-build
-	@echo "Installing debug APK..."
-	$(call check_dep,adb,Install ADB,android-sdk-platform-tools)
-	adb install -r build/app/outputs/flutter-apk/app-debug.apk
-	$(call success,"APK installed successfully")
+	@echo "Detecting connected Android device..."
+	@DEVICE_ID=$$(fvm flutter devices | grep -E "android" | head -1 | awk '{print $$1}'); \
+	if [ -z "$$DEVICE_ID" ]; then \
+		echo "ERROR: No connected Android device found"; \
+		echo "Run 'fvm flutter devices' to see available devices"; \
+		exit 1; \
+	fi; \
+	echo "Installing APK on device: $$DEVICE_ID"; \
+	fvm flutter install -d $$DEVICE_ID
 
 # =============================================================================
 # UTILITY

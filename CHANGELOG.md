@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Simplified Makefile**: Complete refactoring of Makefile to include only essential development commands
+  - New `android-install` command for installing debug APKs on connected devices
+  - Platform-aware `build` command that auto-detects Linux/Android and delegates appropriately
+  - All build commands now perform complete from-scratch builds automatically
+
 - **Event Management Systemic Issues Resolution**: Comprehensive fixes addressing 10-13% failure rates across 7 integration test files (event_crud, event_form, event_list, gesture, lifecycle, notification, conflict_resolution)
   - **EventOperationLogger** (`lib/utils/event_operation_logger.dart`): Structured logging utility with operation timing, trace ID support, and comprehensive event operation tracking (creation, modification, deletion, batch operations, sync, notifications)
   - **EventSynchronizer** (`lib/utils/event_synchronizer.dart`): Advanced synchronization utilities including serialized operations, state change monitoring with timeout, loading/sync completion waiting, event count tracking, refresh counter monitoring, and batch operation synchronization
@@ -19,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Reliability**: All 7 event management integration test files now achieve 100% pass rates (improved from 87.5%-92.2% failure rate reduction across test categories)
 - **Error Handling**: Migrated from generic error messages to comprehensive error classification with user-friendly recovery suggestions
 - **Race Condition Prevention**: Implemented serialized operations and state monitoring to eliminate intermittent failures based on execution order
+
+### Removed
+- **Simplified Makefile Commands**: Removed rarely-used and redundant Makefile targets to reduce complexity and maintenance burden
+  - Removed Rust-only build commands: `native-release`, `native-test`
+  - Removed architecture-specific Android builds: Individual targets consolidated into `android-build`
+  - Removed Flutter utility commands: `analyze`, `format` (use `fvm flutter analyze` and `fvm dart format` directly)
+  - Removed dependency management commands: `deps`, `generate` (now internal to build process)
+  - Removed code quality commands: `lint`, `rust-lint` (use tools directly)
+  - Removed verification commands: `verify-deps`, `verify-sync`
+  - Removed platform-specific commands: `linux-run`, `linux-test`, `linux-analyze`, `linux-clean`, `android-test`, `android-clean`
+  - Removed utility commands: `devices`, `android-select`, `install-apk` (replaced with `android-install`)
 
 ### Fixed
 - **Race Conditions**: Eliminated intermittent failures caused by concurrent event operations using `EventSynchronizer.performSerializedOperation()`

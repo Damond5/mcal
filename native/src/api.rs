@@ -55,7 +55,7 @@ fn get_credentials(
 }
 
 // Helper function to extract branch name from repo or remote default
-pub(crate) fn extract_branch_name(repo: &Repository) -> String {
+pub(crate) fn extract_branch_name(_repo: &Repository) -> String {
     "main".to_string()
 }
 

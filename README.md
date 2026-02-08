@@ -64,40 +64,38 @@ The MCal: Mobile Calendar is a Flutter-based application that displays an intera
 
 ### Building for Production
 
+- **Linux**:
+  ```bash
+  make linux-build
+  ```
+
 - **Android APK**:
   ```bash
-   fvm flutter build apk
+  make android-build
   ```
 
 - **iOS**:
   ```bash
-   fvm flutter build ios
+  fvm flutter build ios
   ```
 
- - **Desktop**:
-   ```bash
-    fvm flutter build linux  # or macos, windows
-    ```
+- **Desktop**:
+  ```bash
+  fvm flutter build linux  # or macos, windows
+  ```
 
    Note: Web builds are not supported due to FFI incompatibility with Rust-based Git sync. The app will fail to build for web platforms.
 
 
 ### Rebuilding After Rust Changes
 
-If you make changes to the Rust code in the `native/` directory, the rebuild process varies by platform:
+If you make changes to the Rust code in the `native/` directory, use the simplified build commands:
+
+- **Linux**: Run `make linux-build` to rebuild everything including native libraries.
 
 - **Android**: Run `make android-build` to ensure proper synchronization and prevent hash mismatches.
 
-- **Other Platforms**: Follow these general steps:
-   1. Build the Rust library:
-      ```bash
-      cd native && cargo build --release
-      ```
-
-   2. Regenerate the Flutter Rust Bridge code:
-      ```bash
-      flutter_rust_bridge_codegen generate --config-file frb.yaml
-      ```
+**Note**: All build commands (`make build`, `make linux-build`, `make android-build`) perform complete builds from scratch, including dependency resolution, Flutter Rust Bridge code generation, and Rust library compilation. You don't need to manually run intermediate steps.
 
    3. Clean and reinstall Flutter dependencies:
       ```bash

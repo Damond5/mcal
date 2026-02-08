@@ -5,7 +5,7 @@ context: >
 
 
   Tech stack: Flutter (Android, iOS, Linux, Web), Dart, Rust (via
-  flutter_rust_bridge)
+  flutter_rust_bridge), make
 
   Key libraries: table_calendar, shared_preferences,
   flutter_local_notifications, workmanager, provider, intl
@@ -23,7 +23,7 @@ context: >
   Consistency: Follows rcal project specification for event format and features
 rules:
   proposal:
-    - Consider cross-platform compatibility (Android, iOS, Linux) for all changes
+    - Consider cross-platform compatibility (Android and Linux) for all changes
     - Maintain offline-first functionality
     - Ensure Git sync continues to work across platforms
   specs:
@@ -35,7 +35,7 @@ rules:
     - Keep widgets, providers, services, and models in separate directories
     - Follow Flutter's const constructors for stateless widgets
   tasks:
-    - Run `fvm flutter test` for test validation
+    - Run `make test` for test validation
     - Add widget tests for GUI functionality
     - Add unit tests for business logic (providers, services, models)
     - Follow flutter_lints rules with 2-space indentation

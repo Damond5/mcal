@@ -514,17 +514,25 @@ class EventProvider extends ChangeNotifier {
       pauseUpdates();
     }
 
+    // Track events that were successfully saved to Rust for potential rollback
+    // Only rollback events that were actually persisted to Rust storage
+    final savedEvents = <Event>[];
+
     try {
       // Track added events for potential rollback
       final filenames = <String>[];
-      final addedEvents = <Event>[];
 
       for (final event in events) {
         final filename = await _storage.addEvent(event);
         final eventWithFilename = event.copyWith(filename: filename);
+
+        // Track that this event was successfully saved to Rust BEFORE adding to Dart
+        // This ensures we can rollback only what was actually persisted
+        savedEvents.add(eventWithFilename);
+
+        // Now add to Dart state - if this fails, we can still rollback Rust
         _allEvents.add(eventWithFilename);
         filenames.add(filename);
-        addedEvents.add(eventWithFilename);
       }
 
       await computeEventDatesAsync();
@@ -554,25 +562,25 @@ class EventProvider extends ChangeNotifier {
 
       return filenames;
     } catch (e) {
-      // Rollback: remove all added events and their files
-      _logStateChange('Error in batch add', e);
-      for (
-        int i = _allEvents.length - events.length;
-        i < _allEvents.length;
-        i++
-      ) {
+      // Rollback: only remove events that were actually saved to Rust
+      // This prevents state mismatch - we only delete what was persisted
+      _logStateChange('Error in batch add, rolling back', e);
+
+      // First, delete from Rust storage only the events that were saved
+      for (final event in savedEvents) {
         try {
-          await _storage.deleteEventByEvent(_allEvents[i]);
+          await _storage.deleteEventByEvent(event);
         } catch (deleteError) {
-          log('Rollback failed: $deleteError');
+          log('Rollback failed to delete from Rust: $deleteError');
         }
       }
-      // Remove the added events from _allEvents
-      _allEvents.removeRange(
-        _allEvents.length - events.length,
-        _allEvents.length,
-      );
-      log('Batch operation rolled back');
+
+      // Then remove the saved events from Dart state
+      for (final event in savedEvents) {
+        _allEvents.removeWhere((e) => e.filename == event.filename);
+      }
+
+      log('Batch operation rolled back: ${savedEvents.length} events');
       rethrow;
     } finally {
       if (deferUpdates) {
@@ -666,6 +674,10 @@ class EventProvider extends ChangeNotifier {
       pauseUpdates();
     }
 
+    // Track successfully deleted events for potential rollback on error
+    // This helps maintain state consistency if an error occurs mid-batch
+    final deletedEvents = <Event>[];
+
     try {
       final eventsToDelete = <Event>[];
       for (final filename in filenames) {
@@ -688,8 +700,20 @@ class EventProvider extends ChangeNotifier {
       }
 
       for (final event in eventsToDelete) {
-        await _storage.deleteEventByEvent(event);
-        _allEvents.removeWhere((e) => e == event);
+        try {
+          await _storage.deleteEventByEvent(event);
+          // Track successful deletion before removing from Dart state
+          deletedEvents.add(event);
+          _allEvents.removeWhere((e) => e == event);
+        } on RcalException catch (e) {
+          // Propagate error - the UI should show error messages to users
+          // rather than silently removing events that still exist in storage
+          final errorMessage = e.message;
+          log(
+            'Error deleting event "${event.filename}" from Rust storage: $errorMessage',
+          );
+          rethrow;
+        }
       }
 
       await computeEventDatesAsync();
@@ -711,7 +735,10 @@ class EventProvider extends ChangeNotifier {
       // Note: We don't call autoPush() here - caller should call it explicitly
       _logStateChange('Batch delete complete', filenames.length);
     } catch (e) {
-      _logStateChange('Error in batch delete', e);
+      _logStateChange(
+        'Error in batch delete, deleted ${deletedEvents.length} events before error',
+        e,
+      );
       rethrow;
     } finally {
       if (deferUpdates) {
@@ -905,7 +932,9 @@ class EventProvider extends ChangeNotifier {
       // Notify waiting state change listeners
       _notifyStateChangeCompleter(event.filename);
     } catch (e) {
-      log('Error deleting event: $e');
+      // Propagate all errors - the UI should show error messages to users
+      // rather than silently removing events that still exist in storage
+      log('Error deleting event "${event.filename}": $e');
       rethrow;
     }
   }

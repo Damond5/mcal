@@ -859,11 +859,9 @@ pub fn update_event(
     let path = PathBuf::from(&calendar_dir);
     let repo = FileEventRepository::with_path(path.clone());
 
-    // Load existing events
+    // Verify the event exists by loading and checking
     let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
-
-    // Find the event by ID
-    let existing_event = events
+    let _existing_event = events
         .iter()
         .find(|e| e.id == id)
         .ok_or_else(|| format!("Event with id '{}' not found", id))?;
@@ -881,8 +879,8 @@ pub fn update_event(
         Some(id.clone()),
     )?;
 
-    // Delete the old event file and save the new one
-    repo.delete_from_path(existing_event, &path)
+    // Delete the old event file (using efficient ID-based deletion) and save the new one
+    repo.delete_by_id_from_path(&id, &path)
         .map_err(|e| e.to_string())?;
     repo.save_to_path(&updated_event, &path)
         .map_err(|e| e.to_string())?;
@@ -896,17 +894,8 @@ pub fn delete_event(id: String, calendar_dir: String) -> Result<(), String> {
     let path = PathBuf::from(&calendar_dir);
     let repo = FileEventRepository::with_path(path.clone());
 
-    // Load existing events
-    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
-
-    // Find the event by ID
-    let event = events
-        .iter()
-        .find(|e| e.id == id)
-        .ok_or_else(|| format!("Event with id '{}' not found", id))?;
-
-    // Delete the event
-    repo.delete_from_path(event, &path)
+    // Use efficient ID-based deletion (filenames are now ID-based)
+    repo.delete_by_id_from_path(&id, &path)
         .map_err(|e| e.to_string())?;
 
     Ok(())

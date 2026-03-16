@@ -115,6 +115,53 @@ class MockRustLibApi implements RustLibApi {
 
   @override
   Future<void> crateApiSetSslCaCerts({required List<String> pemCerts}) async {}
+
+  // RCAL Event API Methods
+
+  @override
+  Future<String> crateApiCreateEvent({
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  }) async => 'Event created: $title';
+
+  @override
+  Future<void> crateApiDeleteEvent({
+    required String id,
+    required String calendarDir,
+  }) async {}
+
+  @override
+  Future<List<EventDto>> crateApiGetAllEvents({
+    required String calendarDir,
+  }) async => [];
+
+  @override
+  Future<List<EventDto>> crateApiGetEventsInRange({
+    required String startDate,
+    required String endDate,
+    required String calendarDir,
+  }) async => [];
+
+  @override
+  Future<void> crateApiUpdateEvent({
+    required String id,
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  }) async {}
 }
 
 void main() {

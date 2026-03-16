@@ -66,7 +66,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 428931967;
+  int get rustContentHash => -864989279;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -78,6 +78,31 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
 abstract class RustLibApi extends BaseApi {
   Future<int> crateApiAdd({required int left, required int right});
+
+  Future<String> crateApiCreateEvent({
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  });
+
+  Future<void> crateApiDeleteEvent({
+    required String id,
+    required String calendarDir,
+  });
+
+  Future<List<EventDto>> crateApiGetAllEvents({required String calendarDir});
+
+  Future<List<EventDto>> crateApiGetEventsInRange({
+    required String startDate,
+    required String endDate,
+    required String calendarDir,
+  });
 
   Future<String> crateApiGitAddAll({required String path});
 
@@ -153,6 +178,19 @@ abstract class RustLibApi extends BaseApi {
   Future<void> crateApiInitApp();
 
   Future<void> crateApiSetSslCaCerts({required List<String> pemCerts});
+
+  Future<void> crateApiUpdateEvent({
+    required String id,
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  });
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -193,6 +231,174 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "add", argNames: ["left", "right"]);
 
   @override
+  Future<String> crateApiCreateEvent({
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(title, serializer);
+          sse_encode_String(description, serializer);
+          sse_encode_String(startDate, serializer);
+          sse_encode_opt_String(endDate, serializer);
+          sse_encode_opt_String(startTime, serializer);
+          sse_encode_opt_String(endTime, serializer);
+          sse_encode_bool(isAllDay, serializer);
+          sse_encode_String(recurrence, serializer);
+          sse_encode_String(calendarDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiCreateEventConstMeta,
+        argValues: [
+          title,
+          description,
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          isAllDay,
+          recurrence,
+          calendarDir,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiCreateEventConstMeta => const TaskConstMeta(
+    debugName: "create_event",
+    argNames: [
+      "title",
+      "description",
+      "startDate",
+      "endDate",
+      "startTime",
+      "endTime",
+      "isAllDay",
+      "recurrence",
+      "calendarDir",
+    ],
+  );
+
+  @override
+  Future<void> crateApiDeleteEvent({
+    required String id,
+    required String calendarDir,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          sse_encode_String(calendarDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDeleteEventConstMeta,
+        argValues: [id, calendarDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDeleteEventConstMeta => const TaskConstMeta(
+    debugName: "delete_event",
+    argNames: ["id", "calendarDir"],
+  );
+
+  @override
+  Future<List<EventDto>> crateApiGetAllEvents({required String calendarDir}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(calendarDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_event_dto,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiGetAllEventsConstMeta,
+        argValues: [calendarDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetAllEventsConstMeta => const TaskConstMeta(
+    debugName: "get_all_events",
+    argNames: ["calendarDir"],
+  );
+
+  @override
+  Future<List<EventDto>> crateApiGetEventsInRange({
+    required String startDate,
+    required String endDate,
+    required String calendarDir,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(startDate, serializer);
+          sse_encode_String(endDate, serializer);
+          sse_encode_String(calendarDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_event_dto,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiGetEventsInRangeConstMeta,
+        argValues: [startDate, endDate, calendarDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetEventsInRangeConstMeta => const TaskConstMeta(
+    debugName: "get_events_in_range",
+    argNames: ["startDate", "endDate", "calendarDir"],
+  );
+
+  @override
   Future<String> crateApiGitAddAll({required String path}) {
     return handler.executeNormal(
       NormalTask(
@@ -202,7 +408,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 6,
             port: port_,
           );
         },
@@ -236,7 +442,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 7,
             port: port_,
           );
         },
@@ -270,7 +476,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 8,
             port: port_,
           );
         },
@@ -310,7 +516,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 9,
             port: port_,
           );
         },
@@ -344,7 +550,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 10,
             port: port_,
           );
         },
@@ -374,7 +580,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 11,
             port: port_,
           );
         },
@@ -402,7 +608,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 12,
             port: port_,
           );
         },
@@ -440,7 +646,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 13,
             port: port_,
           );
         },
@@ -470,7 +676,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 14,
             port: port_,
           );
         },
@@ -500,7 +706,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 15,
             port: port_,
           );
         },
@@ -528,7 +734,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 16,
             port: port_,
           );
         },
@@ -556,7 +762,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 17,
             port: port_,
           );
         },
@@ -584,7 +790,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -623,7 +829,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 19,
             port: port_,
           );
         },
@@ -661,7 +867,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 20,
             port: port_,
           );
         },
@@ -695,7 +901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 21,
             port: port_,
           );
         },
@@ -725,7 +931,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 22,
             port: port_,
           );
         },
@@ -753,7 +959,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 23,
             port: port_,
           );
         },
@@ -780,7 +986,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 24,
             port: port_,
           );
         },
@@ -808,7 +1014,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 25,
             port: port_,
           );
         },
@@ -828,6 +1034,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     argNames: ["pemCerts"],
   );
 
+  @override
+  Future<void> crateApiUpdateEvent({
+    required String id,
+    required String title,
+    required String description,
+    required String startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool isAllDay,
+    required String recurrence,
+    required String calendarDir,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          sse_encode_String(title, serializer);
+          sse_encode_String(description, serializer);
+          sse_encode_String(startDate, serializer);
+          sse_encode_opt_String(endDate, serializer);
+          sse_encode_opt_String(startTime, serializer);
+          sse_encode_opt_String(endTime, serializer);
+          sse_encode_bool(isAllDay, serializer);
+          sse_encode_String(recurrence, serializer);
+          sse_encode_String(calendarDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 26,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiUpdateEventConstMeta,
+        argValues: [
+          id,
+          title,
+          description,
+          startDate,
+          endDate,
+          startTime,
+          endTime,
+          isAllDay,
+          recurrence,
+          calendarDir,
+        ],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUpdateEventConstMeta => const TaskConstMeta(
+    debugName: "update_event",
+    argNames: [
+      "id",
+      "title",
+      "description",
+      "startDate",
+      "endDate",
+      "startTime",
+      "endTime",
+      "isAllDay",
+      "recurrence",
+      "calendarDir",
+    ],
+  );
+
   @protected
   String dco_decode_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -838,6 +1116,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool dco_decode_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
+  }
+
+  @protected
+  EventDto dco_decode_event_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return EventDto(
+      id: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      description: dco_decode_String(arr[2]),
+      startDate: dco_decode_String(arr[3]),
+      endDate: dco_decode_opt_String(arr[4]),
+      startTime: dco_decode_opt_String(arr[5]),
+      endTime: dco_decode_opt_String(arr[6]),
+      isAllDay: dco_decode_bool(arr[7]),
+      recurrence: dco_decode_String(arr[8]),
+      isRecurringInstance: dco_decode_bool(arr[9]),
+    );
   }
 
   @protected
@@ -867,6 +1165,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<EventDto> dco_decode_list_event_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_event_dto).toList();
   }
 
   @protected
@@ -925,6 +1229,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  EventDto sse_decode_event_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_description = sse_decode_String(deserializer);
+    var var_startDate = sse_decode_String(deserializer);
+    var var_endDate = sse_decode_opt_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_isAllDay = sse_decode_bool(deserializer);
+    var var_recurrence = sse_decode_String(deserializer);
+    var var_isRecurringInstance = sse_decode_bool(deserializer);
+    return EventDto(
+      id: var_id,
+      title: var_title,
+      description: var_description,
+      startDate: var_startDate,
+      endDate: var_endDate,
+      startTime: var_startTime,
+      endTime: var_endTime,
+      isAllDay: var_isAllDay,
+      recurrence: var_recurrence,
+      isRecurringInstance: var_isRecurringInstance,
+    );
+  }
+
+  @protected
   GitError sse_decode_git_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -961,6 +1292,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<EventDto> sse_decode_list_event_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <EventDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_event_dto(deserializer));
     }
     return ans_;
   }
@@ -1027,6 +1370,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_event_dto(EventDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.description, serializer);
+    sse_encode_String(self.startDate, serializer);
+    sse_encode_opt_String(self.endDate, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_bool(self.isAllDay, serializer);
+    sse_encode_String(self.recurrence, serializer);
+    sse_encode_bool(self.isRecurringInstance, serializer);
+  }
+
+  @protected
   void sse_encode_git_error(GitError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
@@ -1057,6 +1415,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_event_dto(
+    List<EventDto> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_event_dto(item, serializer);
     }
   }
 

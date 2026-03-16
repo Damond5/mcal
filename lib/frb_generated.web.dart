@@ -27,6 +27,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  EventDto dco_decode_event_dto(dynamic raw);
+
+  @protected
   GitError dco_decode_git_error(dynamic raw);
 
   @protected
@@ -34,6 +37,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<EventDto> dco_decode_list_event_dto(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
@@ -60,6 +66,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  EventDto sse_decode_event_dto(SseDeserializer deserializer);
+
+  @protected
   GitError sse_decode_git_error(SseDeserializer deserializer);
 
   @protected
@@ -67,6 +76,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<EventDto> sse_decode_list_event_dto(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
@@ -93,6 +105,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_event_dto(EventDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_git_error(GitError self, SseSerializer serializer);
 
   @protected
@@ -100,6 +115,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_event_dto(List<EventDto> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(

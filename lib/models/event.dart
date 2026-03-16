@@ -102,6 +102,8 @@ class Event {
 
   // Create from rcal markdown format
   factory Event.fromMarkdown(String markdown, String filename) {
+    print('DEBUG fromMarkdown: filename=$filename');
+    log('DEBUG fromMarkdown: filename=$filename');
     try {
       final lines = markdown.split('\n');
       String title = '';
@@ -114,6 +116,7 @@ class Event {
 
       for (final line in lines) {
         final trimmed = line.trim();
+        print('DEBUG: Processing line: "$trimmed"');
         if (trimmed.startsWith('# Event: ')) {
           title = trimmed.substring(9).trim();
         } else if (trimmed.startsWith('- **Date**: ')) {
@@ -122,6 +125,9 @@ class Event {
           startDate = _parseDate(parts[0]);
           if (parts.length > 1) endDate = _parseDate(parts[1]);
         } else if (trimmed.startsWith('- **Start Time**: ')) {
+          print('DEBUG: Matched new time format');
+          // New format
+          log('DEBUG: New time format matched, trimmed = "$trimmed"');
           final timeStr = trimmed.substring(17).trim();
           if (timeStr == 'all-day') {
             startTime = null;
@@ -141,11 +147,23 @@ class Event {
               if (parts.length > 1) endTime = parts[1].trim();
             }
           }
-        } else if (trimmed.startsWith('- **Time**: ')) {
+        } else if (trimmed.startsWith('- **Time**: ') ||
+            trimmed.startsWith('- **Time**:')) {
+          print('DEBUG: Matched deprecated time format!');
+          print('DEBUG: Deprecated time format matched, trimmed = "$trimmed"');
+          log('DEBUG: Deprecated time format matched, trimmed = "$trimmed"');
           log(
             'Warning: Deprecated time format detected. Please use "- **Start Time**: " instead.',
           );
-          final timeStr = trimmed.substring(11).trim();
+          // Handle both "- **Time**: " (with space) and "- **Time**:" (without space)
+          final timeStr = trimmed.startsWith('- **Time**: ')
+              ? trimmed.substring(11).trim()
+              : trimmed.substring(10).trim();
+          print('DEBUG: timeStr = "$timeStr"');
+          print(
+            'DEBUG: trimmed.startsWith("- **Time**: ") = ${trimmed.startsWith("- **Time**: ")}',
+          );
+          log('DEBUG: timeStr = "$timeStr"');
           if (timeStr == 'all-day') {
             startTime = null;
             endTime = null;
@@ -343,6 +361,7 @@ class Event {
     Event event,
     DateTime targetDate, {
     DateTime? maxDate,
+    bool includeTargetDate = false,
   }) {
     final instances = <Event>[];
     instances.add(event); // Base instance
@@ -355,7 +374,12 @@ class Event {
     DateTime current = event.startDate;
     int instanceCount = 0;
 
-    while (current.isBefore(endDate) &&
+    // Use includeTargetDate to control whether target date is included in expansion
+    // For getEventsForDate: include target date (selected date should show events)
+    // For getAllEventDates: may or may not include depending on use case
+    while ((includeTargetDate
+            ? !current.isAfter(endDate)
+            : current.isBefore(endDate)) &&
         current.isBefore(capDate) &&
         instanceCount < maxRecurrenceInstances) {
       instanceCount++;
@@ -365,15 +389,19 @@ class Event {
         current = current.add(const Duration(days: 7));
       } else if (event.recurrence == 'monthly') {
         // Handle invalid dates (e.g., Jan 31 -> Feb 28/29)
+        // IMPORTANT: Always use the original event's start day, not current.day
+        // This ensures events like "31st of every month" stay on the 31st
+        // (or the last day of the month if that month has fewer days)
         final nextMonth = DateTime(current.year, current.month + 1, 1);
         final daysInNextMonth = DateTime(
           nextMonth.year,
           nextMonth.month + 1,
           0,
         ).day;
-        final newDay = current.day > daysInNextMonth
+        final originalDay = event.startDate.day;
+        final newDay = originalDay > daysInNextMonth
             ? daysInNextMonth
-            : current.day;
+            : originalDay;
         current = DateTime(current.year, current.month + 1, newDay);
       } else if (event.recurrence == 'yearly') {
         // Advance year with Feb 29th fallback to Feb 28th on non-leap years
@@ -534,10 +562,6 @@ class Event {
       }
     }
 
-    log(
-      'Computed event dates: ${dates.map((d) => '${d.year}-${d.month}-${d.day}').join(', ')}',
-    );
-
     // Store in cache
     _dateCache[effectiveCacheKey] = dates;
 
@@ -559,7 +583,6 @@ class Event {
   /// Useful for testing or when events are significantly modified
   static void clearDateCache() {
     _dateCache.clear();
-    log('Event dates cache cleared');
   }
 
   /// Gets the current cache size for monitoring purposes
@@ -607,7 +630,8 @@ class Event {
   /// - Maintains backward compatibility with existing API
   static Future<Set<DateTime>> getAllEventDatesAsync(List<Event> events) async {
     try {
-      return await compute(_computeEventDatesIsolate, events);
+      final result = await compute(_computeEventDatesIsolate, events);
+      return result;
     } catch (e, stackTrace) {
       log('Isolate error in getAllEventDatesAsync: $e');
       log('Stack trace: $stackTrace');
@@ -668,10 +692,7 @@ class Event {
         'event': event,
         'endDate': endDate,
       });
-    } catch (e, stackTrace) {
-      log('Isolate error in expandRecurringAsync: $e');
-      log('Stack trace: $stackTrace');
-      log('Falling back to synchronous computation');
+    } catch (e) {
       // Fallback to synchronous computation
       return Event.expandRecurring(event, endDate);
     }

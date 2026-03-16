@@ -41,6 +41,92 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<int>);
 
   @override
+  _i3.Future<String> crateApiCreateEvent({
+    required String? title,
+    required String? description,
+    required String? startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool? isAllDay,
+    required String? recurrence,
+    required String? calendarDir,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiCreateEvent, [], {
+              #title: title,
+              #description: description,
+              #startDate: startDate,
+              #endDate: endDate,
+              #startTime: startTime,
+              #endTime: endTime,
+              #isAllDay: isAllDay,
+              #recurrence: recurrence,
+              #calendarDir: calendarDir,
+            }),
+            returnValue: _i3.Future<String>.value(
+              _i4.dummyValue<String>(
+                this,
+                Invocation.method(#crateApiCreateEvent, [], {
+                  #title: title,
+                  #description: description,
+                  #startDate: startDate,
+                  #endDate: endDate,
+                  #startTime: startTime,
+                  #endTime: endTime,
+                  #isAllDay: isAllDay,
+                  #recurrence: recurrence,
+                  #calendarDir: calendarDir,
+                }),
+              ),
+            ),
+          )
+          as _i3.Future<String>);
+
+  @override
+  _i3.Future<void> crateApiDeleteEvent({
+    required String? id,
+    required String? calendarDir,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiDeleteEvent, [], {
+              #id: id,
+              #calendarDir: calendarDir,
+            }),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<List<_i5.EventDto>> crateApiGetAllEvents({
+    required String? calendarDir,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGetAllEvents, [], {
+              #calendarDir: calendarDir,
+            }),
+            returnValue: _i3.Future<List<_i5.EventDto>>.value(<_i5.EventDto>[]),
+          )
+          as _i3.Future<List<_i5.EventDto>>);
+
+  @override
+  _i3.Future<List<_i5.EventDto>> crateApiGetEventsInRange({
+    required String? startDate,
+    required String? endDate,
+    required String? calendarDir,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGetEventsInRange, [], {
+              #startDate: startDate,
+              #endDate: endDate,
+              #calendarDir: calendarDir,
+            }),
+            returnValue: _i3.Future<List<_i5.EventDto>>.value(<_i5.EventDto>[]),
+          )
+          as _i3.Future<List<_i5.EventDto>>);
+
+  @override
   _i3.Future<String> crateApiGitAddAll({required String? path}) =>
       (super.noSuchMethod(
             Invocation.method(#crateApiGitAddAll, [], {#path: path}),
@@ -384,6 +470,37 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
       (super.noSuchMethod(
             Invocation.method(#crateApiSetSslCaCerts, [], {
               #pemCerts: pemCerts,
+            }),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> crateApiUpdateEvent({
+    required String? id,
+    required String? title,
+    required String? description,
+    required String? startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+    required bool? isAllDay,
+    required String? recurrence,
+    required String? calendarDir,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiUpdateEvent, [], {
+              #id: id,
+              #title: title,
+              #description: description,
+              #startDate: startDate,
+              #endDate: endDate,
+              #startTime: startTime,
+              #endTime: endTime,
+              #isAllDay: isAllDay,
+              #recurrence: recurrence,
+              #calendarDir: calendarDir,
             }),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),

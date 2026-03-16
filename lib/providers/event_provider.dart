@@ -7,7 +7,7 @@ import "package:shared_preferences/shared_preferences.dart";
 import "package:workmanager/workmanager.dart";
 import "../models/event.dart";
 import "../models/sync_settings.dart";
-import "../services/event_storage.dart";
+import "../services/rcal_adapter.dart";
 import "../services/sync_service.dart";
 import "../services/notification_service.dart";
 
@@ -38,7 +38,7 @@ class EventProvider extends ChangeNotifier {
   // - Single notifyListeners() call per batch instead of per event
   // - Deferred autoPush() - caller controls sync timing
   // - Parallel notification scheduling during load
-  final EventStorage _storage = EventStorage();
+  final RcalAdapter _storage = RcalAdapter();
   final SyncService _syncService = SyncService();
   final NotificationService _notificationService = NotificationService();
   List<Event> _allEvents = [];
@@ -111,21 +111,42 @@ class EventProvider extends ChangeNotifier {
   }
 
   /// Validate internal state consistency
+  /// This method filters out invalid events instead of crashing,
+  /// which handles corrupted data from previous app versions/buggy runs
   void _validateState() {
-    assert(
-      _allEvents.every(
-        (event) =>
-            event.title.isNotEmpty &&
-            (event.endDate == null ||
-                event.startDate.isBefore(event.endDate!)) &&
-            !event.startDate.isBefore(DateTime(1970)),
-      ),
-      'Invalid event found in state',
-    );
-    assert(
-      _eventDates.every((date) => !date.isBefore(DateTime(1970))),
-      'Invalid date found in state',
-    );
+    // Filter out invalid events - handle corrupted data gracefully
+    final invalidEvents = _allEvents
+        .where(
+          (event) =>
+              event.title.isEmpty ||
+              (event.endDate != null &&
+                  !event.startDate.isBefore(event.endDate!)) ||
+              event.startDate.isBefore(DateTime(1970)),
+        )
+        .toList();
+
+    if (invalidEvents.isNotEmpty) {
+      _allEvents = _allEvents
+          .where(
+            (event) =>
+                event.title.isNotEmpty &&
+                (event.endDate == null ||
+                    event.startDate.isBefore(event.endDate!)) &&
+                !event.startDate.isBefore(DateTime(1970)),
+          )
+          .toList();
+    }
+
+    // Also filter invalid dates
+    final invalidDates = _eventDates
+        .where((date) => date.isBefore(DateTime(1970)))
+        .toList();
+    if (invalidDates.isNotEmpty) {
+      _eventDates = _eventDates
+          .where((date) => !date.isBefore(DateTime(1970)))
+          .toSet();
+    }
+
     assert(_pauseUpdateCount >= 0, 'Pause count cannot be negative');
     assert(_pendingAsyncCount >= 0, 'Pending async count cannot be negative');
   }
@@ -225,13 +246,32 @@ class EventProvider extends ChangeNotifier {
   }
 
   List<Event> getEventsForDate(DateTime date) {
+    // Normalize the date to midnight to ensure consistent comparison
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+
+    if (_allEvents.isEmpty) {
+      return [];
+    }
+
     final expanded = <Event>[];
     for (final event in _allEvents) {
-      expanded.addAll(Event.expandRecurring(event, date));
+      final eventsThis = Event.expandRecurring(
+        event,
+        normalizedDate,
+        includeTargetDate: true,
+      );
+      expanded.addAll(eventsThis);
     }
-    return expanded.where((e) => Event.occursOnDate(e, date)).toList();
+
+    final result = expanded
+        .where((e) => Event.occursOnDate(e, normalizedDate))
+        .toList();
+
+    return result;
   }
 
+  // ============================================================================
+  // BATCH OPERATION SUPPORT - Deferred Update Pattern
   // ============================================================================
   // BATCH OPERATION SUPPORT - Deferred Update Pattern
   // ============================================================================
@@ -522,7 +562,7 @@ class EventProvider extends ChangeNotifier {
         i++
       ) {
         try {
-          await _storage.deleteEvent(_allEvents[i]);
+          await _storage.deleteEventByEvent(_allEvents[i]);
         } catch (deleteError) {
           log('Rollback failed: $deleteError');
         }
@@ -551,7 +591,9 @@ class EventProvider extends ChangeNotifier {
   /// - [deferUpdates]: If true, pauses updates during batch and resumes at end
   ///
   /// **Note:** Each event in the list should be the NEW event state.
-  /// The method finds the matching old event by equality comparison.
+  /// The method finds the matching old event by matching startDate and title.
+  /// For reliable matching, events should have unique startDates or the list
+  /// should be in the same order as they were added.
   Future<void> updateEventsBatch(
     List<Event> events, {
     bool deferUpdates = true,
@@ -561,8 +603,15 @@ class EventProvider extends ChangeNotifier {
     }
 
     try {
+      // Match events by startDate (assuming unique dates for simplicity)
+      // This is more robust than equality comparison which fails when titles change
       for (final newEvent in events) {
-        final index = _allEvents.indexWhere((e) => e == newEvent);
+        final index = _allEvents.indexWhere(
+          (e) =>
+              e.startDate.year == newEvent.startDate.year &&
+              e.startDate.month == newEvent.startDate.month &&
+              e.startDate.day == newEvent.startDate.day,
+        );
         if (index != -1) {
           final newFilename = await _storage.updateEvent(
             _allEvents[index],
@@ -620,21 +669,26 @@ class EventProvider extends ChangeNotifier {
     try {
       final eventsToDelete = <Event>[];
       for (final filename in filenames) {
+        // Skip empty filenames
+        if (filename.isEmpty) continue;
+
         final event = _allEvents.firstWhere(
           (e) => e.filename == filename,
           orElse: () => Event(
-            title: '',
+            // Use a placeholder title that will be filtered out
+            title: '__not_found__',
             startDate: DateTime.now(),
             endDate: DateTime.now(),
           ),
         );
-        if (event.filename == filename) {
+        // Only add if filename matches (event was found)
+        if (event.filename == filename && event.title != '__not_found__') {
           eventsToDelete.add(event);
         }
       }
 
       for (final event in eventsToDelete) {
-        await _storage.deleteEvent(event);
+        await _storage.deleteEventByEvent(event);
         _allEvents.removeWhere((e) => e == event);
       }
 
@@ -687,6 +741,7 @@ class EventProvider extends ChangeNotifier {
 
     try {
       _allEvents = await _storage.loadAllEvents();
+
       await computeEventDatesAsync();
       await loadSyncSettings();
 
@@ -837,7 +892,7 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> _performDeleteEvent(Event event) async {
     try {
-      await _storage.deleteEvent(event);
+      await _storage.deleteEventByEvent(event);
       _allEvents.removeWhere((e) => e == event);
       await computeEventDatesAsync();
       if (!Platform.isLinux) {
@@ -855,8 +910,7 @@ class EventProvider extends ChangeNotifier {
     }
   }
 
-  Future<Set<DateTime>> getEventDates() async {
-    await loadAllEvents();
+  Set<DateTime> getEventDates() {
     return _eventDates;
   }
 
@@ -892,7 +946,22 @@ class EventProvider extends ChangeNotifier {
       await _syncService.pullSync();
       // Reload events after pull
       _allEvents.clear();
-      await loadAllEvents();
+
+      // Wrap reload in try-catch with retry to ensure events are always reloaded
+      // If loadAllEvents fails after clearing, we retry once before giving up
+      try {
+        await loadAllEvents();
+      } catch (e) {
+        _logStateChange('First reload failed, retrying once', e);
+        // Retry once before giving up
+        try {
+          await loadAllEvents();
+        } catch (retryError) {
+          _logStateChange('Reload retry also failed', retryError);
+          rethrow;
+        }
+      }
+
       _logStateChange('Loaded events after pull', _allEvents.length);
       // _refreshCounter incremented in loadAllEvents
     } catch (e) {

@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -48,11 +47,6 @@ class CalendarWidgetState extends State<CalendarWidget> {
                     final hasEvent = eventProvider.eventDates.contains(
                       DateTime(day.year, day.month, day.day),
                     );
-                    if (hasEvent) {
-                      log(
-                        'Markers for ${day.year}-${day.month}-${day.day}: yes',
-                      );
-                    }
                     return hasEvent ? [day] : [];
                   },
                   onDaySelected: (selectedDay, focusedDay) {

@@ -8,8 +8,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `extract_branch_name`, `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_remove_remote_impl`, `git_stash_impl`, `git_status_impl`, `has_local_changes`, `validate_certificate`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `fmt`, `fmt`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `create_calendar_event`, `event_occurs_in_range`, `event_to_dto`, `extract_branch_name`, `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_remove_remote_impl`, `git_stash_impl`, `git_status_impl`, `has_local_changes`, `parse_date`, `parse_recurrence`, `parse_time`, `validate_certificate`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`, `fmt`, `fmt`, `from`, `from`
 
 Future<int> add({required int left, required int right}) =>
     RustLib.instance.api.crateApiAdd(left: left, right: right);
@@ -114,6 +114,128 @@ Future<String> gitDiff({required String path}) =>
 
 Future<void> setSslCaCerts({required List<String> pemCerts}) =>
     RustLib.instance.api.crateApiSetSslCaCerts(pemCerts: pemCerts);
+
+/// Creates a new calendar event and saves it to the specified calendar directory.
+Future<String> createEvent({
+  required String title,
+  required String description,
+  required String startDate,
+  String? endDate,
+  String? startTime,
+  String? endTime,
+  required bool isAllDay,
+  required String recurrence,
+  required String calendarDir,
+}) => RustLib.instance.api.crateApiCreateEvent(
+  title: title,
+  description: description,
+  startDate: startDate,
+  endDate: endDate,
+  startTime: startTime,
+  endTime: endTime,
+  isAllDay: isAllDay,
+  recurrence: recurrence,
+  calendarDir: calendarDir,
+);
+
+/// Gets all events from the specified calendar directory.
+Future<List<EventDto>> getAllEvents({required String calendarDir}) =>
+    RustLib.instance.api.crateApiGetAllEvents(calendarDir: calendarDir);
+
+/// Gets all events within a date range from the specified calendar directory.
+Future<List<EventDto>> getEventsInRange({
+  required String startDate,
+  required String endDate,
+  required String calendarDir,
+}) => RustLib.instance.api.crateApiGetEventsInRange(
+  startDate: startDate,
+  endDate: endDate,
+  calendarDir: calendarDir,
+);
+
+/// Updates an existing event in the specified calendar directory.
+Future<void> updateEvent({
+  required String id,
+  required String title,
+  required String description,
+  required String startDate,
+  String? endDate,
+  String? startTime,
+  String? endTime,
+  required bool isAllDay,
+  required String recurrence,
+  required String calendarDir,
+}) => RustLib.instance.api.crateApiUpdateEvent(
+  id: id,
+  title: title,
+  description: description,
+  startDate: startDate,
+  endDate: endDate,
+  startTime: startTime,
+  endTime: endTime,
+  isAllDay: isAllDay,
+  recurrence: recurrence,
+  calendarDir: calendarDir,
+);
+
+/// Deletes an event from the specified calendar directory.
+Future<void> deleteEvent({required String id, required String calendarDir}) =>
+    RustLib.instance.api.crateApiDeleteEvent(id: id, calendarDir: calendarDir);
+
+class EventDto {
+  final String id;
+  final String title;
+  final String description;
+  final String startDate;
+  final String? endDate;
+  final String? startTime;
+  final String? endTime;
+  final bool isAllDay;
+  final String recurrence;
+  final bool isRecurringInstance;
+
+  const EventDto({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.startDate,
+    this.endDate,
+    this.startTime,
+    this.endTime,
+    required this.isAllDay,
+    required this.recurrence,
+    required this.isRecurringInstance,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      title.hashCode ^
+      description.hashCode ^
+      startDate.hashCode ^
+      endDate.hashCode ^
+      startTime.hashCode ^
+      endTime.hashCode ^
+      isAllDay.hashCode ^
+      recurrence.hashCode ^
+      isRecurringInstance.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EventDto &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          title == other.title &&
+          description == other.description &&
+          startDate == other.startDate &&
+          endDate == other.endDate &&
+          startTime == other.startTime &&
+          endTime == other.endTime &&
+          isAllDay == other.isAllDay &&
+          recurrence == other.recurrence &&
+          isRecurringInstance == other.isRecurringInstance;
+}
 
 @freezed
 sealed class GitError with _$GitError implements FrbException {

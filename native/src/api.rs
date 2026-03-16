@@ -1,6 +1,9 @@
+use chrono::{NaiveDate, NaiveTime};
 use git2::{Delta, Repository};
+use rcal_lib::models::{CalendarEvent, Recurrence};
+use rcal_lib::storage::FileEventRepository;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use x509_parser::prelude::*;
 
@@ -30,6 +33,139 @@ impl From<git2::Error> for GitError {
     fn from(err: git2::Error) -> Self {
         GitError::Git(err.to_string())
     }
+}
+
+// ============================================================================
+// Event DTO for Flutter Rust Bridge
+// ============================================================================
+
+#[flutter_rust_bridge::frb]
+#[derive(Debug, Clone)]
+pub struct EventDto {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub start_date: String,
+    pub end_date: Option<String>,
+    pub start_time: Option<String>,
+    pub end_time: Option<String>,
+    pub is_all_day: bool,
+    pub recurrence: String,
+    pub is_recurring_instance: bool,
+}
+
+/// Converts a CalendarEvent to an EventDto
+fn event_to_dto(event: &CalendarEvent) -> EventDto {
+    EventDto {
+        id: event.id.clone(),
+        title: event.title.clone(),
+        description: event.description.clone(),
+        start_date: event.start_date.format("%Y-%m-%d").to_string(),
+        end_date: event.end_date.map(|d| d.format("%Y-%m-%d").to_string()),
+        start_time: if event.is_all_day {
+            None
+        } else {
+            Some(event.start_time.format("%H:%M").to_string())
+        },
+        end_time: event.end_time.map(|t| t.format("%H:%M").to_string()),
+        is_all_day: event.is_all_day,
+        recurrence: event.recurrence.to_storage_string().to_string(),
+        is_recurring_instance: event.is_recurring_instance,
+    }
+}
+
+/// Parses a date string in YYYY-MM-DD format
+fn parse_date(date_str: &str) -> Result<NaiveDate, String> {
+    NaiveDate::parse_from_str(date_str, "%Y-%m-%d")
+        .map_err(|e| format!("Invalid date format '{}': {}", date_str, e))
+}
+
+/// Parses a time string in HH:MM format
+fn parse_time(time_str: &str) -> Result<NaiveTime, String> {
+    NaiveTime::parse_from_str(time_str, "%H:%M")
+        .map_err(|e| format!("Invalid time format '{}': {}", time_str, e))
+}
+
+/// Parses a recurrence string to Recurrence enum
+fn parse_recurrence(recurrence: &str) -> Recurrence {
+    Recurrence::from_storage_string(recurrence)
+}
+
+/// Checks if an event occurs within a date range (inclusive)
+fn event_occurs_in_range(event: &CalendarEvent, start: NaiveDate, end: NaiveDate) -> bool {
+    // For recurring events, check if any instance falls in range
+    if event.recurrence != Recurrence::None {
+        // Check if the base event is in range
+        if event.start_date >= start && event.start_date <= end {
+            return true;
+        }
+        // Generate a few instances to check (simple check for start date + 1 year)
+        let instances = FileEventRepository::generate_recurring_instances(event, end);
+        for instance in instances {
+            if instance.start_date >= start && instance.start_date <= end {
+                return true;
+            }
+        }
+        false
+    } else {
+        // For non-recurring events, check if the event's date range overlaps
+        let event_end = event.effective_end_date();
+        event_end >= start && event.start_date <= end
+    }
+}
+
+/// Creates a CalendarEvent from the input parameters
+fn create_calendar_event(
+    title: String,
+    description: String,
+    start_date: String,
+    end_date: Option<String>,
+    start_time: Option<String>,
+    end_time: Option<String>,
+    is_all_day: bool,
+    recurrence: String,
+    existing_id: Option<String>,
+) -> Result<CalendarEvent, String> {
+    let start = parse_date(&start_date)?;
+    // If end_date is provided but equals start_date, treat it as None (no end date specified)
+    let end = match end_date {
+        Some(ref d) if d == &start_date => None,
+        _ => end_date.map(|d| parse_date(&d)).transpose()?,
+    };
+
+    let start_t = if is_all_day {
+        NaiveTime::from_hms_opt(0, 0, 0).unwrap()
+    } else {
+        match start_time {
+            Some(t) => parse_time(&t)?,
+            None => return Err("Start time is required for non-all-day events".to_string()),
+        }
+    };
+
+    let end_t = if is_all_day {
+        None
+    } else {
+        match end_time {
+            Some(t) => Some(parse_time(&t)?),
+            None => None,
+        }
+    };
+
+    let recurrence_enum = parse_recurrence(&recurrence);
+
+    Ok(CalendarEvent {
+        id: existing_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+        title,
+        description,
+        start_date: start,
+        end_date: end,
+        start_time: start_t,
+        end_time: end_t,
+        is_all_day,
+        recurrence: recurrence_enum,
+        is_recurring_instance: false,
+        base_date: None,
+    })
 }
 
 // Helper function for credentials
@@ -629,5 +765,149 @@ pub fn set_ssl_ca_certs(pem_certs: Vec<String>) -> Result<(), GitError> {
     std::env::set_var("GIT_SSL_CAINFO", path);
     // Keep temp_file alive until process ends
     std::mem::forget(temp_file);
+    Ok(())
+}
+
+// ============================================================================
+// Calendar Event Functions (rcal-lib wrapper)
+// ============================================================================
+
+/// Creates a new calendar event and saves it to the specified calendar directory.
+#[flutter_rust_bridge::frb]
+pub fn create_event(
+    title: String,
+    description: String,
+    start_date: String,
+    end_date: Option<String>,
+    start_time: Option<String>,
+    end_time: Option<String>,
+    is_all_day: bool,
+    recurrence: String,
+    calendar_dir: String,
+) -> Result<String, String> {
+    let event = create_calendar_event(
+        title,
+        description,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        is_all_day,
+        recurrence,
+        None,
+    )?;
+
+    let path = PathBuf::from(&calendar_dir);
+    let repo = FileEventRepository::with_path(path.clone());
+    repo.save_to_path(&event, &path)
+        .map_err(|e| e.to_string())?;
+
+    Ok(event.id)
+}
+
+/// Gets all events from the specified calendar directory.
+#[flutter_rust_bridge::frb]
+pub fn get_all_events(calendar_dir: String) -> Result<Vec<EventDto>, String> {
+    let path = PathBuf::from(&calendar_dir);
+    let repo = FileEventRepository::with_path(path.clone());
+    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
+
+    // Filter out recurring instances - only return base events
+    let base_events: Vec<&CalendarEvent> =
+        events.iter().filter(|e| !e.is_recurring_instance).collect();
+
+    Ok(base_events.iter().map(|e| event_to_dto(e)).collect())
+}
+
+/// Gets all events within a date range from the specified calendar directory.
+#[flutter_rust_bridge::frb]
+pub fn get_events_in_range(
+    start_date: String,
+    end_date: String,
+    calendar_dir: String,
+) -> Result<Vec<EventDto>, String> {
+    let start = parse_date(&start_date)?;
+    let end = parse_date(&end_date)?;
+
+    let path = PathBuf::from(&calendar_dir);
+    let repo = FileEventRepository::with_path(path.clone());
+    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
+
+    // Filter events that occur within the date range and are not recurring instances
+    let filtered: Vec<&CalendarEvent> = events
+        .iter()
+        .filter(|e| !e.is_recurring_instance && event_occurs_in_range(e, start, end))
+        .collect();
+
+    Ok(filtered.iter().map(|e| event_to_dto(e)).collect())
+}
+
+/// Updates an existing event in the specified calendar directory.
+#[flutter_rust_bridge::frb]
+pub fn update_event(
+    id: String,
+    title: String,
+    description: String,
+    start_date: String,
+    end_date: Option<String>,
+    start_time: Option<String>,
+    end_time: Option<String>,
+    is_all_day: bool,
+    recurrence: String,
+    calendar_dir: String,
+) -> Result<(), String> {
+    let path = PathBuf::from(&calendar_dir);
+    let repo = FileEventRepository::with_path(path.clone());
+
+    // Load existing events
+    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
+
+    // Find the event by ID
+    let existing_event = events
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| format!("Event with id '{}' not found", id))?;
+
+    // Create updated event with the same ID
+    let updated_event = create_calendar_event(
+        title,
+        description,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        is_all_day,
+        recurrence,
+        Some(id.clone()),
+    )?;
+
+    // Delete the old event file and save the new one
+    repo.delete_from_path(existing_event, &path)
+        .map_err(|e| e.to_string())?;
+    repo.save_to_path(&updated_event, &path)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+/// Deletes an event from the specified calendar directory.
+#[flutter_rust_bridge::frb]
+pub fn delete_event(id: String, calendar_dir: String) -> Result<(), String> {
+    let path = PathBuf::from(&calendar_dir);
+    let repo = FileEventRepository::with_path(path.clone());
+
+    // Load existing events
+    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
+
+    // Find the event by ID
+    let event = events
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| format!("Event with id '{}' not found", id))?;
+
+    // Delete the event
+    repo.delete_from_path(event, &path)
+        .map_err(|e| e.to_string())?;
+
     Ok(())
 }

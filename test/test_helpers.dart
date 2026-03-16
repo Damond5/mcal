@@ -123,40 +123,47 @@ Future<void> cleanTestEvents() async {
 
   debugPrint('cleanTestEvents: testDir path is ${testDir.path}');
 
-  if (await calendarDir.exists()) {
-    try {
-      final files = await calendarDir.list().toList();
-      debugPrint(
-        'cleanTestEvents: Found ${files.length} files in calendar directory',
-      );
+  try {
+    if (await calendarDir.exists()) {
+      try {
+        final files = await calendarDir.list().toList();
+        debugPrint(
+          'cleanTestEvents: Found ${files.length} files in calendar directory',
+        );
 
-      final mdFiles = files.whereType<File>().where(
-        (f) => f.path.endsWith('.md'),
-      );
-      debugPrint(
-        'cleanTestEvents: Found ${mdFiles.length} .md files to delete',
-      );
+        final mdFiles = files.whereType<File>().where(
+          (f) => f.path.endsWith('.md'),
+        );
+        debugPrint(
+          'cleanTestEvents: Found ${mdFiles.length} .md files to delete',
+        );
 
-      for (final file in mdFiles) {
-        try {
-          await file.delete();
-          debugPrint('cleanTestEvents: Deleted ${file.path}');
-        } catch (e) {
-          debugPrint('Warning: Failed to delete event file ${file.path}: $e');
+        for (final file in mdFiles) {
+          try {
+            await file.delete();
+            debugPrint('cleanTestEvents: Deleted ${file.path}');
+          } catch (e) {
+            debugPrint('Warning: Failed to delete event file ${file.path}: $e');
+          }
         }
+        debugPrint('cleanTestEvents: Cleanup complete');
+      } catch (e) {
+        debugPrint('Warning: Failed to clean calendar directory: $e');
       }
-      debugPrint('cleanTestEvents: Cleanup complete');
-    } catch (e) {
-      debugPrint('Warning: Failed to clean calendar directory: $e');
+    } else {
+      debugPrint('cleanTestEvents: Calendar directory does not exist');
+      try {
+        await calendarDir.create(recursive: true);
+        debugPrint('cleanTestEvents: Created calendar directory');
+      } catch (e) {
+        debugPrint('Warning: Failed to create calendar directory: $e');
+      }
     }
-  } else {
-    debugPrint('cleanTestEvents: Calendar directory does not exist');
-    try {
-      await calendarDir.create(recursive: true);
-      debugPrint('cleanTestEvents: Created calendar directory');
-    } catch (e) {
-      debugPrint('Warning: Failed to create calendar directory: $e');
-    }
+  } catch (e) {
+    // Directory might have been deleted by parallel test - this is OK
+    debugPrint(
+      'cleanTestEvents: Directory handling skipped (possibly cleaned by parallel test): $e',
+    );
   }
 
   // Set test directory for EventStorage

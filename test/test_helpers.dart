@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mcal/providers/event_provider.dart';
-import 'package:mcal/services/event_storage.dart';
 import 'package:mcal/services/notification_service.dart';
 import 'package:mcal/services/sync_service.dart';
 import 'package:mcal/frb_generated.dart';
@@ -84,9 +83,7 @@ Future<void> cleanupTestEnvironment() async {
       return;
     }
 
-    // Clear test directory from EventStorage
-    EventStorage.clearTestDirectory();
-
+    // Clear test directory
     final testDir = Directory(getTestDirectoryPath());
 
     if (await testDir.exists()) {
@@ -166,10 +163,6 @@ Future<void> cleanTestEvents() async {
     );
   }
 
-  // Set test directory for EventStorage
-  EventStorage.setTestDirectory(getTestDirectoryPath());
-  debugPrint('cleanTestEvents: Set test directory in EventStorage');
-
   // Clear any notification scheduling state
   try {
     final notificationService = NotificationService();
@@ -213,14 +206,6 @@ Future<void> resetTestState() async {
     }
   } catch (e) {
     debugPrint('Warning: Failed to delete test directory: $e');
-  }
-
-  // Clear EventStorage state
-  try {
-    EventStorage.clearTestDirectory();
-    debugPrint('resetTestState: Cleared EventStorage state');
-  } catch (e) {
-    debugPrint('Warning: Failed to clear EventStorage: $e');
   }
 
   // Clear notification state
@@ -292,7 +277,6 @@ Future<String> isolateTestEnvironment({
     if (!await isolatedDir.exists()) {
       await isolatedDir.create(recursive: true);
     }
-    EventStorage.setTestDirectory(isolatedDir.path);
     debugPrint(
       'isolateTestEnvironment: Created isolated directory: ${isolatedDir.path}',
     );
@@ -350,7 +334,6 @@ Future<void> cleanupIsolation({
   // Clean up state if requested
   if (cleanupState) {
     await resetTestState();
-    EventStorage.clearTestDirectory();
     debugPrint('cleanupIsolation: Cleared test state');
   }
 

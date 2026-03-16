@@ -157,6 +157,11 @@ linux-build: deps generate native-build
 	fvm flutter build linux --release
 	$(call build_success,"Linux","build/linux/x64/release/bundle/mcal")
 
+# Full build first, then run on Linux desktop
+linux-run: linux-build
+	$(call check_fvm)
+	fvm flutter run -d linux
+
 # =============================================================================
 # ANDROID COMMANDS
 # =============================================================================
@@ -212,6 +217,7 @@ help:
 	@echo ""
 	@echo "Linux Commands:"
 	@echo "  make linux-build - Build Linux application"
+	@echo "  make linux-run   - Build and run on Linux"
 	@echo ""
 	@echo "Android Commands:"
 	@echo "  make android-build  - Build Android APK"
@@ -219,6 +225,6 @@ help:
 	@echo "  make android-install - Build and install APK"
 	@echo ""
 
-.PHONY: help clean build run test linux-build \
+.PHONY: help clean build run test linux-build linux-run \
     android-build android-run android-install \
     deps generate native-build native-android-build

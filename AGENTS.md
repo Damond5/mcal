@@ -55,6 +55,7 @@ Use these commands to build/run/install for a specific platform different from y
 ```bash
 # Linux
 make linux-build    # Build for Linux
+make linux-run      # Build and run on Linux desktop
 
 # Android
 make android-build  # Build Android APK (debug)

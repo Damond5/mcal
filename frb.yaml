@@ -7,3 +7,4 @@ duplicated_c_output:
     - macos/Runner/bridge_generated.h
     - linux/bridge_generated.h
     - windows/bridge_generated.h
+    - android/app/src/main/cpp/bridge_generated.h

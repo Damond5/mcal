@@ -20,7 +20,8 @@ class Event {
   final String? endTime; // HH:MM format or null
   final String description;
   final String recurrence; // 'none', 'daily', 'weekly', 'monthly', 'yearly'
-  final String? filename;
+  final String?
+  filename; // Title-based filename for display/identification only
 
   Event({
     required this.title,
@@ -89,7 +90,13 @@ class Event {
     return DateTime(date.year, date.month, date.day, hour, minute);
   }
 
+  // Persistence key for rcal-lib: (title, start_date)
+  // This is used as the unique identifier for events in storage.
+  // Same title+date will replace existing events.
+  String get persistenceKey => '${title}_${_dateToString(startDate)}';
+
   // Generate filename based on sanitized title
+  // Note: This is now for display/identification only, not for persistence
   String get fileName {
     final sanitized = title
         .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove invalid chars
@@ -98,6 +105,11 @@ class Event {
       throw ArgumentError('Invalid title: contains invalid path characters');
     }
     return '$sanitized.md';
+  }
+
+  // Helper to format date as YYYY-MM-DD
+  static String _dateToString(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   // Create from rcal markdown format
@@ -203,7 +215,9 @@ class Event {
       }
       if (!validRecurrences.contains(recurrence)) recurrence = 'none';
 
-      return Event(
+      // Generate title-based filename from the parsed title
+      // Note: ID is no longer stored in files - filename is derived from title
+      final event = Event(
         title: title,
         startDate: startDate,
         endDate: endDate,
@@ -211,8 +225,10 @@ class Event {
         endTime: endTime,
         description: description,
         recurrence: recurrence,
-        filename: filename,
       );
+
+      // Return event with title-based filename
+      return event.copyWith(filename: event.fileName);
     } catch (e) {
       log('Error parsing event markdown: $e');
       rethrow;
@@ -305,6 +321,8 @@ class Event {
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
+    // Note: filename is NOT included in equality since it's now display-only
+    // The persistence key is (title, startDate)
     return other is Event &&
         other.title == title &&
         other.startDate == startDate &&
@@ -312,8 +330,7 @@ class Event {
         other.startTime == startTime &&
         other.endTime == endTime &&
         other.description == description &&
-        other.recurrence == recurrence &&
-        other.filename == filename;
+        other.recurrence == recurrence;
   }
 
   @override
@@ -324,8 +341,7 @@ class Event {
       (startTime?.hashCode ?? 0) ^
       (endTime?.hashCode ?? 0) ^
       description.hashCode ^
-      recurrence.hashCode ^
-      (filename?.hashCode ?? 0);
+      recurrence.hashCode;
 
   // Static constants for recurrence limits to prevent excessive computation
   static const int maxRecurrenceInstances = 1000;

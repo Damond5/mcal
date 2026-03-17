@@ -860,8 +860,10 @@ pub fn update_event(
     let repo = FileEventRepository::with_path(path.clone());
 
     // Verify the event exists by loading and checking
-    let events = repo.load_from_path(&path).map_err(|e| e.to_string())?;
-    let _existing_event = events
+    let events = repo
+        .load_from_path(&path)
+        .map_err(|e: Box<dyn std::error::Error>| e.to_string())?;
+    let existing_event = events
         .iter()
         .find(|e| e.id == id)
         .ok_or_else(|| format!("Event with id '{}' not found", id))?;
@@ -879,9 +881,9 @@ pub fn update_event(
         Some(id.clone()),
     )?;
 
-    // Delete the old event file (using efficient ID-based deletion) and save the new one
-    repo.delete_by_id_from_path(&id, &path)
-        .map_err(|e| e.to_string())?;
+    // Delete the old event file by title and save the new one
+    repo.delete_by_title_from_path(&existing_event.title, &path)
+        .map_err(|e: Box<dyn std::error::Error>| e.to_string())?;
     repo.save_to_path(&updated_event, &path)
         .map_err(|e| e.to_string())?;
 
@@ -889,14 +891,15 @@ pub fn update_event(
 }
 
 /// Deletes an event from the specified calendar directory.
+/// The [id] parameter is the event title, used to find and delete the event file.
 #[flutter_rust_bridge::frb]
 pub fn delete_event(id: String, calendar_dir: String) -> Result<(), String> {
     let path = PathBuf::from(&calendar_dir);
     let repo = FileEventRepository::with_path(path.clone());
 
-    // Use efficient ID-based deletion (filenames are now ID-based)
-    repo.delete_by_id_from_path(&id, &path)
-        .map_err(|e| e.to_string())?;
+    // Delete by title - rcal-lib's delete_by_title_from_path uses the title
+    repo.delete_by_title_from_path(&id, &path)
+        .map_err(|e: Box<dyn std::error::Error>| e.to_string())?;
 
     Ok(())
 }

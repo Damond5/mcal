@@ -103,17 +103,40 @@ class RcalAdapter {
         endTime: dto.endTime,
         description: dto.description,
         recurrence: dto.recurrence,
-        filename: dto.id, // Use id as filename since it's the unique identifier
+        // Filename is now title-based, not ID-based
+        // Store the filename for display/identification purposes
+        filename: _generateTitleBasedFilename(dto.title),
       );
     } catch (e) {
       throw RcalException('Failed to convert EventDto to Event: $e');
     }
   }
 
+  /// Generates a title-based filename from the event title.
+  /// Filename format: {sanitized_title}.md
+  String _generateTitleBasedFilename(String title) {
+    final sanitized = title
+        .replaceAll(RegExp(r'[^\w\s-]'), '') // Remove invalid chars
+        .replaceAll(RegExp(r'\s+'), '-') // Replace spaces with dashes
+        .toLowerCase();
+    if (sanitized.contains('..') || sanitized.startsWith('/')) {
+      throw RcalException('Invalid title: contains invalid path characters');
+    }
+    return '$sanitized.md';
+  }
+
   /// Converts an Event model to an EventDto for sending to Rust.
+  ///
+  /// Note: The ID is no longer used for persistence. The rcal-lib now uses
+  /// (title, start_date) as the persistence key. Same title+date will replace
+  /// the existing event.
   EventDto _eventToDto(Event event, {String? id}) {
+    // Generate title-based filename for identification purposes
+    // The actual persistence key is (title, start_date)
+    final titleBasedFilename = _generateTitleBasedFilename(event.title);
+
     return EventDto(
-      id: id ?? event.filename?.replaceAll('.md', '') ?? '',
+      id: id ?? titleBasedFilename.replaceAll('.md', ''),
       title: event.title,
       description: event.description,
       startDate: _dateToString(event.startDate),
@@ -166,47 +189,33 @@ class RcalAdapter {
 
   /// Saves an event to the specified calendar directory.
   ///
-  /// If the event already has an ID (filename), it will be updated.
-  /// Otherwise, a new event will be created.
+  /// The rcal-lib now uses (title, start_date) as the persistence key.
+  /// If an event with the same title and start_date already exists, it will be replaced.
+  /// The filename is generated from the title: {sanitized_title}.md
   ///
-  /// Returns the ID/filename of the saved event.
+  /// Returns the filename of the saved event.
   ///
   /// Throws [RcalException] if the operation fails.
   Future<String> saveEvent(Event event, String calendarDir) async {
     try {
-      // Check if this is an update (event has existing filename) or create
-      final existingId = event.filename?.replaceAll('.md', '');
+      // The persistence key is (title, start_date) - no need to check for existing ID
+      // Just create/update the event - rcal-lib handles the rest based on title+date
 
-      if (existingId != null && existingId.isNotEmpty) {
-        // Update existing event
-        await api.crateApiUpdateEvent(
-          id: existingId,
-          title: event.title,
-          description: event.description,
-          startDate: _dateToString(event.startDate),
-          endDate: event.endDate != null ? _dateToString(event.endDate!) : null,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          isAllDay: event.isAllDay,
-          recurrence: event.recurrence,
-          calendarDir: calendarDir,
-        );
-        return '$existingId.md';
-      } else {
-        // Create new event
-        final id = await api.crateApiCreateEvent(
-          title: event.title,
-          description: event.description,
-          startDate: _dateToString(event.startDate),
-          endDate: event.endDate != null ? _dateToString(event.endDate!) : null,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          isAllDay: event.isAllDay,
-          recurrence: event.recurrence,
-          calendarDir: calendarDir,
-        );
-        return '$id.md';
-      }
+      // Create the event - rcal-lib will use (title, start_date) as key
+      await api.crateApiCreateEvent(
+        title: event.title,
+        description: event.description,
+        startDate: _dateToString(event.startDate),
+        endDate: event.endDate != null ? _dateToString(event.endDate!) : null,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        isAllDay: event.isAllDay,
+        recurrence: event.recurrence,
+        calendarDir: calendarDir,
+      );
+
+      // Return title-based filename for identification
+      return _generateTitleBasedFilename(event.title);
     } catch (e) {
       throw RcalException('Failed to save event: $e');
     }
@@ -214,16 +223,25 @@ class RcalAdapter {
 
   /// Deletes an event from the specified calendar directory.
   ///
-  /// [id] - The ID (filename without .md extension) of the event to delete.
+  /// The rcal-lib uses title as the deletion key via delete_by_title_from_path.
+  /// This method sends just the title to the Rust API.
+  ///
+  /// [title] - The title of the event to delete.
+  /// [startDate] - The start date of the event to delete (as DateTime).
   /// [calendarDir] - The path to the calendar directory.
   ///
   /// Throws [RcalException] if the operation fails, including if the event
-  /// is not found in storage (which may indicate a state mismatch).
-  Future<void> deleteEvent(String id, String calendarDir) async {
-    // Remove .md extension if present
-    final eventId = id.replaceAll('.md', '');
+  /// is not found in storage.
+  Future<void> deleteEvent(
+    String title,
+    DateTime startDate,
+    String calendarDir,
+  ) async {
+    // Send just the title - rcal-lib's delete_by_title_from_path uses title
+    final dateStr = _dateToString(startDate);
+
     try {
-      await api.crateApiDeleteEvent(id: eventId, calendarDir: calendarDir);
+      await api.crateApiDeleteEvent(id: title, calendarDir: calendarDir);
     } on RcalException {
       rethrow;
     } catch (e) {
@@ -231,7 +249,7 @@ class RcalAdapter {
       // Check if this is a "not found" error from Rust
       if (errorStr.contains("not found")) {
         throw RcalException(
-          'Event with id \'$eventId\' not found in storage. '
+          'Event with title \'$title\' and start date \'$dateStr\' not found in storage. '
           'This may indicate a state mismatch between Dart and Rust. '
           'Original error: $e',
         );
@@ -269,27 +287,29 @@ class RcalAdapter {
 
   /// Updates an existing event in the calendar.
   ///
-  /// Convenience wrapper that calls [saveEvent] to update an existing event.
-  /// The [oldEvent] is used to determine the existing event ID for the update.
+  /// Since rcal-lib now uses (title, start_date) as the persistence key,
+  /// updates are handled by creating a new event with the same key.
+  /// The oldEvent is no longer needed for determining the ID.
   ///
   /// Returns the filename of the updated event.
   ///
   /// Throws [RcalException] if the operation fails.
   Future<String> updateEvent(Event oldEvent, Event newEvent) async {
     final calendarDir = await getCalendarDirectory();
-    // Preserve the old event's filename for the update
-    final eventWithFilename = newEvent.copyWith(filename: oldEvent.filename);
-    return saveEvent(eventWithFilename, calendarDir);
+    // Just save the new event - rcal-lib uses (title, start_date) as key
+    // Same title+date will replace the existing event
+    return saveEvent(newEvent, calendarDir);
   }
 
   /// Deletes an event from the calendar.
   ///
-  /// Convenience wrapper that extracts the event ID from the Event object.
+  /// Convenience wrapper that uses (title, start_date) for deletion.
+  /// This is the primary deletion method since rcal-lib now uses title+date as key.
   ///
   /// Throws [RcalException] if the operation fails.
   Future<void> deleteEventByEvent(Event event) async {
     final calendarDir = await getCalendarDirectory();
-    final id = event.filename ?? '';
-    await deleteEvent(id, calendarDir);
+    // Use title and start_date as the deletion key
+    await deleteEvent(event.title, event.startDate, calendarDir);
   }
 }

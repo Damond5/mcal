@@ -437,27 +437,28 @@ class EventProvider extends ChangeNotifier {
 
   /// Wait for a specific event state change
   ///
-  /// Returns a future that completes when the specified event ID is updated.
+  /// Returns a future that completes when the specified event (identified by
+  /// persistence key: title+startDate) is updated.
   /// Times out after 5 seconds to prevent hanging tests.
   Future<void> waitForEventUpdate(
-    String eventId, {
+    String persistenceKey, {
     Duration timeout = const Duration(seconds: 5),
   }) async {
     final completer = Completer<void>();
-    _stateChangeCompleters[eventId] = completer;
+    _stateChangeCompleters[persistenceKey] = completer;
 
     try {
       await completer.future.timeout(
         timeout,
         onTimeout: () {
-          _stateChangeCompleters.remove(eventId);
+          _stateChangeCompleters.remove(persistenceKey);
           if (!completer.isCompleted) {
             completer.complete();
           }
         },
       );
     } finally {
-      _stateChangeCompleters.remove(eventId);
+      _stateChangeCompleters.remove(persistenceKey);
     }
   }
 
@@ -523,8 +524,11 @@ class EventProvider extends ChangeNotifier {
       final filenames = <String>[];
 
       for (final event in events) {
-        final filename = await _storage.addEvent(event);
-        final eventWithFilename = event.copyWith(filename: filename);
+        // Save event to storage - rcal-lib uses (title, startDate) as key
+        await _storage.addEvent(event);
+
+        // The filename is derived from title, compute it locally
+        final eventWithFilename = event.copyWith(filename: event.fileName);
 
         // Track that this event was successfully saved to Rust BEFORE adding to Dart
         // This ensures we can rollback only what was actually persisted
@@ -532,7 +536,7 @@ class EventProvider extends ChangeNotifier {
 
         // Now add to Dart state - if this fails, we can still rollback Rust
         _allEvents.add(eventWithFilename);
-        filenames.add(filename);
+        filenames.add(event.fileName);
       }
 
       await computeEventDatesAsync();
@@ -541,9 +545,7 @@ class EventProvider extends ChangeNotifier {
       if (!Platform.isLinux) {
         final notificationFutures = events.map((event) async {
           try {
-            final eventWithFilename = event.copyWith(
-              filename: filenames[events.indexOf(event)],
-            );
+            final eventWithFilename = event.copyWith(filename: event.fileName);
             await _notificationService.scheduleNotificationForEvent(
               eventWithFilename,
             );
@@ -576,8 +578,9 @@ class EventProvider extends ChangeNotifier {
       }
 
       // Then remove the saved events from Dart state
+      // Use persistence key for matching since filename is display-only now
       for (final event in savedEvents) {
-        _allEvents.removeWhere((e) => e.filename == event.filename);
+        _allEvents.removeWhere((e) => e.persistenceKey == event.persistenceKey);
       }
 
       log('Batch operation rolled back: ${savedEvents.length} events');
@@ -621,11 +624,12 @@ class EventProvider extends ChangeNotifier {
               e.startDate.day == newEvent.startDate.day,
         );
         if (index != -1) {
-          final newFilename = await _storage.updateEvent(
-            _allEvents[index],
-            newEvent,
+          // Update event in storage - rcal-lib uses (title, startDate) as key
+          await _storage.updateEvent(_allEvents[index], newEvent);
+          // The filename is derived from title, compute it locally
+          final newEventWithFilename = newEvent.copyWith(
+            filename: newEvent.fileName,
           );
-          final newEventWithFilename = newEvent.copyWith(filename: newFilename);
           _allEvents[index] = newEventWithFilename;
         }
       }
@@ -684,19 +688,22 @@ class EventProvider extends ChangeNotifier {
         // Skip empty filenames
         if (filename.isEmpty) continue;
 
-        final event = _allEvents.firstWhere(
-          (e) => e.filename == filename,
-          orElse: () => Event(
-            // Use a placeholder title that will be filtered out
-            title: '__not_found__',
-            startDate: DateTime.now(),
-            endDate: DateTime.now(),
-          ),
-        );
-        // Only add if filename matches (event was found)
-        if (event.filename == filename && event.title != '__not_found__') {
-          eventsToDelete.add(event);
+        // Find event by matching filename (title-based) and fall back to matching
+        // Since filename is now title-based (not unique), we need to find by exact match
+        // Try to find an event where the filename matches
+        final matchingEvents = _allEvents
+            .where((e) => e.filename == filename)
+            .toList();
+
+        if (matchingEvents.isEmpty) {
+          log(
+            'Event with filename "$filename" not found in state, skipping delete',
+          );
+          continue;
         }
+
+        // Use the first matching event (title-based filename is not unique across dates)
+        eventsToDelete.add(matchingEvents.first);
       }
 
       for (final event in eventsToDelete) {
@@ -704,13 +711,25 @@ class EventProvider extends ChangeNotifier {
           await _storage.deleteEventByEvent(event);
           // Track successful deletion before removing from Dart state
           deletedEvents.add(event);
-          _allEvents.removeWhere((e) => e == event);
+          _allEvents.removeWhere(
+            (e) => e.persistenceKey == event.persistenceKey,
+          );
         } on RcalException catch (e) {
-          // Propagate error - the UI should show error messages to users
-          // rather than silently removing events that still exist in storage
+          // Handle "not found" errors gracefully - event may have been deleted externally
+          if (e.message.contains('not found')) {
+            log(
+              'Event not found in storage (may have been deleted externally): "${event.title}" on ${event.startDate}. Removing from UI anyway.',
+            );
+            // Remove from UI since it's not in storage
+            _allEvents.removeWhere(
+              (e) => e.persistenceKey == event.persistenceKey,
+            );
+            continue;
+          }
+          // For other errors, propagate
           final errorMessage = e.message;
           log(
-            'Error deleting event "${event.filename}" from Rust storage: $errorMessage',
+            'Error deleting event "${event.title}" from Rust storage: $errorMessage',
           );
           rethrow;
         }
@@ -810,8 +829,12 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> _performAddEvent(Event event) async {
     try {
-      final filename = await _storage.addEvent(event);
-      final eventWithFilename = event.copyWith(filename: filename);
+      // Save event to storage - rcal-lib uses (title, startDate) as key
+      await _storage.addEvent(event);
+
+      // The filename is derived from title, compute it locally
+      // No need to get it from storage since it's title-based
+      final eventWithFilename = event.copyWith(filename: event.fileName);
       _allEvents.add(eventWithFilename);
       await computeEventDatesAsync();
       if (!Platform.isLinux) {
@@ -840,7 +863,8 @@ class EventProvider extends ChangeNotifier {
       await _autoPushDeferred();
 
       // Notify waiting state change listeners
-      _notifyStateChangeCompleter(eventWithFilename.filename);
+      // Use persistence key instead of filename
+      _notifyStateChangeCompleter(eventWithFilename.persistenceKey);
     } catch (e) {
       log('Error adding event: $e');
       rethrow;
@@ -863,9 +887,15 @@ class EventProvider extends ChangeNotifier {
 
   Future<void> _performUpdateEvent(Event oldEvent, Event newEvent) async {
     try {
-      final newFilename = await _storage.updateEvent(oldEvent, newEvent);
+      // Update event in storage - rcal-lib uses (title, startDate) as key
+      // Same title+date will replace the existing event
+      await _storage.updateEvent(oldEvent, newEvent);
+
       final index = _allEvents.indexWhere((e) => e == oldEvent);
-      final newEventWithFilename = newEvent.copyWith(filename: newFilename);
+      // The filename is derived from title, compute it locally
+      final newEventWithFilename = newEvent.copyWith(
+        filename: newEvent.fileName,
+      );
       if (index != -1) {
         _allEvents[index] = newEventWithFilename;
       }
@@ -896,7 +926,8 @@ class EventProvider extends ChangeNotifier {
       await _autoPushDeferred();
 
       // Notify waiting state change listeners
-      _notifyStateChangeCompleter(newEventWithFilename.filename);
+      // Use persistence key instead of filename
+      _notifyStateChangeCompleter(newEventWithFilename.persistenceKey);
     } catch (e) {
       log('Error updating event: $e');
       rethrow;
@@ -930,11 +961,24 @@ class EventProvider extends ChangeNotifier {
       await _autoPushDeferred();
 
       // Notify waiting state change listeners
-      _notifyStateChangeCompleter(event.filename);
+      // Use persistence key instead of filename
+      _notifyStateChangeCompleter(event.persistenceKey);
+    } on RcalException catch (e) {
+      // Handle "not found" errors gracefully - keep event in UI
+      // This can happen if the event was already deleted from storage
+      // (e.g., due to sync conflicts or race conditions)
+      if (e.message.contains('not found')) {
+        log(
+          'Event not found in storage (may have been deleted externally): "${event.title}" on ${event.startDate}. Keeping in UI.',
+        );
+        // Don't rethrow - event stays in UI
+        return;
+      }
+      // For other errors, propagate them
+      log('Error deleting event "${event.title}": $e');
+      rethrow;
     } catch (e) {
-      // Propagate all errors - the UI should show error messages to users
-      // rather than silently removing events that still exist in storage
-      log('Error deleting event "${event.filename}": $e');
+      log('Error deleting event "${event.title}": $e');
       rethrow;
     }
   }

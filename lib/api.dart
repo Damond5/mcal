@@ -179,6 +179,7 @@ Future<void> updateEvent({
 );
 
 /// Deletes an event from the specified calendar directory.
+/// The [id] parameter is the event title, used to find and delete the event file.
 Future<void> deleteEvent({required String id, required String calendarDir}) =>
     RustLib.instance.api.crateApiDeleteEvent(id: id, calendarDir: calendarDir);
 

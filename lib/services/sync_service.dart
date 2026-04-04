@@ -288,6 +288,16 @@ class SyncService {
     return url != null;
   }
 
+  Future<bool> hasLocalChanges() async {
+    final path = await _getAppDocDir();
+    try {
+      final status = await _api.crateApiGitStatus(path: path);
+      return status.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<void> resolveConflictPreferRemote() async {
     final path = await _getAppDocDir();
     try {

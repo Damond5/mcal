@@ -46,6 +46,7 @@ class EventProvider extends ChangeNotifier {
   Set<DateTime> _eventDates = {};
   bool _isLoading = false;
   bool _isSyncing = false;
+  Completer<void>? _syncCompleter;
   DateTime? _selectedDate;
   int _refreshCounter = 0;
   Timer? _notificationTimer;
@@ -1079,8 +1080,15 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> syncPush() async {
+    if (_isSyncing && _syncCompleter != null) {
+      await _syncCompleter!.future;
+      if (!await _syncService.hasLocalChanges()) {
+        return;
+      }
+    }
     if (_isSyncing) return;
     _isSyncing = true;
+    _syncCompleter = Completer<void>();
     _triggerListenersWithLogging();
     try {
       await _syncService.pushSync();
@@ -1089,6 +1097,8 @@ class EventProvider extends ChangeNotifier {
       rethrow;
     } finally {
       _isSyncing = false;
+      _syncCompleter?.complete();
+      _syncCompleter = null;
       _triggerListenersWithLogging();
     }
   }

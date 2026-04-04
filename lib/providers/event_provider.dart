@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/foundation.dart";
 import "dart:async";
 import "dart:io";
 import "dart:developer";
@@ -1108,8 +1109,9 @@ class EventProvider extends ChangeNotifier {
   }
 
   Future<void> autoSyncOnStart() async {
-    if (await _syncService.isSyncInitialized() &&
-        _syncSettings.resumeSyncEnabled) {
+    await loadSyncSettings();
+    final isInitialized = await _syncService.isSyncInitialized();
+    if (isInitialized && _syncSettings.resumeSyncEnabled) {
       try {
         await syncPull();
       } catch (e) {

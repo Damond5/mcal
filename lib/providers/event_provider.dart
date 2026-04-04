@@ -52,6 +52,10 @@ class EventProvider extends ChangeNotifier {
   DateTime? _lastSyncTime;
   Timer? _periodicSyncTimer;
 
+  // Sync error tracking - exposed to UI for display
+  String? _lastSyncError;
+  DateTime? _lastSyncErrorTime;
+
   // Batch operation support - deferred update pattern
   int _pauseUpdateCount = 0;
   bool _pendingUpdate = false;
@@ -88,6 +92,21 @@ class EventProvider extends ChangeNotifier {
 
   bool get hasPendingUpdate => _pendingUpdate;
 
+  // Sync error tracking getters
+  /// Returns the last sync error message, if any.
+  /// Errors from auto-push and auto-sync operations are stored here for UI display.
+  String? get lastSyncError => _lastSyncError;
+
+  /// Returns when the last sync error occurred, if any.
+  DateTime? get lastSyncErrorTime => _lastSyncErrorTime;
+
+  /// Clears the last sync error.
+  /// Call this after the UI has displayed the error to acknowledge it.
+  void clearLastSyncError() {
+    _lastSyncError = null;
+    _lastSyncErrorTime = null;
+  }
+
   // ============================================================================
   // STATE MANAGEMENT HELPER METHODS
   // ============================================================================
@@ -100,6 +119,17 @@ class EventProvider extends ChangeNotifier {
         'EventProvider [$timestamp]: $message ${value != null ? '- Value: $value' : ''}',
       );
     }
+  }
+
+  /// Extract a clean error message from an exception.
+  /// Removes "Exception: " prefix and sanitizes any URLs with credentials.
+  String _extractErrorMessage(dynamic e) {
+    String message = e is Exception
+        ? e.toString().replaceFirst('Exception: ', '')
+        : e.toString();
+    // Sanitize any URLs with credentials
+    message = message.replaceAll(RegExp(r'https?://[^@]+@[^/]+'), '<redacted>');
+    return message;
   }
 
   /// Trigger listeners with proper logging and state validation
@@ -1084,6 +1114,9 @@ class EventProvider extends ChangeNotifier {
         await syncPull();
       } catch (e) {
         _logStateChange('Auto pull failed', e);
+        _lastSyncError = _extractErrorMessage(e);
+        _lastSyncErrorTime = DateTime.now();
+        notifyListeners();
       }
     }
   }
@@ -1102,6 +1135,9 @@ class EventProvider extends ChangeNotifier {
           await prefs.setString('lastSyncTime', now.toIso8601String());
         } catch (e) {
           _logStateChange('Auto periodic pull failed', e);
+          _lastSyncError = _extractErrorMessage(e);
+          _lastSyncErrorTime = DateTime.now();
+          notifyListeners();
         }
       }
     }
@@ -1120,6 +1156,9 @@ class EventProvider extends ChangeNotifier {
           await prefs.setString('lastSyncTime', now.toIso8601String());
         } catch (e) {
           _logStateChange('Auto resume pull failed', e);
+          _lastSyncError = _extractErrorMessage(e);
+          _lastSyncErrorTime = DateTime.now();
+          notifyListeners();
         }
       }
     }
@@ -1131,6 +1170,9 @@ class EventProvider extends ChangeNotifier {
         await syncPush();
       } catch (e) {
         log('Auto push failed: $e');
+        _lastSyncError = _extractErrorMessage(e);
+        _lastSyncErrorTime = DateTime.now();
+        notifyListeners();
       }
     }
   }

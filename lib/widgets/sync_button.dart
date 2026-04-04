@@ -30,6 +30,23 @@ class SyncButton extends StatelessWidget {
   }
 
   void _handleMenuSelection(BuildContext context, String value) {
+    // Check for any pending sync errors from auto-push/auto-sync operations
+    // and show them to the user before processing the menu selection.
+    final eventProvider = context.read<EventProvider>();
+    final pendingError = eventProvider.lastSyncError;
+    if (pendingError != null) {
+      // Show the error message to the user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sync failed: $pendingError'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      // Clear the error after displaying it
+      eventProvider.clearLastSyncError();
+    }
+
     switch (value) {
       case 'init':
         _showInitDialog(context);

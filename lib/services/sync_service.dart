@@ -10,6 +10,32 @@ class SyncConflictException implements Exception {
   SyncConflictException(this.message);
 }
 
+/// Extract a clean, user-friendly error message from an exception.
+/// Removes technical prefixes and sanitizes URLs with credentials.
+String _cleanErrorMessage(dynamic e) {
+  String message = e.toString();
+
+  // Remove common Rust/Dart exception prefixes
+  message = message.replaceFirst(RegExp(r'^(Exception|FError|Error):\s*'), '');
+
+  // Remove panics and internal errors - they're Rust backend issues
+  if (message.contains('panic') || message.contains('FfiException')) {
+    // Extract just the meaningful part of FfiException
+    final match = RegExp(r'FfiException\([^)]+\):\s*(.+)').firstMatch(message);
+    if (match != null) {
+      message = match.group(1) ?? message;
+    }
+  }
+
+  // Sanitize URLs that may contain credentials
+  message = message.replaceAll(
+    RegExp(r'https?://[^@/\s]+:[^@/\s]+@[^/\s]+'),
+    '<redacted>',
+  );
+
+  return message.trim();
+}
+
 class SyncService {
   static const String _remoteUrlKey = "git_remote_url";
   static const String _usernameKey = "git_username";
@@ -159,7 +185,8 @@ class SyncService {
       }
     } catch (e) {
       log('Sync initialization failed: $e');
-      throw Exception("Sync initialization failed: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Sync initialization failed: $cleanMessage");
     }
   }
 
@@ -196,7 +223,8 @@ class SyncService {
           "Merge conflict detected during pull. Please resolve manually.",
         );
       }
-      throw Exception("Pull sync failed: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Pull failed: $cleanMessage");
     }
   }
 
@@ -231,7 +259,8 @@ class SyncService {
       log('Push sync completed successfully');
     } catch (e) {
       log('Push sync failed: $e');
-      throw Exception("Push sync failed: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Push failed: $cleanMessage");
     }
   }
 
@@ -249,7 +278,8 @@ class SyncService {
         return "not initialized";
       }
       log('Failed to get git status: $e');
-      throw Exception("Failed to get git status: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Failed to get sync status: $cleanMessage");
     }
   }
 
@@ -266,7 +296,8 @@ class SyncService {
       log('Merge conflict resolved successfully by preferring remote');
     } catch (e) {
       log('Resolve conflict failed: $e');
-      throw Exception("Failed to resolve conflict: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Failed to resolve conflict: $cleanMessage");
     }
   }
 
@@ -278,7 +309,8 @@ class SyncService {
       log('Merge conflict aborted successfully');
     } catch (e) {
       log('Abort conflict failed: $e');
-      throw Exception("Failed to abort conflict: $e");
+      final cleanMessage = _cleanErrorMessage(e);
+      throw Exception("Failed to abort conflict: $cleanMessage");
     }
   }
 }

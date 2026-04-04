@@ -1,7 +1,7 @@
 import "package:flutter/services.dart";
 
 class CertificateService {
-  static const String _channelName = "com.example.mcal/certificates";
+  static const String _channelName = "com.mcal/certificates";
   static const MethodChannel _channel = MethodChannel(_channelName);
 
   List<String>? _cachedCertificates;

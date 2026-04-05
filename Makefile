@@ -195,8 +195,14 @@ android-install: android-build
 		echo "Run 'fvm flutter devices' to see available devices"; \
 		exit 1; \
 	fi; \
+	@APK_PATH="build/app/outputs/flutter-apk/app-debug.apk"; \
+	if [ ! -f "$$APK_PATH" ]; then \
+		echo "ERROR: Debug APK not found at $$APK_PATH"; \
+		echo "Build may have failed. Run 'make android-build' to check."; \
+		exit 1; \
+	fi; \
 	echo "Installing APK on device: $$DEVICE_ID"; \
-	fvm flutter install -d $$DEVICE_ID
+	adb install -r $$APK_PATH
 
 # =============================================================================
 # UTILITY

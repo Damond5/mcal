@@ -25,6 +25,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  EventDto dco_decode_box_autoadd_event_dto(dynamic raw);
+
+  @protected
   EventDto dco_decode_event_dto(dynamic raw);
 
   @protected
@@ -64,6 +67,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  EventDto sse_decode_box_autoadd_event_dto(SseDeserializer deserializer);
+
+  @protected
   EventDto sse_decode_event_dto(SseDeserializer deserializer);
 
   @protected
@@ -101,6 +107,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_event_dto(
+    EventDto self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_event_dto(EventDto self, SseSerializer serializer);

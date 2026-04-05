@@ -62,6 +62,7 @@ class CalendarWidgetState extends State<CalendarWidget> {
                     });
                   },
                   calendarStyle: CalendarStyle(
+                    markersMaxCount: 3,
                     cellMargin: const EdgeInsets.all(4.0),
                     cellPadding: const EdgeInsets.all(2.0),
                     markerDecoration: BoxDecoration(

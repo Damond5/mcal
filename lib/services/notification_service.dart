@@ -4,6 +4,7 @@ import 'package:workmanager/workmanager.dart';
 import 'dart:developer';
 import 'dart:io';
 import '../models/event.dart';
+import 'rcal_adapter.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -74,12 +75,16 @@ class NotificationService {
     // Cancel existing notifications for this event
     await cancelNotificationsForEvent(event);
 
-    // Expand recurring events up to 30 days ahead for performance, limit to 100 instances max
+    // Use rcal API to expand recurring events up to 30 days ahead
+    // Limit to 100 instances max to prevent excessive notifications
     final maxDate = DateTime.now().add(const Duration(days: 30));
-    final instances = Event.expandRecurring(event, maxDate, maxDate: maxDate);
-    final limitedInstances = instances.take(
-      100,
-    ); // Prevent excessive notifications
+    final rcalAdapter = RcalAdapter();
+    final instances = await rcalAdapter.generateInstances(
+      [event],
+      DateTime.now(),
+      maxDate,
+    );
+    final limitedInstances = instances.take(100);
 
     for (final instance in limitedInstances) {
       final success = await _scheduleNotificationForInstance(instance);

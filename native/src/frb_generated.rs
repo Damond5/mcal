@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -864989279;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 380905477;
 
 // Section: executor
 
@@ -158,6 +158,80 @@ fn wire__crate__api__delete_event_impl(
             move |context| {
                 transform_result_sse::<_, String>((move || {
                     let output_ok = crate::api::delete_event(api_id, api_calendar_dir)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__event_occurs_on_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "event_occurs_on",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_event = <crate::api::EventDto>::sse_decode(&mut deserializer);
+            let api_date = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok =
+                        Result::<_, ()>::Ok(crate::api::event_occurs_on(api_event, api_date))?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__generate_instances_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "generate_instances",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_events = <Vec<crate::api::EventDto>>::sse_decode(&mut deserializer);
+            let api_start_date = <String>::sse_decode(&mut deserializer);
+            let api_end_date = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Result::<_, ()>::Ok(crate::api::generate_instances(
+                        api_events,
+                        api_start_date,
+                        api_end_date,
+                    ))?;
                     Ok(output_ok)
                 })())
             }
@@ -991,6 +1065,49 @@ fn wire__crate__api__update_event_impl(
         },
     )
 }
+fn wire__crate__api__validate_event_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "validate_event",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_title = <String>::sse_decode(&mut deserializer);
+            let api_start_date = <String>::sse_decode(&mut deserializer);
+            let api_end_date = <Option<String>>::sse_decode(&mut deserializer);
+            let api_start_time = <Option<String>>::sse_decode(&mut deserializer);
+            let api_end_time = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::validate_event(
+                        api_title,
+                        api_start_date,
+                        api_end_date,
+                        api_start_time,
+                        api_end_time,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 
 // Section: dart2rust
 
@@ -1167,29 +1284,32 @@ fn pde_ffi_dispatcher_primary_impl(
         1 => wire__crate__api__add_impl(port, ptr, rust_vec_len, data_len),
         2 => wire__crate__api__create_event_impl(port, ptr, rust_vec_len, data_len),
         3 => wire__crate__api__delete_event_impl(port, ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__get_all_events_impl(port, ptr, rust_vec_len, data_len),
-        5 => wire__crate__api__get_events_in_range_impl(port, ptr, rust_vec_len, data_len),
-        6 => wire__crate__api__git_add_all_impl(port, ptr, rust_vec_len, data_len),
-        7 => wire__crate__api__git_add_remote_impl(port, ptr, rust_vec_len, data_len),
-        8 => wire__crate__api__git_checkout_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__git_clone_impl(port, ptr, rust_vec_len, data_len),
-        10 => wire__crate__api__git_commit_impl(port, ptr, rust_vec_len, data_len),
-        11 => wire__crate__api__git_current_branch_impl(port, ptr, rust_vec_len, data_len),
-        12 => wire__crate__api__git_diff_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__git_fetch_impl(port, ptr, rust_vec_len, data_len),
-        14 => wire__crate__api__git_has_local_changes_impl(port, ptr, rust_vec_len, data_len),
-        15 => wire__crate__api__git_init_impl(port, ptr, rust_vec_len, data_len),
-        16 => wire__crate__api__git_list_branches_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__git_merge_abort_impl(port, ptr, rust_vec_len, data_len),
-        18 => wire__crate__api__git_merge_prefer_remote_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__git_pull_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__git_push_impl(port, ptr, rust_vec_len, data_len),
-        21 => wire__crate__api__git_remove_remote_impl(port, ptr, rust_vec_len, data_len),
-        22 => wire__crate__api__git_stash_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__api__git_status_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__api__set_ssl_ca_certs_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__api__update_event_impl(port, ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__event_occurs_on_impl(port, ptr, rust_vec_len, data_len),
+        5 => wire__crate__api__generate_instances_impl(port, ptr, rust_vec_len, data_len),
+        6 => wire__crate__api__get_all_events_impl(port, ptr, rust_vec_len, data_len),
+        7 => wire__crate__api__get_events_in_range_impl(port, ptr, rust_vec_len, data_len),
+        8 => wire__crate__api__git_add_all_impl(port, ptr, rust_vec_len, data_len),
+        9 => wire__crate__api__git_add_remote_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__git_checkout_impl(port, ptr, rust_vec_len, data_len),
+        11 => wire__crate__api__git_clone_impl(port, ptr, rust_vec_len, data_len),
+        12 => wire__crate__api__git_commit_impl(port, ptr, rust_vec_len, data_len),
+        13 => wire__crate__api__git_current_branch_impl(port, ptr, rust_vec_len, data_len),
+        14 => wire__crate__api__git_diff_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__git_fetch_impl(port, ptr, rust_vec_len, data_len),
+        16 => wire__crate__api__git_has_local_changes_impl(port, ptr, rust_vec_len, data_len),
+        17 => wire__crate__api__git_init_impl(port, ptr, rust_vec_len, data_len),
+        18 => wire__crate__api__git_list_branches_impl(port, ptr, rust_vec_len, data_len),
+        19 => wire__crate__api__git_merge_abort_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__git_merge_prefer_remote_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__api__git_pull_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__git_push_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__git_remove_remote_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__api__git_stash_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__api__git_status_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__api__init_app_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__api__set_ssl_ca_certs_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__api__update_event_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__validate_event_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

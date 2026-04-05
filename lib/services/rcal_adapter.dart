@@ -312,4 +312,58 @@ class RcalAdapter {
     // Use title and start_date as the deletion key
     await deleteEvent(event.title, event.startDate, calendarDir);
   }
+
+  /// Generates instances for recurring events within a date range.
+  ///
+  /// This method takes a list of events and expands recurring events to get
+  /// all instances that occur within the specified date range.
+  ///
+  /// [events] - The list of events to expand.
+  /// [start] - The start date of the range (inclusive).
+  /// [end] - The end date of the range (inclusive).
+  ///
+  /// Returns all events including expanded recurring instances.
+  ///
+  /// Throws [RcalException] if the operation fails.
+  Future<List<Event>> generateInstances(
+    List<Event> events,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      // Convert events to DTOs
+      final dtos = events.map((e) => _eventToDto(e)).toList();
+      final instanceDtos = await api.crateApiGenerateInstances(
+        events: dtos,
+        startDate: _dateToString(start),
+        endDate: _dateToString(end),
+      );
+      return instanceDtos.map(_dtoToEvent).toList();
+    } catch (e) {
+      throw RcalException('Failed to generate instances: $e');
+    }
+  }
+
+  /// Checks if an event occurs on a specific date.
+  ///
+  /// Uses rcal's event_occurs_on logic to determine if the event
+  /// (or any of its recurring instances) occurs on the given date.
+  ///
+  /// [event] - The event to check.
+  /// [date] - The date to check against.
+  ///
+  /// Returns true if the event occurs on the date, false otherwise.
+  ///
+  /// Throws [RcalException] if the operation fails.
+  Future<bool> eventOccursOn(Event event, DateTime date) async {
+    try {
+      final dto = _eventToDto(event);
+      return await api.crateApiEventOccursOn(
+        event: dto,
+        date: _dateToString(date),
+      );
+    } catch (e) {
+      throw RcalException('Failed to check event occurrence: $e');
+    }
+  }
 }

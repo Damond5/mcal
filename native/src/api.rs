@@ -1,7 +1,9 @@
 use chrono::{NaiveDate, NaiveTime};
 use git2::{Delta, Repository};
+use rcal_lib::core::EventService;
 use rcal_lib::models::{CalendarEvent, Recurrence};
 use rcal_lib::storage::FileEventRepository;
+use rcal_lib::validation::{is_valid_date_range, is_valid_time_range, is_valid_title};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -902,4 +904,148 @@ pub fn delete_event(id: String, calendar_dir: String) -> Result<(), String> {
         .map_err(|e: Box<dyn std::error::Error>| e.to_string())?;
 
     Ok(())
+}
+
+// ============================================================================
+// Event Validation Function
+// ============================================================================
+
+/// Validates an event and returns validation errors.
+/// Returns Ok(()) if valid, Err(error_message) if invalid.
+/// Uses the existing validation logic from rcal-lib.
+#[flutter_rust_bridge::frb]
+pub fn validate_event(
+    title: String,
+    start_date: String,
+    end_date: Option<String>,
+    start_time: Option<String>,
+    end_time: Option<String>,
+) -> Result<(), String> {
+    // Validate title
+    if !is_valid_title(&title) {
+        return Err("Title cannot be empty or exceed maximum length".to_string());
+    }
+
+    // Parse and validate start date
+    let start = parse_date(&start_date)?;
+
+    // Validate end date >= start date
+    if let Some(ref end_date_str) = end_date {
+        let end = parse_date(end_date_str)?;
+        if !is_valid_date_range(start, Some(end)) {
+            return Err(format!(
+                "End date ({}) cannot be before start date ({})",
+                end_date_str, start_date
+            ));
+        }
+    }
+
+    // Validate time range for non-all-day events
+    if !start_time.is_none() || !end_time.is_none() {
+        let start_t = match start_time {
+            Some(t) => parse_time(&t)?,
+            None => return Err("Start time is required when end time is specified".to_string()),
+        };
+
+        let end_t = match end_time {
+            Some(t) => Some(parse_time(&t)?),
+            None => None,
+        };
+
+        if !is_valid_time_range(start_t, end_t) {
+            return Err(format!("End time cannot be before start time"));
+        }
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// Recurring Event Instance Generation
+// ============================================================================
+
+/// Converts an EventDto to a CalendarEvent
+#[allow(dead_code)]
+fn dto_to_event(dto: &EventDto) -> Result<CalendarEvent, String> {
+    create_calendar_event(
+        dto.title.clone(),
+        dto.description.clone(),
+        dto.start_date.clone(),
+        dto.end_date.clone(),
+        dto.start_time.clone(),
+        dto.end_time.clone(),
+        dto.is_all_day,
+        dto.recurrence.clone(),
+        Some(dto.id.clone()),
+    )
+}
+
+/// Generates instances for recurring events within a date range.
+/// Uses rcal's generate_instances_for_range logic to expand recurring events.
+#[flutter_rust_bridge::frb]
+pub fn generate_instances(
+    events: Vec<EventDto>,
+    start_date: String,
+    end_date: String,
+) -> Vec<EventDto> {
+    let start = match parse_date(&start_date) {
+        Ok(d) => d,
+        Err(_) => return vec![],
+    };
+    let end = match parse_date(&end_date) {
+        Ok(d) => d,
+        Err(_) => return vec![],
+    };
+
+    // Convert DTOs to CalendarEvents
+    let calendar_events: Vec<CalendarEvent> = events
+        .iter()
+        .filter_map(|dto| dto_to_event(dto).ok())
+        .collect();
+
+    // Use EventService to generate instances
+    let mut service = EventService::with_events(calendar_events);
+    let instances = service.generate_instances_for_range(start, end);
+
+    // Convert instances back to DTOs
+    instances.iter().map(event_to_dto).collect()
+}
+
+// ============================================================================
+// Event Occurrence Check
+// ============================================================================
+
+/// Converts an EventDto to a CalendarEvent for occurrence check
+#[allow(dead_code)]
+fn dto_to_event_for_occurs_on(dto: &EventDto) -> Result<CalendarEvent, String> {
+    let mut event = create_calendar_event(
+        dto.title.clone(),
+        dto.description.clone(),
+        dto.start_date.clone(),
+        dto.end_date.clone(),
+        dto.start_time.clone(),
+        dto.end_time.clone(),
+        dto.is_all_day,
+        dto.recurrence.clone(),
+        Some(dto.id.clone()),
+    )?;
+    event.is_recurring_instance = dto.is_recurring_instance;
+    Ok(event)
+}
+
+/// Checks if an event occurs on a specific date.
+/// Uses rcal's CalendarEvent::occurs_on logic.
+#[flutter_rust_bridge::frb]
+pub fn event_occurs_on(event: EventDto, date: String) -> bool {
+    let event = match dto_to_event_for_occurs_on(&event) {
+        Ok(e) => e,
+        Err(_) => return false,
+    };
+
+    let target_date = match parse_date(&date) {
+        Ok(d) => d,
+        Err(_) => return false,
+    };
+
+    event.occurs_on(target_date)
 }

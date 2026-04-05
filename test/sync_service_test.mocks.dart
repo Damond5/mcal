@@ -99,6 +99,36 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
           as _i3.Future<void>);
 
   @override
+  _i3.Future<bool> crateApiEventOccursOn({
+    required _i5.EventDto? event,
+    required String? date,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiEventOccursOn, [], {
+              #event: event,
+              #date: date,
+            }),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<List<_i5.EventDto>> crateApiGenerateInstances({
+    required List<_i5.EventDto>? events,
+    required String? startDate,
+    required String? endDate,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiGenerateInstances, [], {
+              #events: events,
+              #startDate: startDate,
+              #endDate: endDate,
+            }),
+            returnValue: _i3.Future<List<_i5.EventDto>>.value(<_i5.EventDto>[]),
+          )
+          as _i3.Future<List<_i5.EventDto>>);
+
+  @override
   _i3.Future<List<_i5.EventDto>> crateApiGetAllEvents({
     required String? calendarDir,
   }) =>
@@ -501,6 +531,27 @@ class MockRustLibApi extends _i1.Mock implements _i2.RustLibApi {
               #isAllDay: isAllDay,
               #recurrence: recurrence,
               #calendarDir: calendarDir,
+            }),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> crateApiValidateEvent({
+    required String? title,
+    required String? startDate,
+    String? endDate,
+    String? startTime,
+    String? endTime,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiValidateEvent, [], {
+              #title: title,
+              #startDate: startDate,
+              #endDate: endDate,
+              #startTime: startTime,
+              #endTime: endTime,
             }),
             returnValue: _i3.Future<void>.value(),
             returnValueForMissingStub: _i3.Future<void>.value(),

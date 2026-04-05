@@ -8,7 +8,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'api.freezed.dart';
 
-// These functions are ignored because they are not marked as `pub`: `create_calendar_event`, `event_occurs_in_range`, `event_to_dto`, `extract_branch_name`, `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_remove_remote_impl`, `git_stash_impl`, `git_status_impl`, `has_local_changes`, `parse_date`, `parse_recurrence`, `parse_time`, `validate_certificate`
+// These functions are ignored because they are not marked as `pub`: `create_calendar_event`, `dto_to_event_for_occurs_on`, `dto_to_event`, `event_occurs_in_range`, `event_to_dto`, `extract_branch_name`, `get_credentials`, `git_add_all_impl`, `git_add_remote_impl`, `git_checkout_impl`, `git_commit_impl`, `git_diff_impl`, `git_fetch_impl`, `git_init_impl`, `git_merge_abort_impl`, `git_merge_prefer_remote_impl`, `git_pull_impl`, `git_push_impl`, `git_remove_remote_impl`, `git_stash_impl`, `git_status_impl`, `has_local_changes`, `parse_date`, `parse_recurrence`, `parse_time`, `validate_certificate`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`, `fmt`, `fmt`, `from`, `from`
 
 Future<int> add({required int left, required int right}) =>
@@ -182,6 +182,40 @@ Future<void> updateEvent({
 /// The [id] parameter is the event title, used to find and delete the event file.
 Future<void> deleteEvent({required String id, required String calendarDir}) =>
     RustLib.instance.api.crateApiDeleteEvent(id: id, calendarDir: calendarDir);
+
+/// Validates an event and returns validation errors.
+/// Returns Ok(()) if valid, Err(error_message) if invalid.
+/// Uses the existing validation logic from rcal-lib.
+Future<void> validateEvent({
+  required String title,
+  required String startDate,
+  String? endDate,
+  String? startTime,
+  String? endTime,
+}) => RustLib.instance.api.crateApiValidateEvent(
+  title: title,
+  startDate: startDate,
+  endDate: endDate,
+  startTime: startTime,
+  endTime: endTime,
+);
+
+/// Generates instances for recurring events within a date range.
+/// Uses rcal's generate_instances_for_range logic to expand recurring events.
+Future<List<EventDto>> generateInstances({
+  required List<EventDto> events,
+  required String startDate,
+  required String endDate,
+}) => RustLib.instance.api.crateApiGenerateInstances(
+  events: events,
+  startDate: startDate,
+  endDate: endDate,
+);
+
+/// Checks if an event occurs on a specific date.
+/// Uses rcal's CalendarEvent::occurs_on logic.
+Future<bool> eventOccursOn({required EventDto event, required String date}) =>
+    RustLib.instance.api.crateApiEventOccursOn(event: event, date: date);
 
 class EventDto {
   final String id;

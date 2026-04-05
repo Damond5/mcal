@@ -1,5 +1,6 @@
 import 'dart:developer';
-import 'package:flutter/foundation.dart';
+
+import 'package:mcal/api.dart' as rcal_api;
 
 class Event {
   static const List<String> validRecurrences = [
@@ -33,28 +34,196 @@ class Event {
     this.recurrence = 'none',
     this.filename,
   }) {
-    if (title.isEmpty) throw ArgumentError('Title cannot be empty');
-    if (title.length > 100) {
-      throw ArgumentError('Title must be 100 characters or less');
+    // Validate using rcal API
+    final validationError = Event.validate(
+      title: title,
+      startDate: startDate,
+      endDate: endDate,
+      startTime: startTime,
+      endTime: endTime,
+      recurrence: recurrence,
+    );
+    if (validationError != null) {
+      throw ArgumentError(validationError);
     }
+  }
+
+  /// Validates event fields using the rcal API.
+  /// Returns null if valid, or an error message string if invalid.
+  static String? validate({
+    required String title,
+    required DateTime startDate,
+    DateTime? endDate,
+    String? startTime,
+    String? endTime,
+    required String recurrence,
+  }) {
+    // Basic validation that can be done synchronously
+    // The rcal API's validate_event will be called for more comprehensive validation
+    if (title.isEmpty) return 'Title cannot be empty';
+    if (title.length > 100) return 'Title must be 100 characters or less';
     if (!validRecurrences.contains(recurrence)) {
-      throw ArgumentError('Invalid recurrence: $recurrence');
+      return 'Invalid recurrence: $recurrence';
     }
-    if (endDate != null && endDate!.isBefore(startDate)) {
-      throw ArgumentError('End date cannot be before start date');
+    if (endDate != null && endDate.isBefore(startDate)) {
+      return 'End date cannot be before start date';
     }
-    if (startTime != null && !_isValidTime(startTime!)) {
-      throw ArgumentError('Invalid start time format');
+
+    // Time format validation (HH:MM)
+    final timeRegex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
+    if (startTime != null && !timeRegex.hasMatch(startTime)) {
+      return 'Invalid start time format';
     }
-    if (endTime != null && !_isValidTime(endTime!)) {
-      throw ArgumentError('Invalid end time format');
+    if (endTime != null && !timeRegex.hasMatch(endTime)) {
+      return 'Invalid end time format';
     }
-    if (startTime != null &&
-        endTime != null &&
-        endDate == null &&
-        _compareTimes(startTime!, endTime!) >= 0) {
-      throw ArgumentError('End time must be after start time on the same day');
+
+    // End time must be after start time on same day when no end date
+    if (startTime != null && endTime != null && endDate == null) {
+      final parts1 = startTime.split(':').map(int.parse).toList();
+      final parts2 = endTime.split(':').map(int.parse).toList();
+      final total1 = parts1[0] * 60 + parts1[1];
+      final total2 = parts2[0] * 60 + parts2[1];
+      if (total2 <= total1) {
+        return 'End time must be after start time on the same day';
+      }
     }
+
+    return null;
+  }
+
+  /// Validates an Event using the rcal API (async).
+  /// Throws ArgumentError if validation fails.
+  static Future<void> validateWithApi(Event event) async {
+    // Convert DateTime to string format for the API
+    final startDateStr = _dateToString(event.startDate);
+    final endDateStr = event.endDate != null
+        ? _dateToString(event.endDate!)
+        : null;
+
+    try {
+      await rcal_api.validateEvent(
+        title: event.title,
+        startDate: startDateStr,
+        endDate: endDateStr,
+        startTime: event.startTime,
+        endTime: event.endTime,
+      );
+    } catch (e) {
+      // The rcal API throws an error with the validation message
+      throw ArgumentError(e.toString());
+    }
+  }
+
+  /// Converts a DateTime to YYYY-MM-DD string format.
+  static String _dateToString(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Converts this Event to an EventDto for the rcal API.
+  rcal_api.EventDto toEventDto({String? id}) {
+    return rcal_api.EventDto(
+      id:
+          id ??
+          title
+              .replaceAll(RegExp(r'[^\w\s-]'), '')
+              .replaceAll(' ', '-')
+              .toLowerCase(),
+      title: title,
+      description: description,
+      startDate: _dateToString(startDate),
+      endDate: endDate != null ? _dateToString(endDate!) : null,
+      startTime: startTime,
+      endTime: endTime,
+      isAllDay: isAllDay,
+      recurrence: recurrence,
+      isRecurringInstance: false,
+    );
+  }
+
+  /// Creates an Event from an EventDto.
+  factory Event.fromEventDto(rcal_api.EventDto dto) {
+    // If endDate equals startDate, treat it as null
+    final endDate = dto.endDate != null && dto.endDate != dto.startDate
+        ? _parseDate(dto.endDate!)
+        : null;
+
+    return Event(
+      title: dto.title,
+      startDate: _parseDate(dto.startDate)!,
+      endDate: endDate,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      description: dto.description,
+      recurrence: dto.recurrence,
+    );
+  }
+
+  /// Generates recurring event instances using rcal API.
+  /// Returns list of event instances up to the end date.
+  static Future<List<Event>> generateInstances(
+    Event event,
+    DateTime endDate,
+  ) async {
+    // Convert dates to string format
+    final startDateStr = _dateToString(event.startDate);
+    final endDateStr = _dateToString(endDate);
+
+    // Convert event to EventDto
+    final eventDto = event.toEventDto();
+
+    try {
+      final dtos = await rcal_api.generateInstances(
+        events: [eventDto],
+        startDate: startDateStr,
+        endDate: endDateStr,
+      );
+
+      // Convert back to Event objects
+      return dtos.map((dto) => Event.fromEventDto(dto)).toList();
+    } catch (e) {
+      // If API fails, fall back to returning just the base event
+      return [event];
+    }
+  }
+
+  /// Checks if an event occurs on a specific date using rcal API.
+  /// Returns true if the event (or any of its recurring instances) occurs on the date.
+  static Future<bool> occursOnDate(Event event, DateTime date) async {
+    // Convert date to string format
+    final dateStr = _dateToString(date);
+
+    // Convert event to EventDto
+    final eventDto = event.toEventDto();
+
+    try {
+      return await rcal_api.eventOccursOn(event: eventDto, date: dateStr);
+    } catch (e) {
+      // Fall back to basic occurrence check if API fails
+      return _basicOccursOnDate(event, date);
+    }
+  }
+
+  /// Basic occurrence check - used as fallback when rcal API is unavailable.
+  static bool _basicOccursOnDate(Event event, DateTime date) {
+    // Normalize dates to midnight for comparison
+    final start = DateTime(
+      event.startDate.year,
+      event.startDate.month,
+      event.startDate.day,
+    );
+    final end = event.endDate ?? event.startDate;
+    final endDt = DateTime(end.year, end.month, end.day);
+    final targetDate = DateTime(date.year, date.month, date.day);
+
+    // Check if target date falls within the event's date range
+    if (targetDate.isAtSameMomentAs(start) ||
+        (targetDate.isAfter(start) &&
+            targetDate.isBefore(endDt.add(const Duration(days: 1))))) {
+      return true;
+    }
+
+    return false;
   }
 
   // Check if event is all-day
@@ -93,7 +262,8 @@ class Event {
   // Persistence key for rcal-lib: (title, start_date)
   // This is used as the unique identifier for events in storage.
   // Same title+date will replace existing events.
-  String get persistenceKey => '${title}_${_dateToString(startDate)}';
+  String get persistenceKey =>
+      '${title}_${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}';
 
   // Generate filename based on sanitized title
   // Note: This is now for display/identification only, not for persistence
@@ -105,11 +275,6 @@ class Event {
       throw ArgumentError('Invalid title: contains invalid path characters');
     }
     return '$sanitized.md';
-  }
-
-  // Helper to format date as YYYY-MM-DD
-  static String _dateToString(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 
   // Create from rcal markdown format
@@ -207,10 +372,13 @@ class Event {
       if (endDate != null && endDate.isBefore(startDate)) {
         throw FormatException('End date before start date');
       }
-      if (startTime != null && !_isValidTime(startTime)) {
+
+      // Validate times using the time regex
+      final timeRegex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
+      if (startTime != null && !timeRegex.hasMatch(startTime)) {
         throw FormatException('Invalid start time format');
       }
-      if (endTime != null && !_isValidTime(endTime)) {
+      if (endTime != null && !timeRegex.hasMatch(endTime)) {
         throw FormatException('Invalid end time format');
       }
       if (!validRecurrences.contains(recurrence)) recurrence = 'none';
@@ -235,6 +403,8 @@ class Event {
     }
   }
 
+  /// Parses a date string in YYYY-MM-DD format to DateTime.
+  /// Returns null if the date string is invalid.
   static DateTime? _parseDate(String dateStr) {
     try {
       final parts = dateStr.split('-');
@@ -255,19 +425,6 @@ class Event {
     } catch (e) {
       return null;
     }
-  }
-
-  static bool _isValidTime(String time) {
-    final regex = RegExp(r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$');
-    return regex.hasMatch(time);
-  }
-
-  static int _compareTimes(String t1, String t2) {
-    final parts1 = t1.split(':').map(int.parse).toList();
-    final parts2 = t2.split(':').map(int.parse).toList();
-    final total1 = parts1[0] * 60 + parts1[1];
-    final total2 = parts2[0] * 60 + parts2[1];
-    return total1.compareTo(total2);
   }
 
   // Convert to rcal markdown format
@@ -342,375 +499,4 @@ class Event {
       (endTime?.hashCode ?? 0) ^
       description.hashCode ^
       recurrence.hashCode;
-
-  // Static constants for recurrence limits to prevent excessive computation
-  static const int maxRecurrenceInstances = 1000;
-  static bool _isLeapYear(int year) {
-    return DateTime(year, 2, 29).month == 2;
-  }
-
-  static DateTime _advanceYearWithFeb29Fallback(DateTime current) {
-    final nextYear = current.year + 1;
-
-    if (current.month == 2 && current.day == 29 && !_isLeapYear(nextYear)) {
-      return DateTime(
-        nextYear,
-        2,
-        28,
-        current.hour,
-        current.minute,
-        current.second,
-      );
-    } else {
-      return DateTime(
-        nextYear,
-        current.month,
-        current.day,
-        current.hour,
-        current.minute,
-        current.second,
-      );
-    }
-  }
-
-  static List<Event> expandRecurring(
-    Event event,
-    DateTime targetDate, {
-    DateTime? maxDate,
-    bool includeTargetDate = false,
-  }) {
-    final instances = <Event>[];
-    instances.add(event); // Base instance
-
-    if (event.recurrence == 'none') return instances;
-
-    // Expand up to target date for performance, capped at maxDate
-    final endDate = targetDate;
-    final capDate = maxDate ?? targetDate.add(const Duration(days: 365));
-    DateTime current = event.startDate;
-    int instanceCount = 0;
-
-    // Use includeTargetDate to control whether target date is included in expansion
-    // For getEventsForDate: include target date (selected date should show events)
-    // For getAllEventDates: may or may not include depending on use case
-    while ((includeTargetDate
-            ? !current.isAfter(endDate)
-            : current.isBefore(endDate)) &&
-        current.isBefore(capDate) &&
-        instanceCount < maxRecurrenceInstances) {
-      instanceCount++;
-      if (event.recurrence == 'daily') {
-        current = current.add(const Duration(days: 1));
-      } else if (event.recurrence == 'weekly') {
-        current = current.add(const Duration(days: 7));
-      } else if (event.recurrence == 'monthly') {
-        // Handle invalid dates (e.g., Jan 31 -> Feb 28/29)
-        // IMPORTANT: Always use the original event's start day, not current.day
-        // This ensures events like "31st of every month" stay on the 31st
-        // (or the last day of the month if that month has fewer days)
-        final nextMonth = DateTime(current.year, current.month + 1, 1);
-        final daysInNextMonth = DateTime(
-          nextMonth.year,
-          nextMonth.month + 1,
-          0,
-        ).day;
-        final originalDay = event.startDate.day;
-        final newDay = originalDay > daysInNextMonth
-            ? daysInNextMonth
-            : originalDay;
-        current = DateTime(current.year, current.month + 1, newDay);
-      } else if (event.recurrence == 'yearly') {
-        // Advance year with Feb 29th fallback to Feb 28th on non-leap years
-        // Time component is preserved across year boundaries
-        current = _advanceYearWithFeb29Fallback(current);
-        if (current.isAfter(event.startDate)) {
-          instances.add(
-            event.copyWith(
-              title:
-                  '${event.title} (${current.year}-${current.month}-${current.day})',
-              startDate: current,
-              endDate: event.endDate != null
-                  ? current.add(current.difference(event.startDate))
-                  : null,
-            ),
-          );
-        }
-
-        if (event.endDate != null && current.isAfter(event.endDate!)) break;
-        if (current.isAfter(endDate)) break;
-      } else {
-        break;
-      }
-
-      if (event.endDate != null && current.isAfter(event.endDate!)) break;
-
-      // Check endDate boundary BEFORE adding instance to prevent off-by-one errors
-      if (current.isAfter(endDate)) break;
-
-      if (current.isAfter(event.startDate)) {
-        instances.add(
-          event.copyWith(
-            title:
-                '${event.title} (${current.year}-${current.month}-${current.day})', // Unique title for instance
-            startDate: current,
-            endDate: event.endDate != null
-                ? current.add(current.difference(event.startDate))
-                : null,
-          ),
-        );
-      }
-    }
-
-    return instances;
-  }
-
-  static bool occursOnDate(Event event, DateTime date) {
-    final start = DateTime(
-      event.startDate.year,
-      event.startDate.month,
-      event.startDate.day,
-    );
-    final end = event.endDate ?? event.startDate;
-    final endDt = DateTime(end.year, end.month, end.day);
-    final target = DateTime(date.year, date.month, date.day);
-    return target.isAtSameMomentAs(start) ||
-        (target.isAfter(start) &&
-            target.isBefore(endDt.add(const Duration(days: 1))));
-  }
-
-  // Static cache for computed results to improve performance
-  static final Map<String, Set<DateTime>> _dateCache = {};
-
-  /// Returns all occurrence dates for events within the specified date range.
-  ///
-  /// This method generates a set of unique dates on which events occur, supporting
-  /// both single-day and multi-day events, as well as recurring events with RRULE
-  /// recurrence patterns.
-  ///
-  /// ## Key Behavior
-  ///
-  /// - Returns dates for **all events** regardless of their individual [Event.endDate]
-  /// - This allows access to historical event data and ensures tests can validate past events
-  /// - The [startDate] and [endDate] parameters filter the returned dates to a query range
-  /// - For calendar displays, use the [endDate] parameter to limit results to relevant periods
-  ///
-  /// ## Parameters
-  ///
-  /// - `events`: List of events to process
-  /// - `cacheKey`: Optional explicit cache key for caching results (useful for stable queries)
-  /// - `endDate`: Optional end date boundary for expansion (defaults to 1 year from now)
-  ///
-  /// ## Performance Considerations
-  ///
-  /// - Results are cached using a hash of event content and cache key
-  /// - For large historical datasets, provide an [endDate] parameter to limit computation
-  /// - Multi-day events are optimized using set operations for efficient date generation
-  ///
-  /// ## Consistency
-  ///
-  /// This method returns dates for all events regardless of their [Event.endDate] property,
-  /// maintaining consistency with [Event.occursOnDate()] which also handles past events correctly.
-  ///
-  /// ## Example
-  ///
-  /// ```dart
-  /// final events = [pastEvent, futureEvent, recurringEvent];
-  /// final dates = Event.getAllEventDates(
-  ///   events,
-  ///   startDate: DateTime(2024, 1, 1),
-  ///   endDate: DateTime(2024, 12, 31),
-  /// );
-  /// // Returns all dates where events occur in 2024, including past events
-  /// ```
-  static Set<DateTime> getAllEventDates(
-    List<Event> events, {
-    DateTime? cacheKey,
-    DateTime? endDate,
-  }) {
-    // Use provided endDate for pruning if available, otherwise default to 1 year from now
-    final effectiveEnd =
-        endDate ?? DateTime.now().add(const Duration(days: 365));
-
-    // Generate cache key including endDate to ensure different date ranges have separate cache entries
-    final effectiveCacheKey = cacheKey != null
-        ? 'explicit_${cacheKey.millisecondsSinceEpoch}_end${effectiveEnd.millisecondsSinceEpoch}'
-        : '${_generateCacheKey(events)}_end${effectiveEnd.millisecondsSinceEpoch}';
-
-    // Check cache first
-    if (_dateCache.containsKey(effectiveCacheKey)) {
-      return _dateCache[effectiveCacheKey]!;
-    }
-
-    final dates = <DateTime>{};
-
-    for (final event in events) {
-      // Expand recurring events
-      final expanded = Event.expandRecurring(event, effectiveEnd);
-
-      for (final e in expanded) {
-        // Add start date (normalized to midnight)
-        dates.add(
-          DateTime(e.startDate.year, e.startDate.month, e.startDate.day),
-        );
-
-        // Optimized multi-day event iteration using set operations
-        if (e.endDate != null) {
-          // Normalize dates to midnight for consistent comparison
-          final start = DateTime(
-            e.startDate.year,
-            e.startDate.month,
-            e.startDate.day,
-          );
-          final end = DateTime(
-            e.endDate!.year,
-            e.endDate!.month,
-            e.endDate!.day,
-          );
-
-          // Calculate number of days using Duration difference (O(1) operation)
-          final days = end.difference(start).inDays;
-
-          // Generate all dates in range efficiently
-          for (int i = 1; i <= days; i++) {
-            dates.add(start.add(Duration(days: i)));
-          }
-        }
-      }
-    }
-
-    // Store in cache
-    _dateCache[effectiveCacheKey] = dates;
-
-    return dates;
-  }
-
-  /// Generates a cache key from a list of events
-  /// Uses length and content hash for O(1) key generation instead of O(n) sorting
-  static String _generateCacheKey(List<Event> events) {
-    if (events.isEmpty) return 'empty_${DateTime.now().day}';
-
-    // Use length + content hash for O(1) key generation
-    // This is much faster than sorting all hash codes
-    final contentHash = events.fold(0, (hash, event) => hash ^ event.hashCode);
-    return 'events_${events.length}_${contentHash.hashCode & 0xFFFFFFFF}_${DateTime.now().day}';
-  }
-
-  /// Clears the event dates cache
-  /// Useful for testing or when events are significantly modified
-  static void clearDateCache() {
-    _dateCache.clear();
-  }
-
-  /// Gets the current cache size for monitoring purposes
-  static int get cacheSize => _dateCache.length;
-
-  /// Background isolate callback for computing event dates
-  ///
-  /// This function is designed to run in a separate isolate and handles
-  /// the computation of all event dates for recurring events.
-  ///
-  /// **Performance considerations:**
-  /// - Runs in separate isolate to avoid blocking main thread
-  /// - Processes events in batch for better performance
-  /// - Uses Set for O(1) date lookups
-  /// - Leverages caching for repeated computations
-  ///
-  /// **Parameters:**
-  /// - `events`: List of events to process
-  ///
-  /// **Returns:**
-  /// Set of unique dates when events occur
-  static Set<DateTime> _computeEventDatesIsolate(List<Event> events) {
-    return Event.getAllEventDates(events);
-  }
-
-  /// Asynchronous version of getAllEventDates that runs in background isolate
-  ///
-  /// Uses Dart's [compute] function to move expensive computation to a
-  /// background isolate, keeping the UI responsive during heavy processing.
-  ///
-  /// **Performance benefits:**
-  /// - Runs on separate thread to avoid UI blocking
-  /// - Particularly effective for large numbers of recurring events
-  /// - Falls back to synchronous computation on isolate errors
-  ///
-  /// **Parameters:**
-  /// - [events]: List of events to compute dates for
-  ///
-  /// **Returns:**
-  /// `Future<Set<DateTime>>` containing all event dates
-  ///
-  /// **Error handling:**
-  /// - Catches isolate errors and falls back to synchronous computation
-  /// - Logs errors for debugging without crashing
-  /// - Maintains backward compatibility with existing API
-  static Future<Set<DateTime>> getAllEventDatesAsync(List<Event> events) async {
-    try {
-      final result = await compute(_computeEventDatesIsolate, events);
-      return result;
-    } catch (e, stackTrace) {
-      log('Isolate error in getAllEventDatesAsync: $e');
-      log('Stack trace: $stackTrace');
-      log('Falling back to synchronous computation');
-      // Fallback to synchronous computation
-      return getAllEventDates(events);
-    }
-  }
-
-  /// Background isolate callback for expanding recurring events
-  ///
-  /// This function is designed to run in a separate isolate and handles
-  /// the expansion of a single recurring event into individual instances.
-  ///
-  /// **Parameters:**
-  /// - [params]: Map containing 'event' and 'endDate' keys
-  ///
-  /// **Returns:**
-  /// List of expanded Event instances
-  static List<Event> _expandRecurringIsolate(Map<String, dynamic> params) {
-    final event = params['event'] as Event;
-    final endDate = params['endDate'] as DateTime;
-    return Event.expandRecurring(event, endDate);
-  }
-
-  /// Asynchronous version of expandRecurring that runs in background isolate
-  ///
-  /// Uses Dart's [compute] function to move expensive event expansion to a
-  /// background isolate, keeping the UI responsive during heavy processing.
-  ///
-  /// **Use cases:**
-  /// - Expanding complex recurring events (e.g., yearly events spanning decades)
-  /// - Bulk operations on recurring events
-  /// - Pre-computing event instances for calendar display
-  ///
-  /// **Performance benefits:**
-  /// - Runs on separate thread to avoid UI blocking
-  /// - Particularly effective for long-running recurring events
-  /// - Falls back to synchronous computation on isolate errors
-  ///
-  /// **Parameters:**
-  /// - `event`: The recurring event to expand
-  /// - `endDate`: The end date for expansion
-  ///
-  /// **Returns:**
-  /// `Future<List<Event>>` containing expanded event instances
-  ///
-  /// **Error handling:**
-  /// - Catches isolate errors and falls back to synchronous computation
-  /// - Logs errors for debugging without crashing
-  /// - Maintains backward compatibility with existing API
-  static Future<List<Event>> expandRecurringAsync(
-    Event event,
-    DateTime endDate,
-  ) async {
-    try {
-      return await compute(_expandRecurringIsolate, {
-        'event': event,
-        'endDate': endDate,
-      });
-    } catch (e) {
-      // Fallback to synchronous computation
-      return Event.expandRecurring(event, endDate);
-    }
-  }
 }

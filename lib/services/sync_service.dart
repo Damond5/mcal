@@ -199,16 +199,41 @@ class SyncService {
       );
     }
     final path = await _getAppDocDir();
+
+    // Debug: List files BEFORE pull
+    try {
+      final calendarDir = Directory(path);
+      if (calendarDir.existsSync()) {
+        final filesBefore = calendarDir
+            .listSync(recursive: true)
+            .whereType<File>()
+            .map((f) => f.path)
+            .toList();
+        log(
+          'DEBUG pullSync: Files in calendar directory BEFORE pull (${filesBefore.length}):',
+        );
+        for (final f in filesBefore) {
+          log('DEBUG pullSync:   - $f');
+        }
+      } else {
+        log('DEBUG pullSync: Calendar directory does not exist yet: $path');
+      }
+    } catch (e) {
+      log('DEBUG pullSync: Error listing files before pull: $e');
+    }
+
     try {
       final username = await _getUsername();
       final password = await _getPassword();
       final sshKeyPath = await _getSshKeyPath();
+      log('DEBUG pullSync: Calling Rust git_pull with path=$path');
       final result = await _api.crateApiGitPull(
         path: path,
         username: username,
         password: password,
         sshKeyPath: sshKeyPath,
       );
+      log('DEBUG pullSync: Rust git_pull returned result: "$result"');
       if (result.contains('Non-fast-forward')) {
         log('Pull sync detected non-fast-forward merge, treating as conflict');
         throw SyncConflictException(
@@ -225,6 +250,30 @@ class SyncService {
       }
       final cleanMessage = _cleanErrorMessage(e);
       throw Exception("Pull failed: $cleanMessage");
+    }
+
+    // Debug: List files AFTER pull
+    try {
+      final calendarDir = Directory(path);
+      if (calendarDir.existsSync()) {
+        final filesAfter = calendarDir
+            .listSync(recursive: true)
+            .whereType<File>()
+            .map((f) => f.path)
+            .toList();
+        log(
+          'DEBUG pullSync: Files in calendar directory AFTER pull (${filesAfter.length}):',
+        );
+        for (final f in filesAfter) {
+          log('DEBUG pullSync:   - $f');
+        }
+      } else {
+        log(
+          'DEBUG pullSync: ERROR: Calendar directory does not exist after pull: $path',
+        );
+      }
+    } catch (e) {
+      log('DEBUG pullSync: Error listing files after pull: $e');
     }
   }
 

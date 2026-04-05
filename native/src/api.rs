@@ -346,10 +346,18 @@ fn git_pull_impl(
     let mut new_tree: Option<git2::Tree> = None;
 
     // Stash local changes to allow pull to update working directory
+    // Handle gracefully - if stash fails (e.g., "nothing to stash"), just proceed without stashing
     if has_changes {
         let signature = git2::Signature::now("App", "app@example.com")?;
-        repo.stash_save(&signature, "Stashed by app during pull", None)?;
-        stashed = true;
+        match repo.stash_save(&signature, "Stashed by app during pull", None) {
+            Ok(_) => {
+                stashed = true;
+            }
+            Err(_) => {
+                // Don't error out - just proceed without stashing
+                stashed = false;
+            }
+        }
     }
 
     let result = (|| {
@@ -379,6 +387,9 @@ fn git_pull_impl(
         let fetch_commit = repo.reference_to_annotated_commit(&fetch_head)?;
         let analysis = repo.merge_analysis(&[&fetch_commit])?;
         if analysis.0.is_up_to_date() {
+            // Checkout HEAD to ensure working directory matches HEAD
+            repo.checkout_head(None)?;
+
             Ok("Already up to date".to_string())
         } else if analysis.0.is_fast_forward() {
             let refname = format!("refs/heads/{}", branch_name);
@@ -399,33 +410,77 @@ fn git_pull_impl(
         }
     })();
 
-    let deleted_paths: Vec<String> = if result.is_ok() {
-        if let Some(new_tree) = &new_tree {
-            let old_tree = repo.find_tree(old_oid)?;
-            let diff = repo.diff_tree_to_tree(Some(&old_tree), Some(new_tree), None)?;
-            diff.deltas()
-                .filter(|d| d.status() == Delta::Deleted)
-                .map(|d| d.old_file().path().unwrap().to_string_lossy().to_string())
-                .collect()
-        } else {
-            vec![]
-        }
-    } else {
-        vec![]
-    };
-    drop(new_tree);
-
-    // Handle stash restoration after pull operation
-    if stashed {
+    // Analyze the diff to see what changed
+    #[allow(unused_variables)]
+    let (deleted_paths, added_paths, modified_paths): (Vec<String>, Vec<String>, Vec<String>) =
         if result.is_ok() {
-            // Pull succeeded, try to restore local changes
-            if let Err(_) = repo.stash_pop(0, None) {
-                // Stash pop failed (conflicts with remote changes), drop stash to prefer remote
-                let _ = repo.stash_drop(0);
+            if let Some(new_tree) = &new_tree {
+                let old_tree = repo.find_tree(old_oid).ok();
+                let diff = if let Some(ref old) = old_tree {
+                    repo.diff_tree_to_tree(Some(old), Some(new_tree), None)
+                } else {
+                    // If old tree not available, diff against HEAD
+                    repo.diff_tree_to_tree(None, Some(new_tree), None)
+                }
+                .ok();
+
+                if let Some(diff) = diff {
+                    let deleted: Vec<String> = diff
+                        .deltas()
+                        .filter(|d| d.status() == Delta::Deleted)
+                        .map(|d| {
+                            d.old_file().path().map_or_else(
+                                || "<unknown>".to_string(),
+                                |p| p.to_string_lossy().to_string(),
+                            )
+                        })
+                        .collect();
+                    let added: Vec<String> = diff
+                        .deltas()
+                        .filter(|d| d.status() == Delta::Added)
+                        .map(|d| {
+                            d.new_file().path().map_or_else(
+                                || "<unknown>".to_string(),
+                                |p| p.to_string_lossy().to_string(),
+                            )
+                        })
+                        .collect();
+                    let modified: Vec<String> = diff
+                        .deltas()
+                        .filter(|d| d.status() == Delta::Modified)
+                        .map(|d| {
+                            d.old_file().path().map_or_else(
+                                || "<unknown>".to_string(),
+                                |p| p.to_string_lossy().to_string(),
+                            )
+                        })
+                        .collect();
+
+                    (deleted, added, modified)
+                } else {
+                    (vec![], vec![], vec![])
+                }
+            } else {
+                (vec![], vec![], vec![])
             }
         } else {
-            // Pull failed, restore local changes to original state
-            let _ = repo.stash_pop(0, None);
+            (vec![], vec![], vec![])
+        };
+
+    drop(new_tree);
+
+    // Handle stash after pull operation
+    if stashed {
+        if result.is_ok() {
+            // Pull succeeded: DON'T restore stash - we want remote (HEAD) to win
+            // The checkout_head() already gave us the correct files from remote
+            // Drop any stashed changes to avoid conflicts
+            let _ = repo.stash_drop(0);
+        } else {
+            // Pull failed: restore local changes via stash_pop
+            if let Err(_) = repo.stash_pop(0, None) {
+                let _ = repo.stash_drop(0);
+            }
         }
     }
 
@@ -435,15 +490,9 @@ fn git_pull_impl(
     if result.is_ok() {
         for path in deleted_paths {
             if let Some(workdir) = repo.workdir() {
-                let full_path = workdir.join(path);
+                let full_path = workdir.join(&path);
                 if full_path.exists() {
-                    if let Err(e) = fs::remove_file(&full_path) {
-                        eprintln!(
-                            "Failed to remove deleted file {}: {}",
-                            full_path.display(),
-                            e
-                        );
-                    }
+                    let _ = fs::remove_file(&full_path);
                 }
             }
         }

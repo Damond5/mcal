@@ -887,7 +887,16 @@ class EventProvider extends ChangeNotifier {
     _triggerListenersWithLogging();
 
     try {
+      log('DEBUG _performLoadAllEvents: Starting to load events from storage');
       _allEvents = await _storage.loadAllEvents();
+      log(
+        'DEBUG _performLoadAllEvents: Loaded ${_allEvents.length} events from storage',
+      );
+      if (_allEvents.isNotEmpty) {
+        log(
+          'DEBUG _performLoadAllEvents: Event filenames: ${_allEvents.map((e) => e.filename ?? 'no_filename').join(', ')}',
+        );
+      }
 
       await computeEventDatesAsync();
       await loadSyncSettings();
@@ -1117,25 +1126,51 @@ class EventProvider extends ChangeNotifier {
     _triggerListenersWithLogging();
 
     try {
+      log('DEBUG syncPull: Starting pull operation');
+      log(
+        'DEBUG syncPull: _allEvents.length BEFORE clear = ${_allEvents.length}',
+      );
+      if (_allEvents.isNotEmpty) {
+        log(
+          'DEBUG syncPull: Events before clear: ${_allEvents.map((e) => '${e.title} (${e.filename})').join(', ')}',
+        );
+      }
+
       await _syncService.pullSync();
       // Reload events after pull
       _allEvents.clear();
+      log('DEBUG syncPull: _allEvents cleared, now empty');
 
       // Wrap reload in try-catch with retry to ensure events are always reloaded
       // If loadAllEvents fails after clearing, we retry once before giving up
       try {
+        log('DEBUG syncPull: Calling loadAllEvents()...');
         await loadAllEvents();
+        log('DEBUG syncPull: loadAllEvents() completed successfully');
       } catch (e) {
         _logStateChange('First reload failed, retrying once', e);
+        log('DEBUG syncPull: First loadAllEvents() failed: $e, retrying once');
         // Retry once before giving up
         try {
           await loadAllEvents();
+          log('DEBUG syncPull: loadAllEvents() retry succeeded');
         } catch (retryError) {
           _logStateChange('Reload retry also failed', retryError);
+          log('DEBUG syncPull: loadAllEvents() retry also failed: $retryError');
           rethrow;
         }
       }
 
+      log(
+        'DEBUG syncPull: _allEvents.length AFTER reload = ${_allEvents.length}',
+      );
+      if (_allEvents.isNotEmpty) {
+        log(
+          'DEBUG syncPull: Events after reload: ${_allEvents.map((e) => '${e.title} (${e.filename})').join(', ')}',
+        );
+      } else {
+        log('DEBUG syncPull: WARNING - No events loaded after pull!');
+      }
       _logStateChange('Loaded events after pull', _allEvents.length);
       // _refreshCounter incremented in loadAllEvents
     } catch (e) {
